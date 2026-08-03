@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kevin Zoss — the 60-second version</title>
+  <meta name="description" content="Head of Media at Lazy Boy Agency. AI-first operator. Founder of small weird things. The fast facts." />
+  <meta property="og:title" content="Kevin Zoss — the 60-second version" />
+  <meta property="og:description" content="Media operator. AI-first. Founder of small weird things." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://kyzoss.github.io/about.html" />
+  <meta property="og:image" content="https://kyzoss.github.io/assets/og-card.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0B0B0E; --ink: #FAFAF8; --ink-soft: #C9C9CE; --muted: #8B8B94;
+      --red: #D80707; --red-soft: #FF4D3D; --navy: #191D3F;
+      --hairline: rgba(250,250,248,.14);
+      --display: "Archivo Black", "Arial Black", sans-serif;
+      --sans: "Inter", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    ::selection { background: var(--red); color: #fff; }
+    .wrap { max-width: 1020px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 48px); }
+
+    .nav { position: sticky; top: 0; z-index: 50; background: rgba(11,11,14,.92); border-bottom: 1px solid var(--hairline); }
+    .nav-in { display: flex; align-items: center; justify-content: space-between; min-height: 60px; gap: 16px; }
+    .nav a { text-decoration: none; }
+    .nav-name { font-family: var(--display); font-size: 14px; letter-spacing: .06em; color: var(--ink); text-transform: uppercase; }
+    .nav-name b { color: var(--red-soft); }
+    .nav-back { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--red-soft); }
+
+    section { padding: clamp(56px, 9vw, 104px) 0; border-bottom: 1px solid var(--hairline); }
+    .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--red-soft); margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+    .eyebrow::after { content: ""; flex: 0 0 44px; height: 3px; background: var(--red); }
+    h1, h2 { font-family: var(--display); text-transform: uppercase; letter-spacing: -0.005em; line-height: 1.02; text-wrap: balance; }
+    h1 { font-size: clamp(36px, 7vw, 72px); margin-bottom: 22px; max-width: 16ch; }
+    h1 em { font-style: normal; color: var(--red-soft); }
+    h2 { font-size: clamp(24px, 3.6vw, 38px); margin-bottom: 28px; }
+    .lede { font-size: clamp(16.5px, 2vw, 19px); color: var(--ink-soft); max-width: 62ch; }
+    .lede b { color: var(--ink); }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .card { background: #101018; border: 1px solid var(--hairline); border-radius: 8px; padding: 24px; }
+    .card h3 { font-family: var(--display); font-size: 16px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: .02em; }
+    .card h3 span { color: var(--red-soft); }
+    .card p { font-size: 14px; color: var(--ink-soft); }
+    .card .tag { display: inline-block; margin-top: 12px; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--hairline); border-radius: 99px; padding: 4px 10px; }
+
+    .worklist { display: flex; flex-direction: column; }
+    .workrow { display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 10px 32px; padding: 20px 0; border-top: 1px solid var(--hairline); }
+    .workrow:last-child { border-bottom: 1px solid var(--hairline); }
+    .workrow b { font-family: var(--display); font-size: 15px; text-transform: uppercase; letter-spacing: .02em; }
+    .workrow p { font-size: 14.5px; color: var(--ink-soft); }
+    @media (max-width: 640px) { .workrow { grid-template-columns: 1fr; } }
+
+    .os li { list-style: none; padding: 16px 0 16px 34px; position: relative; border-top: 1px solid var(--hairline); font-size: clamp(15px, 1.9vw, 17px); color: var(--ink-soft); max-width: 66ch; }
+    .os li:last-child { border-bottom: 1px solid var(--hairline); }
+    .os li::before { content: "→"; position: absolute; left: 0; color: var(--red-soft); font-weight: 700; }
+    .os li b { color: var(--ink); }
+
+    .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 30px; }
+    .btn { display: inline-flex; align-items: center; text-decoration: none; font-size: 15px; font-weight: 700; padding: 15px 28px; border-radius: 4px; text-transform: uppercase; letter-spacing: .04em; transition: all .15s; }
+    .btn-primary { background: var(--red); color: #fff; }
+    .btn-primary:hover { background: var(--red-soft); }
+    .btn-ghost { color: var(--ink); border: 1.5px solid var(--hairline); }
+    .btn-ghost:hover { border-color: var(--red-soft); color: var(--red-soft); }
+
+    footer { padding: 26px 0 40px; font-size: 12.5px; color: var(--muted); }
+    footer a { color: var(--red-soft); text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap nav-in">
+      <a class="nav-name" href="index.html">KEVIN <b>ZOSS</b></a>
+      <a class="nav-back" href="index.html">← Scroll the empire</a>
+    </div>
+  </nav>
+
+  <header>
+    <section class="wrap">
+      <p class="eyebrow">The 60-second version</p>
+      <h1>Media operator. AI-first. Builder of <em>small weird things.</em></h1>
+      <p class="lede">I'm Kevin Zoss — <b>Head of Media and co-founder at Lazy Boy Agency</b> in Los Angeles. I plan and buy media for brands that want to show up in culture, and I run an AI operation that most engineering teams would envy: agent companies that build my tools, write my reports, and ship while I sleep.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="mailto:kevin@lazyboyagency.com">Work with me</a>
+        <a class="btn btn-ghost" href="https://lazyboyagency.com" target="_blank" rel="noopener">Lazy Boy Agency</a>
+      </div>
+    </section>
+  </header>
+
+  <main>
+    <section>
+      <div class="wrap">
+        <p class="eyebrow">What I do</p>
+        <h2>Three jobs, one operator</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Media <span>at scale</span></h3>
+            <p>Strategy, planning, and buying across TV, digital, social, OOH, and cinema. Reach and frequency math, vendor negotiation, and plans that survive contact with reality.</p>
+            <span class="tag">Lazy Boy Agency</span>
+          </div>
+          <div class="card">
+            <h3>AI <span>operations</span></h3>
+            <p>Five-agent AI companies with real org charts, escalation rules, and verification gates. They build internal tools, run seeding programs, and open pull requests overnight.</p>
+            <span class="tag">The agent factory</span>
+          </div>
+          <div class="card">
+            <h3>Ventures <span>in the lab</span></h3>
+            <p>A kids' physical-therapy game, a print-on-demand brand, a car-buying concierge, a traveling tattoo studio. Small bets built fast with AI teams, shipped for real.</p>
+            <span class="tag">The portfolio</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="eyebrow">Selected work</p>
+        <h2>Brands I put in culture</h2>
+        <div class="worklist">
+          <div class="workrow"><b>Electrolit</b><p>Multi-channel campaigns around the biggest sporting moments on earth — OOH, TV, cinema, social, and retail, planned and bought end to end.</p></div>
+          <div class="workrow"><b>Square</b><p>Creator-led fintech launch with one of the biggest names on the internet, from strategy through trafficking.</p></div>
+          <div class="workrow"><b>Dr. Squatch</b><p>Creator programs and media that keep a challenger grooming brand loud, weird, and growing.</p></div>
+          <div class="workrow"><b>Warby Parker</b><p>Influencer-first eyewear work built on taste and speed.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="eyebrow">The operating system</p>
+        <h2>How I actually work</h2>
+        <ul class="os">
+          <li><b>Agent teams, not chat windows.</b> My AI runs as five-agent companies with lanes, worklogs, and a boss agent that reports to me.</li>
+          <li><b>Verification before "done."</b> Every agent has to prove its work ran — tests, checks, receipts — or say "unverified." No confident nonsense.</li>
+          <li><b>Loops over prompts.</b> Recurring work becomes a scheduled loop: weekly reviews, campaign pacing, portfolio health. It runs whether I remember or not.</li>
+          <li><b>Ship small, ship real.</b> Every venture gets a live product fast, then earns its next feature. Demos don't count.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section style="border-bottom:none">
+      <div class="wrap">
+        <p class="eyebrow">Contact</p>
+        <h2>Building something that needs attention?</h2>
+        <p class="lede">Media that shows up in culture, AI operations that actually ship, or a weird idea that deserves to exist — I'm easy to reach.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="mailto:kevin@lazyboyagency.com">kevin@lazyboyagency.com</a>
+          <a class="btn btn-ghost" href="index.html">Scroll the empire →</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">Kevin Zoss · Los Angeles · Head of Media, <a href="https://lazyboyagency.com" target="_blank" rel="noopener">Lazy Boy Agency</a> · Site built end to end by an AI agent, directed by Kevin.</div>
+  </footer>
+
+</body>
+</html>
