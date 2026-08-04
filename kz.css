@@ -109,10 +109,10 @@ body {
 }
 .scene-eyebrow {
   font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
-  color: var(--red-soft); margin-bottom: 16px;
+  color: var(--scene-accent, var(--red-soft)); margin-bottom: 16px;
   display: flex; align-items: center; gap: 12px;
 }
-.scene-eyebrow::before { content: ""; width: 34px; height: 3px; background: var(--red); }
+.scene-eyebrow::before { content: ""; width: 34px; height: 3px; background: var(--scene-accent, var(--red)); }
 .scene-title {
   font-family: var(--display); text-transform: uppercase;
   font-size: clamp(34px, 6.2vw, 78px); line-height: 0.98; letter-spacing: -0.005em;
@@ -159,3 +159,15 @@ body {
 .j-static .scene-bg { position: absolute; transform: none; }
 .j-static .kz-hint, .j-static .kz-rail { display: none; }
 @media (prefers-reduced-motion: reduce) { .kz-hint::after { animation: none; } }
+
+
+/* ---------- narrative (journey) variant ---------- */
+.journey .scene-title {
+  font-family: "Fraunces", Georgia, serif; font-style: italic; font-weight: 600;
+  text-transform: none; letter-spacing: -0.015em; line-height: 1.04;
+  font-size: clamp(36px, 6.4vw, 84px); max-width: 17ch;
+}
+.journey .scene-title em { font-style: italic; color: var(--scene-accent, var(--red-soft)); }
+.journey .scene-body { font-size: clamp(15.5px, 1.9vw, 18.5px); max-width: 56ch; }
+.journey .kz-hint::after { color: var(--ink); }
+.journey .kz-rail a.active .dot { background: var(--ink); border-color: var(--ink); }
