@@ -76,7 +76,11 @@
       var EW = 0.20;
       var entryEdge = (i === 0) ? 0 : clamp01(1 - p / EW);
       var exitEdge = (i === N - 1) ? 0 : clamp01((p - (1 - EW)) / EW);
-      st.style.setProperty("--edge", Math.max(entryEdge, exitEdge).toFixed(4));
+      var edge = Math.max(entryEdge, exitEdge);
+      st.style.setProperty("--edge", edge.toFixed(4));
+      /* Gate the costly passes: no blur/bloom layers at all mid-scene. */
+      var seam = edge > 0.01;
+      if (seam !== st.classList.contains("is-seam")) st.classList.toggle("is-seam", seam);
 
       var cin = (i === 0) ? 1 : clamp01((p - 0.10) / 0.20);
       var cout = (i === N - 1) ? 1 : 1 - clamp01((p - 0.90) / 0.10);

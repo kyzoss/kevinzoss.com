@@ -99,11 +99,19 @@ body {
     translate3d(calc(var(--driftx, 0px) * var(--pe, 1)),
                 calc(var(--drifty, -3vh) * var(--pe, 1)), 0)
     rotate(calc(var(--rot, 0deg) * var(--pe, 1)));
+  filter: saturate(1.05);
+  will-change: transform;
+}
+/* Accent bloom: the world flashes its own color as you punch through the seam. */
+/* Seam-only cost: the blur + bloom are the expensive passes, so they only
+   exist while .is-seam is on (JS adds it when --edge > 0.01). Mid-scene —
+   i.e. the whole time the copy is being read — the compositor does nothing
+   but a cheap transform. */
+.scene-stage.is-seam .scene-bg {
   filter: saturate(calc(1.05 + var(--edge, 0) * 0.35)) blur(calc(var(--edge, 0) * 4px));
   will-change: transform, filter;
 }
-/* Accent bloom: the world flashes its own color as you punch through the seam. */
-.scene-stage::after {
+.scene-stage.is-seam::after {
   content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none;
   background: radial-gradient(ellipse at 50% 55%,
     color-mix(in srgb, var(--scene-accent, #FF4D3D) 55%, transparent) 0%,
