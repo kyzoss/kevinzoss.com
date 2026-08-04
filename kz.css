@@ -118,7 +118,7 @@ body {
   font-size: clamp(34px, 6.2vw, 78px); line-height: 0.98; letter-spacing: -0.005em;
   color: var(--ink); margin-bottom: 18px; max-width: 18ch; text-wrap: balance;
 }
-.scene-title em { font-style: normal; color: var(--red-soft); }
+.scene-title em { font-style: normal; color: var(--scene-accent, var(--red-soft)); }
 .scene-body {
   font-size: clamp(15px, 1.8vw, 18px); color: var(--ink-soft);
   max-width: 58ch; line-height: 1.6; margin-bottom: 18px;
