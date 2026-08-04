@@ -68,6 +68,16 @@
       st.style.setProperty("--p", p.toFixed(4));
       st.style.setProperty("--pe", ease(p).toFixed(4));
 
+      /* --edge: how deep we are into a seam (1 at the very start/end of a
+         scene's window, 0 mid-scene). Drives the dive-through — motion blur,
+         accent bloom, and the extra scale kick — so the drama lands exactly
+         where two worlds cross and never while a scene is being read.
+         The first scene has no entry seam; the last has no exit seam. */
+      var EW = 0.20;
+      var entryEdge = (i === 0) ? 0 : clamp01(1 - p / EW);
+      var exitEdge = (i === N - 1) ? 0 : clamp01((p - (1 - EW)) / EW);
+      st.style.setProperty("--edge", Math.max(entryEdge, exitEdge).toFixed(4));
+
       var cin = (i === 0) ? 1 : clamp01((p - 0.10) / 0.20);
       var cout = (i === N - 1) ? 1 : 1 - clamp01((p - 0.90) / 0.10);
       st.style.setProperty("--copy", Math.min(cin, cout).toFixed(3));
