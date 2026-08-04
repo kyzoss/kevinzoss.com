@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Kevin Zoss — food counters to a city of screens</title>
+  <meta name="description" content="Fly through five systems: a food counter and a food-recovery nonprofit, websites in Columbus, the agency years across Los Angeles, mobile ad tech in Venice, and the backyard where it all ships now." />
+  <meta property="og:title" content="Kevin Zoss — food counters to a city of screens" />
+  <meta property="og:description" content="Scroll to fly through the five worlds: Solon, the Horseshoe, Los Angeles, Venice, and now." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://kevinzoss.com/" />
+  <meta property="og:image" content="https://kevinzoss.com/assets/og-card.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://kevinzoss.com/assets/og-card.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* LBA night theme for the engine */
+    :root, .sw-root {
+      --sw-bg: #0B0B0E;            /* == the dioramas' background, so posters are seamless */
+      --sw-ink: #FAFAF8;
+      --sw-ink-soft: #C9C9CE;
+      --sw-accent: #FF3B2F;        /* per-scene accents override this at runtime */
+      --sw-font-display: "Archivo Black", "Arial Black", sans-serif;
+      --sw-font-body: "Inter", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    }
+    .sw-copy__title { text-transform: uppercase; }
+    /* MOBILE: the engine uses object-fit:cover, which on a portrait phone crops a
+       wide diorama down to its middle slice — the storefronts on both edges vanish.
+       Every scene here floats on solid #0B0B0E and the page bg is the same colour,
+       so `contain` shows the entire scene and the letterbox bars are invisible. */
+    @media (max-width: 860px) {
+      .sw-scene__video, .sw-scene__still { object-fit: contain !important; object-position: center 45% !important; }
+    }
+    .alt-links {
+      position: fixed; z-index: 200;
+      right: calc(16px + env(safe-area-inset-right, 0px));
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      font-family: "Inter", sans-serif; font-size: 12px; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+    .alt-links a {
+      color: #FAFAF8; text-decoration: none; border: 1.5px solid rgba(250,250,248,.22);
+      border-radius: 99px; padding: 9px 15px; background: rgba(11,11,14,.6);
+    }
+    .alt-links a:hover { color: #FF4D3D; border-color: #FF4D3D; }
+  </style>
+</head>
+<body>
+  <div id="top"></div>
+  <nav class="alt-links" aria-label="Alternate version">
+    <a href="about.html">The 60-second version →</a>
+  </nav>
+  <div id="world"></div>
+
+  <script src="scrub-engine.js"></script>
+  <script>
+    mountScrollWorld(document.getElementById('world'), {
+      brand: { name: 'KEVIN ZOSS', href: '#top' },
+      hint: 'scroll the road',
+      nav: true,
+      atmosphere: true,
+      diveScroll: 1.7,
+      connScroll: 1.1,
+      sections: [
+        {
+          id: 'cleveland', label: 'Cleveland',
+          still: 'assets/h2-cleveland.webp', clip: 'assets/vid/cleveland.mp4', clipMobile: 'assets/vid/cleveland-m.mp4',
+          accent: '#F0A93C', scroll: 2.0, linger: 0.45,
+          eyebrow: 'Chapter one · Solon, Ohio',
+          title: 'It started behind a food counter.',
+          body: 'I learned how a business actually runs from behind a counter — inventory, rushes, waste. Then I built Feed Cleveland, a nonprofit that routed surplus food from restaurants and grocers to food banks. First system I ever built, and it set the pattern for everything after: find what’s being wasted, design the route, move what matters.',
+          tags: [],
+        },
+        {
+          id: 'shoe', label: 'The Shoe',
+          still: 'assets/h2-shoe.webp', clip: 'assets/vid/shoe.mp4', clipMobile: 'assets/vid/shoe-m.mp4',
+          accent: '#FF3B2F', linger: 0.4,
+          eyebrow: 'Chapter two · Columbus',
+          title: '100,000 people. One feeling.',
+          body: 'Game on the line, and the whole place comes apart at once — attention at full volume. Weeknights I was building the other side of it: a Cavs site and a music blog that aggregated everything I could get my hands on. Teaching myself how an audience gets built instead of just standing in one.',
+          tags: ['theaustincarr.com', 'Industrial Filth'],
+        },
+        {
+          id: 'la', label: 'Los Angeles',
+          still: 'assets/h4-la.webp', clip: 'assets/vid/la.mp4', clipMobile: 'assets/vid/la-m.mp4',
+          accent: '#FF7A5C', scroll: 1.9, linger: 0.4,
+          eyebrow: 'Chapter three · Hermosa Beach → Los Angeles',
+          title: 'Then the whole city opened up.',
+          body: 'Started in a Hermosa apartment and ended up working across the whole basin. New horizons, agency side — learning from the inside how the largest brands on earth actually operate, then spending my days reinventing how they did it with mobile technology most of them hadn’t figured out yet.',
+          tags: ['Toyota', 'Comedy Central', 'Corona', 'Rdio'],
+        },
+        {
+          id: 'venice', label: 'Venice',
+          still: 'assets/h2-venice.webp', clip: 'assets/vid/venice.mp4', clipMobile: 'assets/vid/venice-m.mp4',
+          accent: '#FF4FA3', linger: 0.4,
+          eyebrow: 'Chapter four · Venice',
+          title: 'We built ad tech in a beach house.',
+          body: 'Mobile Theory, then Aki — building mobile ad tech out of Venice beach houses, back when a startup here was a rented house with the boardwalk out front and the skate bowl below. We sold Aki. That’s the chapter where I stopped renting other people’s systems and started building my own.',
+          tags: ['Mobile Theory', 'Aki', 'Acquired'],
+        },
+        {
+          id: 'yard', label: 'El Segundo',
+          still: 'assets/h4-yard.webp', clip: 'assets/vid/yard.mp4', clipMobile: 'assets/vid/yard-m.mp4',
+          accent: '#FFB020', scroll: 2.2, linger: 0.5,
+          eyebrow: 'Chapter five · El Segundo',
+          title: 'These days it ships without me.',
+          body: 'Co-founded Lazy Boy Agency, running media and technology — the buys out front, the systems underneath. AI teams ship overnight: client tools, and side projects like Stretch Quest, a game that gets kids to actually do their physical therapy. The rest of the time I’m in this yard with my family, which is the whole point of building things that run without you.',
+          tags: ['Lazy Boy Agency', 'stretchquest.com'],
+          cta: {
+            primary: { label: 'Work with me', href: 'mailto:kevin@lazyboyagency.com' },
+            secondary: { label: 'The 60-second version', href: 'about.html' },
+          },
+        },
+      ],
+      connectors: [
+        'assets/vid/conn1.mp4',
+        'assets/vid/conn2.mp4',
+        'assets/vid/conn3.mp4',
+        'assets/vid/conn4.mp4',
+      ],
+      connectorsMobile: [
+        'assets/vid/conn1-m.mp4',
+        'assets/vid/conn2-m.mp4',
+        'assets/vid/conn3-m.mp4',
+        'assets/vid/conn4-m.mp4',
+      ],
+    });
+  </script>
+</body>
+</html>
