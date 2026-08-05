@@ -198,6 +198,11 @@ function mountScrollWorld(container, config) {
   function loadClip(s) {
     // Under prefers-reduced-motion we never load the clips at all — the stills stay up
     // and simply cross-dissolve as you scroll. No scrubbed video motion, no decode cost.
+    // Phones: don't load video at all. Scrubbed video on iOS depends on gesture
+    // priming + blob decoding + not being in Low Power Mode, and any one of those
+    // failing silently leaves a frozen poster. The still path below gives a real
+    // camera move for ~2MB total and cannot fail that way.
+    if (window.__KZ_STILLS_ON_PHONE && isMobile()) return;
     if (reduce || s.loading || !s.clip) return;
     s.loading = true;
     // Serve the lighter mobile encode on phones when one was provided.
@@ -248,8 +253,14 @@ function mountScrollWorld(container, config) {
       s.el.style.opacity = op; s.visible = op > 0.001;
       s.el.style.zIndex = (i === ci) ? '120' : String(100 + Math.round(op * 10));
       if (!s.hasClip || !s.ready) {
-        const sc = reduce ? 1 : 1.03 + local * 0.14;
-        s.img.style.transform = `translateX(${stageX - 2}vw) scale(${sc.toFixed(3)})`;
+        // The still IS the camera when there's no clip (always true on phones now).
+        // Bigger travel than the old 1.03->1.17 nudge so it reads as a dive, with a
+        // little vertical drift. prefers-reduced-motion still pins it flat.
+        const ease = local < 0.5 ? 4*local*local*local : 1 - Math.pow(-2*local + 2, 3)/2;
+        const sc = reduce ? 1 : 0.98 + ease * 0.20;
+        const dy = reduce ? 0 : (0.5 - ease) * 3;
+        s.img.style.transform =
+          `translate(${stageX - 2}vw, ${dy.toFixed(2)}vh) scale(${sc.toFixed(3)})`;
       }
     }
 

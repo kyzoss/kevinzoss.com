@@ -187,6 +187,10 @@
 
   <script src="scrub-engine.js"></script>
   <script>
+    // Phones render the worlds as animated stills rather than scrubbed video.
+    // See scrub-engine.js loadClip() for why.
+    window.__KZ_STILLS_ON_PHONE = true;
+
     mountScrollWorld(document.getElementById('world'), {
       brand: { name: 'KEVIN ZOSS', href: '#top' },
       hint: 'scroll the road',
@@ -258,6 +262,38 @@
         'assets/vid/conn4-m.mp4',
       ],
     });
+  </script>
+
+  <!-- Diagnostic overlay: append ?debug=1 to the URL. Costs nothing when absent. -->
+  <script>
+  (function(){
+    if (!/[?&]debug=1/.test(location.search)) return;
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;left:8px;top:8px;z-index:9999;max-width:calc(100vw - 16px);'
+      + 'background:rgba(0,0,0,.88);color:#0f0;font:11px/1.45 ui-monospace,Menlo,monospace;'
+      + 'padding:10px 12px;border:1px solid #0f0;border-radius:6px;white-space:pre;pointer-events:none';
+    document.body.appendChild(d);
+    function tick(){
+      var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var coarse = matchMedia('(hover: none) and (pointer: coarse)').matches;
+      var scenes = document.querySelectorAll('.sw-scene');
+      var vids   = document.querySelectorAll('.sw-scene video');
+      var shown  = document.querySelectorAll('.sw-scene.has-clip');
+      var img    = document.querySelector('.sw-scene__still');
+      var tf     = img ? getComputedStyle(img).transform : 'n/a';
+      d.textContent =
+        'viewport   ' + innerWidth + ' x ' + innerHeight + '\n' +
+        'REDUCE-MOT ' + (reduce ? 'ON  <-- this pins motion flat' : 'off') + '\n' +
+        'coarse ptr ' + coarse + '\n' +
+        'stills-mode ' + !!window.__KZ_STILLS_ON_PHONE + '\n' +
+        'scenes     ' + scenes.length + '\n' +
+        'videos     ' + vids.length + '  revealed ' + shown.length + '\n' +
+        'scrollY    ' + Math.round(scrollY) + ' / ' + document.documentElement.scrollHeight + '\n' +
+        'still xform ' + String(tf).slice(0, 46);
+      requestAnimationFrame(tick);
+    }
+    tick();
+  })();
   </script>
 </body>
 </html>
