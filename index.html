@@ -42,8 +42,11 @@
            unmasked contain box reads as a pasted rectangle. Feather it out. */
         -webkit-mask-image: radial-gradient(58% 17% at 50% 29%, #000 72%, transparent 100%);
                 mask-image: radial-gradient(58% 17% at 50% 29%, #000 72%, transparent 100%);
-        /* no layer promotion on phones: it was costing the poster its first paint */
-        will-change: auto !important;
+        /* Aim the camera above the band's centre (the 3:2 art occupies 14%-45% of
+           this portrait box). Anchoring high means the frame grows DOWN into the
+           screen as it zooms, so the deep end of the dive nearly fills it instead
+           of climbing off the top. */
+        transform-origin: 50% 17% !important;
       }
     }
     .alt-links {

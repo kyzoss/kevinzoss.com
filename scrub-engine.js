@@ -267,17 +267,31 @@ function mountScrollWorld(container, config) {
       s.el.style.zIndex = (i === ci) ? '120' : String(100 + Math.round(op * 10));
       if (!s.hasClip || !s.ready) {
         // The still IS the camera when there's no clip (always true on phones now).
-        // Bigger travel than the old 1.03->1.17 nudge so it reads as a dive, with a
-        // little vertical drift. prefers-reduced-motion still pins it flat.
+        // prefers-reduced-motion still pins it flat.
         const ease = local < 0.5 ? 4*local*local*local : 1 - Math.pow(-2*local + 2, 3)/2;
-        // Phones start under 1 so the push-in has room to travel without cropping
-        // the scene's outer edges once it passes full width — they letterbox the
-        // still (object-fit:contain), so a sub-1 scale costs nothing. Desktop
-        // stills are object-fit:cover and would reveal the sky at the edges, so
-        // they keep the tighter range.
+        // Phones fly the still the way the desktop clip flies the camera: an
+        // EXPONENTIAL push-in (perspective reads as exponential, not linear) from
+        // the establishing wide shot deep into the diorama. Connectors run the
+        // same curve backwards, so the next world pulls back out of the dive —
+        // a dive ends at PEAK and the connector picks it up there, which keeps
+        // the whole chain continuous across each crossfade.
+        // Desktop stills are only the pre-roll before the real clip and are
+        // object-fit:cover, so a sub-1 scale would show sky at the edges; they
+        // keep the old tight nudge.
         const mob = isMobile();
-        const sc = reduce ? 1 : (mob ? 0.94 : 0.98) + ease * 0.20;
-        const dy = reduce ? 0 : (0.5 - ease) * (mob ? 4 : 3);
+        const PEAK = 2.6;              // ~1.4x upscale of a 1920px source at 3x DPR
+        let sc, dy;
+        if (reduce) { sc = 1; dy = 0; }
+        else if (mob) {
+          // ^1.7 biases the dive late: the frame stays wide while the copy is
+          // being read, then accelerates hard on the way out of the chapter.
+          const t = Math.pow((s.kind === 'conn') ? 1 - ease : ease, 1.7);
+          sc = Math.pow(PEAK, t);
+          dy = (0.5 - t) * 3;
+        } else {
+          sc = 0.98 + ease * 0.20;
+          dy = (0.5 - ease) * 3;
+        }
         s.img.style.transform =
           `translate(${stageX - 2}vw, ${dy.toFixed(2)}vh) scale(${sc.toFixed(3)})`;
       }
