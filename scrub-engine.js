@@ -136,11 +136,24 @@ function mountScrollWorld(container, config) {
   [sky, scrollbar, topbar, stage, copylayer, route, hint, track].forEach(n => container.appendChild(n));
 
   // segment scenes
-  SEGMENTS.forEach(s => {
+  SEGMENTS.forEach((s, si) => {
     const scene = el('div', 'sw-scene'); scene.style.setProperty('--sw-accent', s.accent || '');
-    const img = el('img', 'sw-scene__still'); img.alt = ''; img.decoding = 'async'; img.loading = 'lazy';
+    const img = el('img', 'sw-scene__still'); img.alt = ''; img.decoding = 'async';
+    // lazy posters inside a position:fixed stage don't always get their
+    // intersection pass until the first scroll, which left phones staring at an
+    // empty world. Phones now use the stills AS the experience, so fetch them up
+    // front (1.9MB total); desktop only needs the first one eagerly.
+    img.loading = (isMobile() || si === 0) ? 'eager' : 'lazy';
     const poster = (isMobile() && s.stillM) ? s.stillM : s.still;
     if (poster) img.src = poster;
+    // will-change promotes this img to its own compositor layer before the poster
+    // has decoded, and the layer can miss its first raster — the scene then stays
+    // blank until an unrelated scroll invalidates it. That is the "static cards"
+    // bug on phones. Nudge opacity once on load to force the re-raster.
+    img.addEventListener('load', function () {
+      img.style.opacity = '0.999';
+      requestAnimationFrame(function () { img.style.opacity = ''; });
+    }, { once: true });
     scene.appendChild(img); stage.appendChild(scene);
     s.el = scene; s.img = img; s.video = null; s.hasClip = false;
     s.loading = false; s.ready = false; s.cur = 0; s.target = 0; s.visible = false;
@@ -257,8 +270,14 @@ function mountScrollWorld(container, config) {
         // Bigger travel than the old 1.03->1.17 nudge so it reads as a dive, with a
         // little vertical drift. prefers-reduced-motion still pins it flat.
         const ease = local < 0.5 ? 4*local*local*local : 1 - Math.pow(-2*local + 2, 3)/2;
-        const sc = reduce ? 1 : 0.98 + ease * 0.20;
-        const dy = reduce ? 0 : (0.5 - ease) * 3;
+        // Phones start under 1 so the push-in has room to travel without cropping
+        // the scene's outer edges once it passes full width — they letterbox the
+        // still (object-fit:contain), so a sub-1 scale costs nothing. Desktop
+        // stills are object-fit:cover and would reveal the sky at the edges, so
+        // they keep the tighter range.
+        const mob = isMobile();
+        const sc = reduce ? 1 : (mob ? 0.94 : 0.98) + ease * 0.20;
+        const dy = reduce ? 0 : (0.5 - ease) * (mob ? 4 : 3);
         s.img.style.transform =
           `translate(${stageX - 2}vw, ${dy.toFixed(2)}vh) scale(${sc.toFixed(3)})`;
       }

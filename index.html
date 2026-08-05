@@ -33,7 +33,18 @@
        Every scene here floats on solid #0B0B0E and the page bg is the same colour,
        so `contain` shows the entire scene and the letterbox bars are invisible. */
     @media (max-width: 860px) {
-      .sw-scene__video, .sw-scene__still { object-fit: contain !important; object-position: center 45% !important; }
+      .sw-scene__video, .sw-scene__still {
+        object-fit: contain !important;
+        /* sit the world in the top third so it never collides with the copy,
+           which is bottom-anchored on phones */
+        object-position: center 20% !important;
+        /* the dioramas are painted on pure black and the page is #0B0B0E, so an
+           unmasked contain box reads as a pasted rectangle. Feather it out. */
+        -webkit-mask-image: radial-gradient(58% 17% at 50% 29%, #000 72%, transparent 100%);
+                mask-image: radial-gradient(58% 17% at 50% 29%, #000 72%, transparent 100%);
+        /* no layer promotion on phones: it was costing the poster its first paint */
+        will-change: auto !important;
+      }
     }
     .alt-links {
       position: fixed; z-index: 200;
@@ -276,10 +287,16 @@
     function tick(){
       var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       var coarse = matchMedia('(hover: none) and (pointer: coarse)').matches;
-      var scenes = document.querySelectorAll('.sw-scene');
+      var scenes = Array.prototype.slice.call(document.querySelectorAll('.sw-scene'));
       var vids   = document.querySelectorAll('.sw-scene video');
       var shown  = document.querySelectorAll('.sw-scene.has-clip');
-      var img    = document.querySelector('.sw-scene__still');
+      // report the scene actually on screen, not scene 0
+      var top = null, best = -1;
+      scenes.forEach(function (sc) {
+        var o = parseFloat(getComputedStyle(sc).opacity) || 0;
+        if (o > best) { best = o; top = sc; }
+      });
+      var img    = top ? top.querySelector('.sw-scene__still') : null;
       var tf     = img ? getComputedStyle(img).transform : 'n/a';
       d.textContent =
         'viewport   ' + innerWidth + ' x ' + innerHeight + '\n' +
@@ -289,7 +306,7 @@
         'scenes     ' + scenes.length + '\n' +
         'videos     ' + vids.length + '  revealed ' + shown.length + '\n' +
         'scrollY    ' + Math.round(scrollY) + ' / ' + document.documentElement.scrollHeight + '\n' +
-        'still xform ' + String(tf).slice(0, 46);
+        'live scene ' + scenes.indexOf(top) + '  xform ' + String(tf).slice(0, 34);
       requestAnimationFrame(tick);
     }
     tick();
