@@ -47,6 +47,89 @@
       border-radius: 99px; padding: 9px 15px; background: rgba(11,11,14,.6);
     }
     .alt-links a:hover { color: #FF4D3D; border-color: #FF4D3D; }
+
+    /* ============ END SCREEN ============ */
+    .kz-end {
+      position: relative; z-index: 150; background: #0B0B0E;
+      border-top: 1px solid rgba(250,250,248,.10);
+      padding: clamp(72px, 12vh, 150px) clamp(20px, 5vw, 64px) clamp(40px, 6vh, 72px);
+      overflow: hidden; isolation: isolate;
+    }
+    .kz-end__glow {
+      position: absolute; inset: -30% -10% auto -10%; height: 90%; z-index: -1; pointer-events: none;
+      background: radial-gradient(ellipse at 50% 0%, rgba(255,59,47,.30) 0%, rgba(255,59,47,.06) 42%, transparent 70%);
+    }
+    .kz-end__in { max-width: 1120px; margin: 0 auto; }
+    .kz-end__eyebrow {
+      font-family: "Inter", sans-serif; font-size: 12px; font-weight: 700;
+      letter-spacing: .18em; text-transform: uppercase; color: #FF4D3D;
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+    .kz-end__eyebrow::before { content: ""; width: 40px; height: 3px; background: #D80707; }
+    .kz-end__title {
+      font-family: "Archivo Black", "Arial Black", sans-serif; text-transform: uppercase;
+      color: #FAFAF8; font-size: clamp(42px, 9vw, 118px); line-height: .92;
+      letter-spacing: -.02em; margin: 0 0 24px;
+    }
+    .kz-end__lede {
+      font-family: "Inter", sans-serif; color: #C9C9CE;
+      font-size: clamp(16px, 2vw, 19.5px); line-height: 1.6; max-width: 56ch; margin: 0 0 34px;
+    }
+    .kz-end__cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: clamp(48px, 8vh, 88px); }
+    .kz-end__btn {
+      font-family: "Inter", sans-serif; font-size: 14.5px; font-weight: 700;
+      letter-spacing: .04em; text-transform: uppercase; text-decoration: none;
+      color: #FAFAF8; border: 1.5px solid rgba(250,250,248,.22); border-radius: 4px;
+      padding: 16px 26px; transition: transform .15s, background .15s, color .15s, border-color .15s;
+    }
+    .kz-end__btn:hover { border-color: #FF4D3D; color: #FF4D3D; }
+    .kz-end__btn:active { transform: translateY(1px); }
+    .kz-end__btn--go {
+      background: #D80707; border-color: #D80707; color: #fff; text-transform: none;
+      font-size: 15.5px; letter-spacing: 0;
+    }
+    .kz-end__btn--go:hover { background: #FF3B2F; border-color: #FF3B2F; color: #fff; }
+
+    /* the journey, recapped as five thumbnails */
+    .kz-end__recap {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+      padding-bottom: clamp(32px, 5vh, 56px);
+    }
+    .kz-recap {
+      position: relative; display: block; text-decoration: none; border-radius: 6px;
+      overflow: hidden; border: 1px solid rgba(250,250,248,.12);
+      transition: transform .2s ease, border-color .2s ease;
+    }
+    .kz-recap:hover { transform: translateY(-4px); border-color: var(--c); }
+    .kz-recap img { display: block; width: 100%; aspect-ratio: 16/10; object-fit: cover; opacity: .58; transition: opacity .2s; }
+    .kz-recap:hover img { opacity: .92; }
+    .kz-recap b {
+      position: absolute; top: 8px; left: 10px;
+      font-family: "Archivo Black", sans-serif; font-size: 15px; color: var(--c);
+      text-shadow: 0 2px 10px #0B0B0E;
+    }
+    .kz-recap span {
+      position: absolute; bottom: 8px; left: 10px; right: 10px;
+      font-family: "Inter", sans-serif; font-size: 11.5px; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase; color: #FAFAF8;
+      text-shadow: 0 2px 10px #0B0B0E;
+    }
+    @media (max-width: 700px) {
+      .kz-end__recap { grid-template-columns: repeat(2, 1fr); }
+      .kz-recap:last-child { grid-column: 1 / -1; }
+      .kz-end__cta { flex-direction: column; align-items: stretch; }
+      .kz-end__btn { text-align: center; }
+    }
+
+    .kz-end__foot {
+      border-top: 1px solid rgba(250,250,248,.10); padding-top: 22px;
+      display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+      font-family: "Inter", sans-serif; font-size: 12.5px; color: #8B8B94;
+    }
+    .kz-end__foot a { color: #FF4D3D; text-decoration: none; font-weight: 600; }
+
+    /* the fixed pill would otherwise float over the end screen */
+    @media (min-width: 701px) { .kz-end { padding-bottom: 96px; } }
   </style>
 </head>
 <body>
@@ -55,6 +138,52 @@
     <a href="about.html">The 60-second version →</a>
   </nav>
   <div id="world"></div>
+
+  <!-- ============ END SCREEN ============ -->
+  <section class="kz-end" id="end">
+    <div class="kz-end__glow" aria-hidden="true"></div>
+    <div class="kz-end__in">
+      <p class="kz-end__eyebrow">Five chapters · one long play</p>
+      <h2 class="kz-end__title">Let's build<br />the next one.</h2>
+      <p class="kz-end__lede">
+        Media that actually has to perform. Systems that keep running when nobody's watching.
+        If that's the problem on your desk, I'm easy to reach.
+      </p>
+      <div class="kz-end__cta">
+        <a class="kz-end__btn kz-end__btn--go" href="mailto:kevin@lazyboyagency.com">kevin@lazyboyagency.com</a>
+        <a class="kz-end__btn" href="about.html">The 60-second version</a>
+        <a class="kz-end__btn" href="https://lazyboyagency.com" target="_blank" rel="noopener">Lazy Boy Agency</a>
+      </div>
+
+      <div class="kz-end__recap" aria-label="The road, recapped">
+        <a class="kz-recap" href="#cleveland" style="--c:#F0A93C">
+          <img src="assets/h2-cleveland.webp" alt="Solon, Ohio" loading="lazy" />
+          <b>01</b><span>Solon</span>
+        </a>
+        <a class="kz-recap" href="#shoe" style="--c:#FF3B2F">
+          <img src="assets/h2-shoe.webp" alt="Columbus" loading="lazy" />
+          <b>02</b><span>Columbus</span>
+        </a>
+        <a class="kz-recap" href="#la" style="--c:#FF7A5C">
+          <img src="assets/h4-la.webp" alt="Los Angeles" loading="lazy" />
+          <b>03</b><span>Los Angeles</span>
+        </a>
+        <a class="kz-recap" href="#venice" style="--c:#FF4FA3">
+          <img src="assets/h2-venice.webp" alt="Venice" loading="lazy" />
+          <b>04</b><span>Venice</span>
+        </a>
+        <a class="kz-recap" href="#yard" style="--c:#FFB020">
+          <img src="assets/h4-yard.webp" alt="El Segundo" loading="lazy" />
+          <b>05</b><span>El Segundo</span>
+        </a>
+      </div>
+
+      <footer class="kz-end__foot">
+        <span>Kevin Zoss · Los Angeles · Head of Media &amp; Technology, Lazy Boy Agency</span>
+        <span>Every world on this page was generated by AI, directed by me. <a href="stills.html">Lightweight version</a></span>
+      </footer>
+    </div>
+  </section>
 
   <script src="scrub-engine.js"></script>
   <script>

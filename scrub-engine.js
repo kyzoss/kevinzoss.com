@@ -209,14 +209,25 @@ function mountScrollWorld(container, config) {
         v.muted = true; v.playsInline = true; v.preload = 'auto';
         v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
         v.src = URL.createObjectURL(blob);
-        v.addEventListener('loadedmetadata', () => { s.ready = true; read(); });
+        v.addEventListener('loadedmetadata', () => {
+          s.ready = true;
+          // Kick one deliberate seek so the 'seeked' handler below always runs.
+          // Without this a scene entered at local progress ~0 never crosses the
+          // eps threshold in raf(), so it never fires 'seeked', never gets
+          // .has-clip, and sits frozen on its still poster (phones especially).
+          try { if (v.currentTime < 0.02) v.currentTime = 0.05; } catch (e) {}
+          read();
+        });
         // Reveal the video (hide the still poster) only once a real frame has
         // painted — on iOS a seeked-but-never-played muted video stays blank, so
         // hiding the still on metadata alone would flash an empty scene.
         v.addEventListener('seeked', () => { s.el.classList.add('has-clip'); }, { once: true });
-        v.addEventListener('loadeddata', () => { try { v.pause(); } catch (e) {} if (userReady) primeVideo(v); });
+        v.addEventListener('loadeddata', () => { try { v.pause(); } catch (e) {} primeVideo(v); });
         s.el.appendChild(v); s.video = v; s.hasClip = true;
-      }).catch(() => { s.loading = false; });
+      }).catch(() => {
+        s.loading = false;
+        if (!s._retried) { s._retried = true; setTimeout(() => loadClip(s), 1200); }
+      });
   }
 
   function read() {
@@ -227,7 +238,8 @@ function mountScrollWorld(container, config) {
 
     for (let i = 0; i < NSEG; i++) {
       const s = SEGMENTS[i];
-      if (y > s.start - 1.6 * vh && y < s.end + 1.6 * vh) loadClip(s);
+      const pre = isMobile() ? 3.0 : 1.6;   // phones need a longer runway to decode
+      if (y > s.start - pre * vh && y < s.end + pre * vh) loadClip(s);
       const local = clamp((y - s.start) / (s.end - s.start), 0, 1);
       s.target = s.linger ? lingerEase(local, s.linger) : local;
       let outside = 0;
