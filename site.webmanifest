@@ -1,0 +1,14 @@
+{
+  "name": "Kevin Zoss",
+  "short_name": "Zoss",
+  "description": "Five worlds, one scroll.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0B0E",
+  "theme_color": "#0B0B0E",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ]
+}

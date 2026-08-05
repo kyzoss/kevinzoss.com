@@ -158,6 +158,13 @@ body {
   color: var(--ink); border: 1px solid var(--hairline); border-radius: 99px;
   padding: 6px 13px; background: rgba(11,11,14,.45);
 }
+/* Employer row above the brand chips: outlined + accent so the two rows read as
+   a hierarchy rather than one long list. */
+.scene-tags--lead { margin-bottom: 9px; }
+.scene-tags--lead span {
+  color: var(--scene-accent, var(--red-soft)); background: transparent;
+  border-color: color-mix(in srgb, var(--scene-accent, var(--red-soft)) 45%, transparent);
+}
 .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
 .btn {
   display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
