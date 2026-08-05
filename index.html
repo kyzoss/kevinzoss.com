@@ -208,11 +208,8 @@
     </div>
   </section>
 
-  <script src="scrub-engine.js?v=abfbc793"></script>
+  <script src="scrub-engine.js?v=e7689518"></script>
   <script>
-    // Phones render the worlds as animated stills rather than scrubbed video.
-    // See scrub-engine.js loadClip() for why.
-    window.__KZ_STILLS_ON_PHONE = true;
 
     mountScrollWorld(document.getElementById('world'), {
       brand: { name: 'KEVIN ZOSS', href: '#top' },
@@ -225,6 +222,7 @@
         {
           id: 'cleveland', label: 'Cleveland',
           still: 'assets/h2-cleveland.webp', clip: 'assets/vid/cleveland.mp4', clipMobile: 'assets/vid/cleveland-m.mp4',
+          seq: 'assets/seq/cleveland/', seqCount: 48,
           accent: '#F0A93C', scroll: 2.0, linger: 0.45,
           eyebrow: 'Chapter one · Solon, Ohio',
           title: 'It started behind a food counter.',
@@ -234,6 +232,7 @@
         {
           id: 'shoe', label: 'The Shoe',
           still: 'assets/h2-shoe.webp', clip: 'assets/vid/shoe.mp4', clipMobile: 'assets/vid/shoe-m.mp4',
+          seq: 'assets/seq/shoe/', seqCount: 48,
           accent: '#FF3B2F', linger: 0.4,
           eyebrow: 'Chapter two · Columbus',
           title: '100,000 people. One feeling.',
@@ -244,6 +243,7 @@
         {
           id: 'la', label: 'Los Angeles',
           still: 'assets/h4-la.webp', clip: 'assets/vid/la.mp4', clipMobile: 'assets/vid/la-m.mp4',
+          seq: 'assets/seq/la/', seqCount: 48,
           accent: '#FF7A5C', scroll: 1.9, linger: 0.4,
           eyebrow: 'Chapter three · Hermosa Beach → Los Angeles',
           title: 'The big leagues.',
@@ -254,6 +254,7 @@
         {
           id: 'venice', label: 'Venice',
           still: 'assets/h2-venice.webp', clip: 'assets/vid/venice.mp4', clipMobile: 'assets/vid/venice-m.mp4',
+          seq: 'assets/seq/venice/', seqCount: 48,
           accent: '#FF4FA3', linger: 0.4,
           eyebrow: 'Chapter four · Venice',
           title: 'We built ad tech in a beach house.',
@@ -263,6 +264,7 @@
         {
           id: 'yard', label: 'El Segundo',
           still: 'assets/h4-yard.webp', clip: 'assets/vid/yard.mp4', clipMobile: 'assets/vid/yard-m.mp4',
+          seq: 'assets/seq/yard/', seqCount: 48,
           accent: '#FFB020', scroll: 2.2, linger: 0.5,
           eyebrow: 'Chapter five · El Segundo',
           title: 'These days it ships without me.',
@@ -286,6 +288,8 @@
         'assets/vid/conn3-m.mp4',
         'assets/vid/conn4-m.mp4',
       ],
+      sequences: ['assets/seq/conn1/','assets/seq/conn2/','assets/seq/conn3/','assets/seq/conn4/'],
+      sequenceCounts: [32, 32, 32, 32],
     });
   </script>
 
@@ -316,7 +320,7 @@
         'viewport   ' + innerWidth + ' x ' + innerHeight + '\n' +
         'REDUCE-MOT ' + (reduce ? 'ON  <-- this pins motion flat' : 'off') + '\n' +
         'coarse ptr ' + coarse + '\n' +
-        'stills-mode ' + !!window.__KZ_STILLS_ON_PHONE + '\n' +
+        'frames     ' + document.querySelectorAll('.sw-scene img[src*="/seq/"]').length + ' of ' + scenes.length + ' scenes\n' +
         'scenes     ' + scenes.length + '\n' +
         'videos     ' + vids.length + '  revealed ' + shown.length + '\n' +
         'scrollY    ' + Math.round(scrollY) + ' / ' + document.documentElement.scrollHeight + '\n' +

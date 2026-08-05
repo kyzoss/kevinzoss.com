@@ -29,6 +29,8 @@
        ],
        connectors: [clipUrl, …],          // length = sections.length - 1 (nulls allowed)
        connectorsMobile: [clipUrl, …],    // optional lighter connectors for phones (same length)
+       sequences: [dirUrl, …],            // optional per-connector phone frame sequences
+       sequenceCounts: [n, …],            // frame count for each of those
 
    MOBILE (the clipMobile/connectorsMobile variants are the opt-in mobile version;
    the rest of the phone handling below is always on)
@@ -76,6 +78,8 @@ function mountScrollWorld(container, config) {
   const SECTIONS = config.sections || [];
   const CONNECTORS = config.connectors || [];
   const CONNECTORS_M = config.connectorsMobile || [];
+  const SEQS = config.sequences || [];              // phone frame sequences, per connector
+  const SEQ_N = config.sequenceCounts || [];
   const DIVE_W = config.diveScroll || 1.3;
   const CONN_W = config.connScroll || 0.9;
   const CROSSFADE = (config.crossfade != null) ? config.crossfade : 0.12;  // seam dissolve width (vh)
@@ -89,6 +93,7 @@ function mountScrollWorld(container, config) {
   const SEGMENTS = [];
   SECTIONS.forEach((s, i) => {
     const dive = { kind: 'dive', si: i, clip: s.clip, clipM: s.clipMobile, still: s.still, stillM: s.stillMobile,
+                   seq: s.seq, seqCount: s.seqCount,
                    accent: s.accent, w: s.scroll || DIVE_W, linger: s.linger || 0 };
     SEGMENTS.push(dive);
     s._seg = dive;
@@ -98,6 +103,7 @@ function mountScrollWorld(container, config) {
     if (i < N - 1 && CONNECTORS[i]) {
       SEGMENTS.push({ kind: 'conn', si: i, clip: CONNECTORS[i], clipM: CONNECTORS_M[i],
                       still: SECTIONS[i + 1].still, stillM: SECTIONS[i + 1].stillMobile,
+                      seq: SEQS[i], seqCount: SEQ_N[i],
                       accent: SECTIONS[i + 1].accent, w: CONN_W });
     }
   });
@@ -158,6 +164,7 @@ function mountScrollWorld(container, config) {
     }, { once: true });
     scene.appendChild(img); stage.appendChild(scene);
     s.el = scene; s.img = img; s.video = null; s.hasClip = false;
+    s.frames = null; s.frameIdx = -1; s.framesLoading = false;
     s.loading = false; s.ready = false; s.cur = 0; s.target = 0; s.visible = false;
   });
 
@@ -211,14 +218,47 @@ function mountScrollWorld(container, config) {
     window.scrollTo({ top: seg.start + (seg.end - seg.start) * 0.5, behavior: reduce ? 'auto' : 'smooth' });
   }
 
+  // ---- phone camera: a pre-decoded WebP frame sequence ------------------------
+  // iOS will not reliably scrub a <video>: currentTime only paints after a
+  // gesture-primed play/pause, and nine live decoders is more than a phone wants
+  // to hold, so any one failure silently freezes a scene. Swapping an <img> src
+  // through frames the browser has already decoded has none of that failure
+  // surface. Costs about what the mobile mp4s cost and is smooth by construction.
+  function loadFrames(s) {
+    if (s.frames || s.framesLoading || !s.seq || !s.seqCount) return;
+    s.framesLoading = true;
+    const imgs = new Array(s.seqCount);
+    let done = 0;
+    for (let i = 0; i < s.seqCount; i++) {
+      const im = new Image();
+      im.decoding = 'async';
+      im.onload = im.onerror = () => {
+        // usable as soon as the opening frames are in; the tail keeps filling
+        if (++done === 1 || done === s.seqCount) s.frames = imgs;
+      };
+      im.src = s.seq + String(i).padStart(3, '0') + '.webp';
+      imgs[i] = im;
+    }
+  }
+
+  // Advance the scene to whatever frame this scroll position lands on. Only ever
+  // assigns a src the browser already has, so the swap paints without a flash.
+  function showFrame(s, local) {
+    if (!s.frames) return false;
+    const i = Math.max(0, Math.min(s.seqCount - 1, Math.round(local * (s.seqCount - 1))));
+    if (i === s.frameIdx) return true;
+    const f = s.frames[i];
+    if (!f || !f.complete || !f.naturalWidth) return s.frameIdx >= 0;  // hold the last good frame
+    s.frameIdx = i;
+    s.img.src = f.src;
+    return true;
+  }
+
   function loadClip(s) {
     // Under prefers-reduced-motion we never load the clips at all — the stills stay up
     // and simply cross-dissolve as you scroll. No scrubbed video motion, no decode cost.
-    // Phones: don't load video at all. Scrubbed video on iOS depends on gesture
-    // priming + blob decoding + not being in Low Power Mode, and any one of those
-    // failing silently leaves a frozen poster. The still path below gives a real
-    // camera move for ~2MB total and cannot fail that way.
-    if (window.__KZ_STILLS_ON_PHONE && isMobile()) return;
+    // Phones take the frame-sequence path instead of the video one. See loadFrames.
+    if (isMobile() && s.seq) { if (!reduce) loadFrames(s); return; }
     if (reduce || s.loading || !s.clip) return;
     s.loading = true;
     // Serve the lighter mobile encode on phones when one was provided.
@@ -268,26 +308,31 @@ function mountScrollWorld(container, config) {
       const op = smooth(1 - outside / fade);
       s.el.style.opacity = op; s.visible = op > 0.001;
       s.el.style.zIndex = (i === ci) ? '120' : String(100 + Math.round(op * 10));
+      // Phones: step the frame sequence. That IS the camera — the real rendered
+      // flight, same footage the desktop clip plays, so no CSS zoom on top of it.
+      const onFrames = !s.hasClip && isMobile() && !reduce && showFrame(s, local);
+
       if (!s.hasClip || !s.ready) {
-        // The still IS the camera when there's no clip (always true on phones now).
-        // prefers-reduced-motion still pins it flat.
+        // Otherwise the still is the camera. prefers-reduced-motion pins it flat.
         const ease = local < 0.5 ? 4*local*local*local : 1 - Math.pow(-2*local + 2, 3)/2;
-        // Phones fly the still the way the desktop clip flies the camera: an
-        // EXPONENTIAL push-in (perspective reads as exponential, not linear) from
-        // the establishing wide shot deep into the diorama. Connectors run the
-        // same curve backwards, so the next world pulls back out of the dive —
-        // a dive ends at PEAK and the connector picks it up there, which keeps
-        // the whole chain continuous across each crossfade.
         // Desktop stills are only the pre-roll before the real clip and are
         // object-fit:cover, so a sub-1 scale would show sky at the edges; they
-        // keep the old tight nudge.
+        // keep a tight nudge. Phones without a sequence yet fall back to an
+        // exponential push-in so the scene is never dead while frames load.
         const mob = isMobile();
-        const PEAK = 2.6;              // ~1.4x upscale of a 1920px source at 3x DPR
+        const PEAK = 2.6;
         let sc, dy;
         if (reduce) { sc = 1; dy = 0; }
+        else if (onFrames) {
+          // The footage already carries the camera. All this adds is a gentle
+          // punch-in so a 16:9 frame letterboxed into a portrait phone fills more
+          // of the screen as the dive gets close. Starts near 1 so the opening
+          // wide shot keeps its edges; connectors run it back down so the next
+          // chapter opens wide again.
+          sc = (s.kind === 'conn') ? 1.45 - ease * 0.40 : 1.05 + ease * 0.40;
+          dy = 0;
+        }
         else if (mob) {
-          // ^1.7 biases the dive late: the frame stays wide while the copy is
-          // being read, then accelerates hard on the way out of the chapter.
           const t = Math.pow((s.kind === 'conn') ? 1 - ease : ease, 1.7);
           sc = Math.pow(PEAK, t);
           dy = (0.5 - t) * 3;
