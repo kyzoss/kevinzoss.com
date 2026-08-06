@@ -4,3 +4,8 @@ exclude:
   - build-frames.py
   - stamp.py
   - .gstack
+
+# Jekyll skips dot-directories by default, which silently dropped
+# /.well-known/security.txt (the path RFC 9116 specifies).
+include:
+  - .well-known
