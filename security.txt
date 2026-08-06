@@ -1,0 +1,4 @@
+Contact: mailto:kevin@lazyboyagency.com
+Expires: 2027-08-06T03:52:57Z
+Preferred-Languages: en
+Canonical: https://kevinzoss.com/.well-known/security.txt

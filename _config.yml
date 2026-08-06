@@ -1,0 +1,6 @@
+# GitHub Pages publishes everything in the repo by default. These are build
+# tooling, not content, and have no reason to be fetchable from the web root.
+exclude:
+  - build-frames.py
+  - stamp.py
+  - .gstack
