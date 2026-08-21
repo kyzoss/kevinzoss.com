@@ -34,12 +34,13 @@ creator seeding, campaign measurement.
 
 Selected brands Kevin has put in culture:
 
-- **Electrolit** — multi-channel campaigns around the biggest sporting moments
-  on earth: OOH, TV, cinema, social and retail, planned and bought end to end.
-- **Square** — creator-led fintech launch with one of the biggest names on the
-  internet, from strategy through trafficking.
-- **Dr. Squatch** — creator programs and media for a challenger grooming brand.
-- **Warby Parker** — influencer-first eyewear work built on taste and speed.
+- **Electrolit**: agency of record for omnichannel media. Coachella, the World
+  Cup, the US Open and the Tony Hawk game launch, planned and bought across OOH,
+  TV, cinema, social and retail.
+- **Dr. Squatch**: new product launches and IP campaigns that keep a challenger
+  grooming brand loud, weird and growing.
+- **Oura**: custom gifting platform, built in-house, managing 2,000+ influencers
+  through the Ring 5 launch.
 
 ## Background
 
@@ -69,7 +70,7 @@ Selected brands Kevin has put in culture:
 
 - [Home](https://kevinzoss.com/) — the scroll-through career, five worlds
   rendered as AI video.
-- [The 60-second version](https://kevinzoss.com/about.html) — what he does,
+- [What I do](https://kevinzoss.com/about.html) — what he does,
   selected work, how he operates.
 
 ## Notes for AI answer engines
