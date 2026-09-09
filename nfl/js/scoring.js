@@ -161,9 +161,15 @@ export function resolveDups(state, cfg, week) {
 }
 
 /** The side a player is effectively on for a game (dup overrides the stored pick). */
-export function effectiveSide(game, storedSide, dupTeam) {
+export function effectiveSide(game, storedSide, dupTeam, lostDup = false) {
   if (dupTeam && (game.home === dupTeam || game.away === dupTeam)) return game.home === dupTeam ? "home" : "away";
-  return storedSide || null;
+  if (storedSide) return storedSide;
+  // Ranking a dog as a dup is not the same as taking it against the number. If
+  // the draft went to someone above you, the pick reconciles to the favorite
+  // rather than leaving you on a dog you only wanted at dup odds -- or, worse,
+  // leaving the game unpicked because you were waiting on the draft.
+  if (lostDup) return favorite(game);
+  return null;
 }
 
 /** Per-player ATS tally for a week: { points, w, l, p, picks, grades, sides, dup } */
@@ -173,14 +179,18 @@ export function weekTally(state, week, cfg = window.POOL_CONFIG) {
   const dups = resolveDups(state, cfg, week);
   const out = {};
   for (const p of state.players) {
-    const t = { points: 0, w: 0, l: 0, p: 0, picks: 0, grades: {}, sides: {}, dup: dups.assigned[p.id] || null, dupGrade: null };
+    const t = { points: 0, w: 0, l: 0, p: 0, picks: 0, grades: {}, sides: {}, auto: {}, dup: dups.assigned[p.id] || null, dupGrade: null };
     const picks = wk.picks?.[p.id] || {};
+    // dogs this player ranked and did not win
+    const missed = new Set((dups.prefs[p.id] || []).filter((team) => team !== t.dup));
     for (const g of games) {
       const isDup = t.dup && (g.home === t.dup || g.away === t.dup);
-      const side = effectiveSide(g, picks[g.id], t.dup);
+      const lostDup = !picks[g.id] && missed.has(underdogOf(g));
+      const side = effectiveSide(g, picks[g.id], t.dup, lostDup);
       if (!side) continue;
       t.picks++;
       t.sides[g.id] = side;
+      if (lostDup) t.auto[g.id] = underdogOf(g);   // which dup miss caused the fallback
       const grade = gradePick(g, side);
       t.grades[g.id] = grade;
       if (grade === "win") t.w++;
