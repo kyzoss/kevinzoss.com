@@ -37,9 +37,10 @@ Allow: /
 User-agent: meta-externalagent
 Allow: /
 
-# Build tooling, not content.
+# Build tooling, not content. The pick'em pool is for four people, not search.
 User-agent: *
 Disallow: /build-frames.py
 Disallow: /stamp.py
+Disallow: /nfl/
 
 Sitemap: https://kevinzoss.com/sitemap.xml
