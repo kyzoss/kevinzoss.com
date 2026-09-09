@@ -37,10 +37,15 @@ Allow: /
 User-agent: meta-externalagent
 Allow: /
 
-# Build tooling, not content. The pick'em pool is for four people, not search.
+# Build tooling, not content.
 User-agent: *
 Disallow: /build-frames.py
 Disallow: /stamp.py
-Disallow: /nfl/
+
+# The pick'em pool is private, but blocking /nfl/ here would also block the
+# link-preview fetchers, so the page carries <meta name="robots" content="noindex">
+# instead. Only the files holding the API key stay off-limits to crawlers.
+Disallow: /nfl/config.js
+Disallow: /nfl/js/
 
 Sitemap: https://kevinzoss.com/sitemap.xml

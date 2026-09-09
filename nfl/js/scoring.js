@@ -189,9 +189,16 @@ export function weeklyPot(state, cfg) {
   let carry = 0;
   const pot = Number(cfg.weeklyPot) || 0;
   for (let w = 1; w <= cfg.weeks; w++) {
-    const complete = weekComplete(state, w);
+    // A week nobody has loaded yet, or one still being played, simply isn't
+    // settled: it awards nothing and it does not roll. Earlier this loop stopped
+    // at the first such week, which hid every later week's money.
+    const inPlay = weekGames(state, w).length > 0;
+    const complete = inPlay && weekComplete(state, w);
     const tally = weekTally(state, w, cfg);
-    const row = { week: w, pot, carry, total: pot + carry, complete, payouts: {}, winners: [], rolled: false, pending: !complete };
+    const row = {
+      week: w, pot, carry, total: pot + carry, inPlay, complete,
+      payouts: {}, winners: [], rolled: false, pending: !complete,
+    };
     if (complete) {
       const played = state.players.filter((p) => tally[p.id].picks > 0);
       if (played.length) {
@@ -207,13 +214,12 @@ export function weeklyPot(state, cfg) {
           carry += pot;
         }
       } else {
-        // Nobody picked; the pot just rolls.
+        // Games were played but nobody picked; the pot just rolls.
         row.rolled = true;
         carry += pot;
       }
     }
     rows[w] = row;
-    if (!complete) break; // later weeks can't be resolved yet
   }
   return { rows, carry };
 }
@@ -232,17 +238,24 @@ export function lastManStanding(state, cfg) {
   const roundLen = Number(cfg.lmsRoundWeeks) || 4;
   let alive = [...all];
   let pot = 0;
+  let prevRound = 1;
   const rows = {};
   for (let w = 1; w <= cfg.weeks; w++) {
     const wk = state.weeks?.[w] || {};
     const games = wk.games || [];
-    const complete = weekComplete(state, w);
     const round = Math.floor((w - 1) / roundLen) + 1;
     const roundStart = (round - 1) * roundLen + 1;
     const roundEnd = Math.min(round * roundLen, cfg.weeks);
-    pot += potPerWeek;
+    // Crossing into a new block always resets the field, even if the previous
+    // block's last week was never settled.
+    if (round !== prevRound) { alive = [...all]; pot = 0; prevRound = round; }
+
+    const inPlay = games.length > 0;
+    const complete = inPlay && weekComplete(state, w);
+    if (inPlay) pot += potPerWeek; // an unplayed week does not grow the pot
+
     const row = {
-      week: w, round, roundStart, roundEnd, pot, complete,
+      week: w, round, roundStart, roundEnd, pot, inPlay, complete,
       aliveEntering: [...alive], picks: {}, results: {}, eliminated: [], payouts: {}, ended: false, pending: !complete,
     };
     for (const id of all) {
@@ -256,27 +269,24 @@ export function lastManStanding(state, cfg) {
       }
       const winner = straightUpWinner(game);
       if (winner === null) row.results[id] = "pending";
-      else if (winner === team || winner === "tie") row.results[id] = "busted"; // team didn't lose
+      else if (winner === team || winner === "tie") row.results[id] = "busted"; // the team didn't lose
       else row.results[id] = "safe";
     }
     if (complete) {
       const survivors = alive.filter((id) => row.results[id] === "safe");
       row.eliminated = alive.filter((id) => row.results[id] !== "safe");
-      const lastWeekOfRound = w === roundEnd;
       if (survivors.length === 0) {
         splitAmong(row.payouts, alive, pot);
         row.ended = true;
-      } else if (lastWeekOfRound) {
+      } else if (w === roundEnd) {
         splitAmong(row.payouts, survivors, pot);
         row.ended = true;
       } else {
         alive = survivors;
       }
       if (row.ended) { alive = [...all]; pot = 0; }
-      if (lastWeekOfRound) { alive = [...all]; }
     }
     rows[w] = row;
-    if (!complete) break;
   }
   return { rows, alive, pot };
 }

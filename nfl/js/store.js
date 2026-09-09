@@ -37,11 +37,40 @@ function load() {
 function migrate(s) {
   const d = defaultState();
   const out = { ...d, ...s };
+  out.weeks = restableGameIds(s.weeks || {});
   // Player list follows config (names/colours), but never drops a player who has data.
   const byId = Object.fromEntries((s.players || []).map((p) => [p.id, p]));
   out.players = cfg.players.map((p) => ({ ...byId[p.id], ...p }));
   for (const p of s.players || []) if (!out.players.find((x) => x.id === p.id)) out.players.push(p);
   out.sideBet = { predictions: {}, actual: null, ...(s.sideBet || {}) };
+  return out;
+}
+
+/**
+ * Rewrite any legacy random game id to its matchup id, moving that game's picks
+ * and keeping whichever pick was already on the matchup id. Idempotent.
+ */
+function restableGameIds(weeks) {
+  const out = {};
+  for (const [wk, week] of Object.entries(weeks)) {
+    if (!week || !Array.isArray(week.games)) { out[wk] = week; continue; }
+    const renames = new Map();
+    const games = week.games.map((g) => {
+      const want = gameId(g);
+      if (g.id && g.id !== want) renames.set(g.id, want);
+      return g.id === want ? g : { ...g, id: want };
+    });
+    if (!renames.size) { out[wk] = { ...week, games }; continue; }
+    const picks = {};
+    for (const [pid, byGame] of Object.entries(week.picks || {})) {
+      const moved = {};
+      for (const [gid, side] of Object.entries(byGame || {})) {
+        moved[renames.get(gid) || gid] ??= side;
+      }
+      picks[pid] = moved;
+    }
+    out[wk] = { ...week, games, picks };
+  }
   return out;
 }
 
@@ -98,8 +127,18 @@ export function ensureWeek(draft, week) {
 }
 
 let idCounter = 0;
-export function newId(prefix = "g") {
+export function newId(prefix = "a") {
   return `${prefix}_${Date.now().toString(36)}${(idCounter++).toString(36)}`;
+}
+
+/**
+ * A game's id is derived from the matchup, not generated. Two teams meet at most
+ * once in a week, so this is unique, and it is identical on every device and
+ * across every re-pull -- which is what keeps picks attached to their game.
+ * Earlier builds used a random id; migrate() below moves those picks over.
+ */
+export function gameId(game) {
+  return `${game.away}@${game.home}`;
 }
 
 // ---- Supabase --------------------------------------------------------------
@@ -161,6 +200,20 @@ async function pushRemote() {
     syncStatus = { ...syncStatus, state: "live", detail: "" };
     emit();
   }
+}
+
+/** Push immediately instead of waiting out the debounce. */
+export function flush() {
+  if (!sb || !saveTimer) return;
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  pushRemote();
+}
+
+if (typeof document !== "undefined") {
+  // pagehide is the one that fires reliably when a phone backgrounds the tab.
+  addEventListener("pagehide", flush);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flush(); });
 }
 
 function loadScript(src) {
