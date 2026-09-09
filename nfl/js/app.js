@@ -592,19 +592,6 @@ function renderMoney(state) {
   }).join("")}<td class="dim">${r.pending ? "open" : r.rolled ? `rolls ${SC.money(r.total)}` : ""}</td></tr>`).join("");
   const weeklyTotals = P.map((p) => `<td>${SC.money(led.totals[p.id].weeklyWon)}</td>`).join("");
 
-  let lastRound = 0;
-  const lmsRows = Object.values(led.lms.rows).filter((r) => r.inPlay).map((r) => {
-    const head = r.round !== lastRound ? `<tr class="round"><td colspan="${P.length + 2}">Round ${r.round} · weeks ${r.roundStart}–${r.roundEnd}</td></tr>` : "";
-    lastRound = r.round;
-    return head + `<tr><td>${r.week}</td>${P.map((p) => {
-      const v = r.payouts[p.id]; const res = r.results[p.id]; const pick = r.picks[p.id];
-      if (v) return `<td class="money">${SC.money(v)}</td>`;
-      if (res === "out") return `<td class="out">out</td>`;
-      const cls = res === "busted" || res === "nopick" || res === "nogame" ? "dim" : res === "safe" ? "win" : "";
-      return `<td class="${cls}" style="${res === "busted" ? "text-decoration:line-through" : ""}">${pick ? esc(pick) : res === "nopick" ? "—" : ""}</td>`;
-    }).join("")}<td class="dim">${SC.money(r.pot)}</td></tr>`;
-  }).join("");
-  const lmsTotals = P.map((p) => `<td>${SC.money(led.totals[p.id].lmsWon)}</td>`).join("");
 
   const adj = (state.adjustments || []).map((a) => `<tr><td>${a.week || ""}</td><td style="text-align:left">${esc(nameOf(a.player))}</td><td class="${a.amount >= 0 ? "win" : "dim"}">${SC.money(a.amount)}</td><td style="text-align:left;color:var(--ink-soft)">${esc(a.note || "")}</td>${commish() ? `<td><button class="btn btn--ghost btn--sm btn--danger" data-action="adj-del" data-id="${esc(a.id)}">${icon("trash")}</button></td>` : ""}</tr>`).join("");
 
@@ -612,9 +599,83 @@ function renderMoney(state) {
   <section class="section"><div class="section__head"><h2 class="section__title">Weekly pot · ${SC.money(cfg.weeklyPot)}/wk</h2><span class="section__sub">Best ATS score. Ties roll over. Week ${cfg.weeks} splits.</span></div>
     <div class="grid"><table class="sheet"><thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}<th></th></tr></thead><tbody>${weeklyRows || `<tr><td colspan="${P.length + 2}" class="dim">Nothing settled yet.</td></tr>`}</tbody><tfoot><tr><td>Total</td>${weeklyTotals}<td>${SC.money(P.reduce((s, p) => s + led.totals[p.id].weeklyWon, 0))}</td></tr></tfoot></table></div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">Last man standing · ${SC.money(cfg.lmsPerPlayer ?? 1)} each per week</h2><span class="section__sub">Everyone pays every week, in or out. Survivors split every ${cfg.lmsRoundWeeks} weeks.</span></div>
-    <div class="grid"><table class="sheet"><thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}<th>Pot</th></tr></thead><tbody>${lmsRows || `<tr><td colspan="${P.length + 2}" class="dim">Nothing settled yet.</td></tr>`}</tbody><tfoot><tr><td>Total</td>${lmsTotals}<td>${SC.money(P.reduce((s, p) => s + led.totals[p.id].lmsWon, 0))}</td></tr></tfoot></table></div></section>
+    ${renderLmsTracker(state, led)}</section>
   <section class="section"><div class="section__head"><h2 class="section__title">Adjustments</h2><span class="section__sub">Side action, corrections, whatever needs squaring.</span>${commish() ? `<button class="btn btn--sm btn--px" data-action="adj-add">${icon("plus")}Add</button>` : ""}</div>
     ${adj ? `<div class="grid"><table class="sheet"><thead><tr><th>Wk</th><th style="text-align:left">Who</th><th>Amt</th><th style="text-align:left">Note</th>${commish() ? "<th></th>" : ""}</tr></thead><tbody>${adj}</tbody></table></div>` : `<p class="mute" style="font-size:13px;margin:0">None.</p>`}</section>`;
+}
+
+/**
+ * Last man standing, week by week. The point of the tracker is to answer three
+ * things at a glance: what everyone picked, who it knocked out, and which teams
+ * each player has spent in the current block.
+ */
+function renderLmsTracker(state, led) {
+  const P = state.players;
+  const now = currentWeek();
+  const rows = Object.values(led.lms.rows).filter((r) => r.inPlay);
+  if (!rows.length) {
+    return `<p class="mute" style="font-size:13px;margin:0">Nothing picked yet. The tracker fills in as weeks are played.</p>`;
+  }
+
+  const byRound = new Map();
+  for (const r of rows) {
+    if (!byRound.has(r.round)) byRound.set(r.round, []);
+    byRound.get(r.round).push(r);
+  }
+
+  const OUT = { busted: "their team won", nopick: "no pick", nogame: "team wasn't playing", reused: "already used this block" };
+  const blocks = [...byRound.entries()].map(([round, weeks]) => {
+    const last = weeks[weeks.length - 1];
+    // A block can pay out more than once: if the whole field busts early the pot
+    // is settled there and the contest restarts for the rest of the four weeks.
+    const paid = weeks.filter((r) => r.ended);
+    let outcome;
+    if (paid.length) {
+      const parts = paid.map((r) => {
+        const winners = Object.keys(r.payouts);
+        const each = SC.money(r.payouts[winners[0]] || 0);
+        const who = winners.length === 1
+          ? `<b>${esc(nameOf(winners[0]))}</b> ${each}`
+          : `${winners.map((id) => esc(nameOf(id))).join(" & ")} ${each} each`;
+        return paid.length > 1 ? `wk ${r.week} ${who}` : who;
+      });
+      outcome = parts.join(" · ");
+      // and the block may still be running after the last payout
+      const after = weeks.filter((r) => r.week > paid[paid.length - 1].week);
+      if (after.length) {
+        const alive = after[after.length - 1].aliveEntering.filter((id) => !OUT[after[after.length - 1].results[id]] && after[after.length - 1].results[id] !== "out");
+        outcome += ` · ${alive.length} still standing for ${SC.money(last.pot)}`;
+      }
+    } else {
+      const alive = last.aliveEntering.filter((id) => last.results[id] !== "out" && !OUT[last.results[id]]);
+      outcome = `${alive.length} still standing · ${SC.money(last.pot)} in the pot`;
+    }
+    const head = `<tr class="round"><td colspan="${P.length + 1}">Round ${round} · weeks ${last.roundStart}–${last.roundEnd} · ${outcome}</td></tr>`;
+
+    const body = weeks.map((r) => {
+      const cells = P.map((p) => {
+        const res = r.results[p.id];
+        const pick = r.picks[p.id];
+        const paid = r.payouts[p.id];
+        if (res === "out") return `<td class="lmst lmst--gone" title="${esc(nameOf(p.id))} was already out">out</td>`;
+        const knocked = OUT[res];
+        const cls = ["lmst", knocked ? "lmst--knocked" : "", res === "safe" ? "lmst--safe" : "", paid ? "lmst--paid" : ""].join(" ");
+        const title = `${esc(nameOf(p.id))}: ${pick ? esc(pick) : "no pick"}${knocked ? ` — out, ${knocked}` : res === "safe" ? " — through" : ""}`;
+        const label = pick ? esc(pick) : res === "nopick" ? `<span class="lmst__none">no pick</span>` : "—";
+        return `<td class="${cls}" title="${title}">${label}${paid ? `<i>${SC.money(paid)}</i>` : ""}</td>`;
+      }).join("");
+      return `<tr><td>${r.week === now ? `${r.week} <i class="lmst__now">now</i>` : r.week}</td>${cells}</tr>`;
+    }).join("");
+    return head + body;
+  }).join("");
+
+  const totals = P.map((p) => `<td>${SC.money(led.totals[p.id].lmsWon)}</td>`).join("");
+  return `<div class="grid"><table class="sheet sheet--lms">
+      <thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}</tr></thead>
+      <tbody>${blocks}</tbody>
+      <tfoot><tr><td>Won</td>${totals}</tr></tfoot>
+    </table></div>
+    <p class="legend"><span class="legend__x">struck through</span> knocked out that week &middot; a column is the teams that player has spent in the block &middot; each team is good once per block</p>`;
 }
 
 // ---- side bet -----------------------------------------------------------------

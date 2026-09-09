@@ -473,6 +473,35 @@ table.sheet { border-collapse: collapse; width: 100%; font-size: 13px; font-vari
 .sheet tr.round td { background: var(--bg); color: var(--ink-mute); font-size: 10px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase; text-align: left; }
 .sheet tr.round td:first-child { background: var(--bg); }
 
+/* ---------- LMS tracker ----------
+   Five columns only -- week plus the four players -- so a season's history reads
+   on a phone without sliding. The pot lives in each block's header instead. */
+.sheet--lms { table-layout: fixed; }
+.sheet--lms th, .sheet--lms td { padding: 9px 4px; }
+.sheet--lms th:first-child, .sheet--lms td:first-child { width: 52px; padding-left: 10px; }
+.sheet--lms td.lmst { font-weight: 600; color: var(--ink); }
+/* the payout is a fact about the week, not part of the struck-out pick */
+.sheet--lms td.lmst i {
+  font-style: normal; font-size: 10px; font-weight: 700; color: var(--win);
+  margin-left: 4px; font-variant-numeric: tabular-nums;
+  text-decoration: none; display: inline-block;
+}
+.sheet--lms tr.round td { white-space: normal; line-height: 1.5; padding: 8px 10px; }
+.lmst--safe { color: var(--win) !important; }
+.lmst--knocked {
+  color: var(--ink-dim) !important; text-decoration: line-through;
+  text-decoration-color: var(--loss); text-decoration-thickness: 1.5px;
+}
+.lmst--gone { color: var(--ink-dim) !important; font-weight: 400 !important; font-size: 11px; }
+.lmst__none { font-weight: 400; font-size: 11px; }
+.lmst--paid { background: rgba(53,208,127,.1); }
+.lmst__now {
+  font-style: normal; font-size: 9px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent-lift); margin-left: 4px;
+}
+.legend { margin: 10px 0 0; font-size: 12px; color: var(--ink-mute); }
+.legend__x { text-decoration: line-through; text-decoration-color: var(--loss); color: var(--ink-soft); }
+
 /* ---------- money ---------- */
 .moneytiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .mt {
