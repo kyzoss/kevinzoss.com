@@ -41,6 +41,15 @@ export function teamLogo(abbr) {
   return `https://a.espncdn.com/i/teamlogos/nfl/500/${String(abbr).toLowerCase()}.png`;
 }
 
+/**
+ * Attributes for a logo <img>. The whole app leans on ESPN's CDN, so a failed
+ * fetch should leave a gap rather than a broken-image icon -- every place a logo
+ * appears, the team's code is already next to it.
+ */
+export function logoAttrs(abbr) {
+  return `src="${teamLogo(abbr)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"`;
+}
+
 export function teamColor(abbr) {
   return TEAMS[abbr]?.color || "#C9C9CE";
 }
