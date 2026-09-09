@@ -105,6 +105,11 @@ API keys.
   for the rest of the block.
 - **Browns record.** $10. One guess before Week 1. Closest wins, points scored
   breaks ties. Actual record is computed from finals as weeks load.
+- **The LMS tracker** on the Money tab is the season's history: a row per week,
+  a column per player. A struck-through pick is the one that knocked them out,
+  green is through, and each block's header names every payout it produced. Read
+  a column inside a block and you have that player's spent teams.
+
 - **Money.** Every payout is derived from results. Manual adjustments cover
   anything else. Export/import JSON from Setup for backups.
 
