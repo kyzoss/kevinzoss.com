@@ -8,7 +8,6 @@ const ME_KEY = `pickem:me`;
 
 const listeners = new Set();
 let state = load();
-let sb = null;
 let syncStatus = { enabled: false, state: "local", detail: "" };
 let saveTimer = null;
 let applyingRemote = false;
@@ -92,7 +91,7 @@ export function update(fn, { silent = false } = {}) {
 
 function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { console.warn("localStorage write failed", e); }
-  if (sb && !applyingRemote) {
+  if (backend && !applyingRemote) {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(pushRemote, 350);
   }
@@ -141,44 +140,77 @@ export function gameId(game) {
   return `${game.away}@${game.home}`;
 }
 
-// ---- Supabase --------------------------------------------------------------
+// ---- shared board ----------------------------------------------------------
+// Two backends, both free. A Google Sheet needs nothing but the Google account
+// you already have and doubles as a readable backup; Supabase adds realtime but
+// caps the free tier at two projects and pauses one after a week idle.
+// Whichever is configured, the whole pool is one JSON document, last write wins.
+
+let backend = null;      // { name, read(), write(state), watch?(onRemote) }
+let pollTimer = null;
+
 export async function initSync() {
-  const s = cfg.supabase || {};
-  if (!s.url || !s.anonKey) return syncStatus;
-  syncStatus = { enabled: true, state: "connecting", detail: "" };
+  backend = pickBackend();
+  if (!backend) return syncStatus;
+  syncStatus = { enabled: true, state: "connecting", detail: "", via: backend.name };
   emit();
   try {
-    await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js");
-    sb = window.supabase.createClient(s.url, s.anonKey);
-    const { data, error } = await sb.from("pool_state").select("state, updated_at").eq("id", String(cfg.season)).maybeSingle();
-    if (error) throw error;
-    if (data?.state) {
-      const remote = migrate(data.state);
-      if ((remote.updatedAt || 0) > (state.updatedAt || 0) || !state.updatedAt) {
-        applyRemote(remote);
-      } else if ((state.updatedAt || 0) > (remote.updatedAt || 0)) {
-        await pushRemote();
-      }
+    await backend.open?.();
+    const remote = await backend.read();
+    if (remote?.state) {
+      const incoming = migrate(remote.state);
+      const theirs = Number(remote.updatedAt || incoming.updatedAt || 0);
+      const mine = Number(state.updatedAt || 0);
+      if (theirs > mine || !mine) applyRemote(incoming);
+      else if (mine > theirs) await pushRemote();
     } else {
       await pushRemote();
     }
-    sb.channel("pool_state_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "pool_state", filter: `id=eq.${cfg.season}` }, (payload) => {
-        const remote = payload.new?.state;
-        if (remote && (remote.updatedAt || 0) > (state.updatedAt || 0)) applyRemote(migrate(remote));
-      })
-      .subscribe((status) => {
-        syncStatus = { enabled: true, state: status === "SUBSCRIBED" ? "live" : "connected", detail: status };
-        emit();
-      });
-    syncStatus = { enabled: true, state: "connected", detail: "" };
+    if (backend.watch) {
+      backend.watch((next, at) => {
+        if (next && Number(at || next.updatedAt || 0) > Number(state.updatedAt || 0)) applyRemote(migrate(next));
+      }, (st) => { syncStatus = { ...syncStatus, state: st }; emit(); });
+    } else {
+      startPolling();
+    }
+    syncStatus = { enabled: true, state: "live", detail: "", via: backend.name };
   } catch (e) {
     console.error("sync failed", e);
-    sb = null;
-    syncStatus = { enabled: true, state: "error", detail: e.message || String(e) };
+    syncStatus = { enabled: true, state: "error", detail: e.message || String(e), via: backend.name };
+    backend = null;
   }
   emit();
   return syncStatus;
+}
+
+function pickBackend() {
+  const sheet = cfg.sheet || {};
+  if (sheet.url) return sheetBackend(sheet);
+  const sb = cfg.supabase || {};
+  if (sb.url && sb.anonKey) return supabaseBackend(sb);
+  return null;
+}
+
+/** No push channel from a Sheet, so ask for changes while the tab is in front. */
+function startPolling() {
+  const every = Math.max(5, Number(cfg.sheet?.pollSeconds) || 15) * 1000;
+  clearInterval(pollTimer);
+  pollTimer = setInterval(() => { if (!document.hidden) pull(); }, every);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
+}
+
+async function pull() {
+  if (!backend) return;
+  try {
+    const remote = await backend.read();
+    if (!remote?.state) return;
+    const theirs = Number(remote.updatedAt || remote.state.updatedAt || 0);
+    if (theirs > Number(state.updatedAt || 0)) applyRemote(migrate(remote.state));
+    if (syncStatus.state === "error") { syncStatus = { ...syncStatus, state: "live", detail: "" }; emit(); }
+  } catch (e) {
+    syncStatus = { ...syncStatus, state: "error", detail: e.message || String(e) };
+    emit();
+  }
 }
 
 function applyRemote(remote) {
@@ -190,21 +222,26 @@ function applyRemote(remote) {
 }
 
 async function pushRemote() {
-  if (!sb) return;
-  const { error } = await sb.from("pool_state").upsert({ id: String(cfg.season), state, updated_at: new Date().toISOString() });
-  if (error) {
-    console.error("push failed", error);
-    syncStatus = { ...syncStatus, state: "error", detail: error.message };
-    emit();
-  } else if (syncStatus.state === "error") {
-    syncStatus = { ...syncStatus, state: "live", detail: "" };
+  if (!backend) return;
+  try {
+    // Two phones can save at almost the same moment. The backend keeps whichever
+    // is newer and hands the winner back; take it rather than carrying on with a
+    // copy that has already been superseded.
+    const reply = await backend.write(state);
+    if (reply?.stale && reply.state && Number(reply.updatedAt || 0) > Number(state.updatedAt || 0)) {
+      applyRemote(migrate(reply.state));
+    }
+    if (syncStatus.state === "error") { syncStatus = { ...syncStatus, state: "live", detail: "" }; emit(); }
+  } catch (e) {
+    console.error("push failed", e);
+    syncStatus = { ...syncStatus, state: "error", detail: e.message || String(e) };
     emit();
   }
 }
 
 /** Push immediately instead of waiting out the debounce. */
 export function flush() {
-  if (!sb || !saveTimer) return;
+  if (!backend || !saveTimer) return;
   clearTimeout(saveTimer);
   saveTimer = null;
   pushRemote();
@@ -214,6 +251,64 @@ if (typeof document !== "undefined") {
   // pagehide is the one that fires reliably when a phone backgrounds the tab.
   addEventListener("pagehide", flush);
   document.addEventListener("visibilitychange", () => { if (document.hidden) flush(); });
+}
+
+// ---- Google Sheet (via an Apps Script web app) ------------------------------
+function sheetBackend(conf) {
+  const url = conf.url;
+  const season = String(cfg.season);
+  return {
+    name: "sheet",
+    async read() {
+      // A cache-buster matters here: Apps Script responses are aggressively cached.
+      const res = await fetch(`${url}?season=${encodeURIComponent(season)}&t=${Date.now()}`, {
+        method: "GET", redirect: "follow",
+      });
+      if (!res.ok) throw new Error(`Sheet read failed (${res.status})`);
+      const body = await res.json();
+      if (body.error) throw new Error(body.error);
+      return body.state ? { state: body.state, updatedAt: body.updatedAt } : null;
+    },
+    async write(next) {
+      // text/plain keeps this a "simple" request, so the browser skips the
+      // preflight that Apps Script will not answer.
+      const res = await fetch(url, {
+        method: "POST", redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ season, updatedAt: next.updatedAt, state: next }),
+      });
+      if (!res.ok) throw new Error(`Sheet write failed (${res.status})`);
+      const body = await res.json().catch(() => ({}));
+      if (body.error) throw new Error(body.error);
+      return body;
+    },
+  };
+}
+
+// ---- Supabase --------------------------------------------------------------
+function supabaseBackend(conf) {
+    return {
+    name: "supabase",
+    async open() {
+      await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js");
+      sb = window.supabase.createClient(conf.url, conf.anonKey);
+    },
+    async read() {
+      const { data, error } = await sb.from("pool_state").select("state, updated_at").eq("id", String(cfg.season)).maybeSingle();
+      if (error) throw error;
+      return data?.state ? { state: data.state, updatedAt: data.state.updatedAt } : null;
+    },
+    async write(next) {
+      const { error } = await sb.from("pool_state").upsert({ id: String(cfg.season), state: next, updated_at: new Date().toISOString() });
+      if (error) throw error;
+    },
+    watch(onRemote, onStatus) {
+      sb.channel("pool_state_changes")
+        .on("postgres_changes", { event: "*", schema: "public", table: "pool_state", filter: `id=eq.${cfg.season}` },
+            (payload) => onRemote(payload.new?.state, payload.new?.state?.updatedAt))
+        .subscribe((st) => onStatus(st === "SUBSCRIBED" ? "live" : "connecting"));
+    },
+  };
 }
 
 function loadScript(src) {

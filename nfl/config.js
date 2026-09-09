@@ -27,9 +27,12 @@ window.POOL_CONFIG = {
     loss: 0,            // your dup gets covered on
   },
 
-  // Money. Pots are per week, split evenly across players for the buy-in.
+  // Money.
   weeklyPot: 4,      // best ATS score of the week takes it; ties roll it over
-  lmsPot: 4,         // last man standing (pick a team to LOSE); pot grows each week of a round
+  // Last man standing: everyone puts in this much EVERY week, in or out. Getting
+  // knocked out stops you winning, it does not stop you paying -- that dead money
+  // is what the survivors are playing for.
+  lmsPerPlayer: 1,
   lmsRoundWeeks: 4,  // rounds are fixed 4-week blocks; survivors split the pot at the end of each
   sideBet: { team: "CLE", label: "Browns Record", pot: 10 },
 
@@ -37,8 +40,19 @@ window.POOL_CONFIG = {
   oddsApiKey: "155e00cf4d5fdc04569fc597c57a8e48",
   oddsBooks: ["draftkings", "fanduel", "betmgm", "caesars", "bovada"], // first one with a line wins
 
-  // Optional shared backend so all four phones see the same board.
-  // Leave blank to run on this device only (commissioner enters picks, like the sheet).
+  // Optional shared board, so all four phones see the same picks.
+  // Leave both blank to run on this device only (commissioner enters everyone's
+  // picks, the way the spreadsheet worked). Setup for either is in README.md.
+
+  // Free, and the Sheet doubles as a readable backup. Paste the Apps Script
+  // web-app /exec URL here. Checked first if both are filled in.
+  sheet: {
+    url: "",
+    pollSeconds: 15,   // how often to look for the others' picks
+  },
+
+  // Realtime, but the free tier allows two projects and pauses one after a
+  // week idle.
   supabase: {
     url: "",
     anonKey: "",

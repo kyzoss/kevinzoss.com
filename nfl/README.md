@@ -36,14 +36,39 @@ API keys.
   requests a month; the app pulls once when a week opens and only again when the
   commissioner asks, so a season costs a few dozen calls. The key ships to the
   browser, so treat this repo as private or rotate the key if it gets abused.
-- **Shared board (recommended).** Without it, the app stores everything on the
-  one device that opened it, exactly like the sheet: the commissioner enters
-  everyone's picks. To let all four phones play on one board:
+- **Shared board (recommended).** Without one, the app stores everything on the
+  single device that opened it, exactly like the sheet: the commissioner enters
+  everyone's picks. Two ways to put all four phones on one board, both free.
+  `config.js` checks the Sheet first if both are filled in.
+
+  **A Google Sheet — free, no new service, and it backs itself up.**
+  1. Make a new Google Sheet.
+  2. Extensions → Apps Script. Delete the placeholder, paste in `sheet/Code.gs`,
+     save.
+  3. Deploy → New deployment → Web app. *Execute as* **Me**, *Who has access*
+     **Anyone**. Copy the `/exec` URL it gives you.
+  4. Put that URL in the `sheet.url` field of `config.js`, commit, push.
+
+  The script creates three tabs on first save: `state` holds the JSON the app
+  reads, `picks` is a readable grid rebuilt on every save — the old spreadsheet,
+  basically — and `log` keeps the last 400 saves so a bad one can be undone by
+  hand. Phones look for each other's picks every 15 seconds while the app is
+  open, so a pick shows up on the others within a few seconds rather than
+  instantly. Simultaneous saves are resolved by the script under a lock: the
+  newer one wins and the other phone adopts it.
+
+  The `/exec` URL is the only credential — anyone with it can read and write the
+  pool. That is the same trust model as sharing the spreadsheet link.
+
+  **Supabase — instant instead of every-15-seconds.**
   1. Create a free project at supabase.com.
   2. Run `supabase/schema.sql` in the SQL editor.
   3. Copy *Project URL* and *anon public key* (Settings → API) into the
-     `supabase` block of `config.js`, commit, push.
-  Saves sync in under a second. Last write wins; with four people that is plenty.
+     `supabase` block of `config.js`.
+
+  Realtime, so picks appear in under a second. Worth knowing: the free tier
+  allows two projects and pauses one after a week with no traffic, which for a
+  weekly app means it can be asleep when you open it.
 
 ## How it plays
 
@@ -58,10 +83,12 @@ API keys.
   override the order for a week.
 - **Weekly pot.** $4 a week. Best score takes it; a tie rolls the pot; week 18
   splits.
-- **Last man standing.** $4 a week. Name a team to lose. Wins, ties and no-picks
-  knock you out for the round. Rounds are fixed four-week blocks; survivors split
-  at the end. If everyone busts early, the last ones standing take what accrued
-  and the field resets.
+- **Last man standing.** $1 from everyone every week, **including the weeks
+  you're already out** — that dead money is what the survivors are playing for.
+  Name a team to lose; wins, ties and no-picks knock you out for the round.
+  Rounds are fixed four-week blocks and survivors split at the end. If everyone
+  busts early, the last ones standing take what accrued and the field re-enters
+  for the rest of the block.
 - **Browns record.** $10. One guess before Week 1. Closest wins, points scored
   breaks ties. Actual record is computed from finals as weeks load.
 - **Money.** Every payout is derived from results. Manual adjustments cover
@@ -96,5 +123,6 @@ js/store.js           localStorage + optional Supabase mirror
 js/espn.js            schedule/scores feed
 js/odds.js            The Odds API client
 js/teams.js           32 teams, colours, logos
+sheet/Code.gs         Google Sheet backend + the readable backup grid
 supabase/schema.sql   one table, two policies, realtime
 ```

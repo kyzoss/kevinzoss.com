@@ -225,6 +225,15 @@ export function weeklyPot(state, cfg) {
 }
 
 /**
+ * What goes into the LMS pot each week: every player's stake, counted whether or
+ * not they are still alive in the round. Older configs set a flat `lmsPot`.
+ */
+export function lmsWeekly(state, cfg) {
+  if (cfg.lmsPerPlayer != null) return (Number(cfg.lmsPerPlayer) || 0) * state.players.length;
+  return Number(cfg.lmsPot) || 0;
+}
+
+/**
  * Last Man Standing, loser-pick flavour: every week each live player names a team
  * to LOSE. If that team wins (or ties, or you forgot to pick) you're out for the
  * round. Rounds are fixed blocks of `lmsRoundWeeks` (4) weeks; the pot grows every
@@ -234,7 +243,7 @@ export function weeklyPot(state, cfg) {
  */
 export function lastManStanding(state, cfg) {
   const all = state.players.map((p) => p.id);
-  const potPerWeek = Number(cfg.lmsPot) || 0;
+  const potPerWeek = lmsWeekly(state, cfg);
   const roundLen = Number(cfg.lmsRoundWeeks) || 4;
   let alive = [...all];
   let pot = 0;
@@ -376,10 +385,11 @@ export function ledger(state, cfg) {
     const betWon = bet.payouts[p.id] || 0;
     const adjustments = (state.adjustments || []).filter((a) => a.player === p.id).reduce((s, a) => s + Number(a.amount || 0), 0);
     const won = weeklyWon + lmsWon + betWon + adjustments;
-    const buyIn = ((Number(cfg.weeklyPot) || 0) + (Number(cfg.lmsPot) || 0)) / n * cfg.weeks + (Number(cfg.sideBet?.pot) || 0) / n;
+    const lmsStake = (cfg.lmsPerPlayer != null ? Number(cfg.lmsPerPlayer) || 0 : (Number(cfg.lmsPot) || 0) / n) * cfg.weeks;
+    const buyIn = (Number(cfg.weeklyPot) || 0) / n * cfg.weeks + lmsStake + (Number(cfg.sideBet?.pot) || 0) / n;
     totals[p.id] = { weeklyWon, lmsWon, betWon, adjustments, won, buyIn, net: won - buyIn, weeklyWins, lmsWins };
   }
-  const seasonBuyIn = (((Number(cfg.weeklyPot) || 0) + (Number(cfg.lmsPot) || 0)) * cfg.weeks) + (Number(cfg.sideBet?.pot) || 0);
+  const seasonBuyIn = ((Number(cfg.weeklyPot) || 0) + lmsWeekly(state, cfg)) * cfg.weeks + (Number(cfg.sideBet?.pot) || 0);
   return { weekly, lms, bet, totals, seasonBuyIn };
 }
 
