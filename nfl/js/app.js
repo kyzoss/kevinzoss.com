@@ -147,23 +147,34 @@ function setPick(gameId, side) {
   });
 }
 
-function toggleDupPref(team) {
+/**
+ * Set this team's dup priority. `rank` is 1-based; 0 clears it. Your list is
+ * capped at your draft position, so choosing a rank inserts at that spot and
+ * pushes the rest down, dropping anything past the cap.
+ */
+function setDupRank(team, rank) {
   const pid = actor();
-  flashSaved();
   if (!pid) return toast("Pick who you are first", { bad: true });
+  flashSaved();
   const state = S.getState();
   const dups = SC.resolveDups(state, cfg, ui.week);
   if (dups.lockAt && Date.now() >= dups.lockAt && !commish()) return toast("Dup draft is locked for this week.", { bad: true });
-  const pos = dups.order.indexOf(pid) + 1;
+  if (!dups.byTeam[team]) return toast(`${team} isn't a dup this week.`, { bad: true });
+  const cap = dups.order.indexOf(pid) + 1;
   const current = (state.weeks?.[ui.week]?.dupPrefs?.[pid] || []).filter((t) => dups.byTeam[t]);
+  const without = current.filter((t) => t !== team);
+  let next;
+  if (!rank) {
+    next = without;
+  } else {
+    const at = Math.min(Math.max(rank, 1), cap) - 1;
+    next = [...without.slice(0, at), team, ...without.slice(at)].slice(0, cap);
+  }
   S.update((d) => {
     const wk = S.ensureWeek(d, ui.week);
     wk.dupPrefs ||= {};
-    if (current.includes(team)) wk.dupPrefs[pid] = current.filter((t) => t !== team);
-    else {
-      if (current.length >= pos) { toast(`You're ${ordinal(pos)} this week: rank up to ${pos}. Remove one first.`, { bad: true }); return false; }
-      wk.dupPrefs[pid] = [...current, team];
-    }
+    if (next.length) wk.dupPrefs[pid] = next;
+    else delete wk.dupPrefs[pid];
   });
 }
 
@@ -317,11 +328,10 @@ function renderWeek(state) {
       <button class="btn btn--px" data-action="draft-order">${icon("swap")}Draft order</button>` : ""}
   </div>
 
-  ${games.length ? renderDups(state, week, dups, tally) : ""}
 
   <section class="section">
-    <div class="section__head"><h2 class="section__title">The slate</h2><span class="section__sub">${games.length ? "Tap a team to take it against the number. Picks lock at kickoff." : ""}</span></div>
-    ${games.length ? renderSlate(state, week, games, tally, dups) : renderEmptySlate()}
+    <div class="section__head"><h2 class="section__title">The slate</h2><span class="section__sub">${games.length ? "Tap either side to take it against the number. <b>F</b> favorite, <b>D</b> dog. Locks at kickoff." : ""}</span></div>
+    ${games.length ? renderDupBar(state, week, dups, tally) + renderSlate(state, week, games, tally, dups) : renderEmptySlate()}
   </section>
 
   ${games.length ? renderLms(state, week, lrow, games) : ""}`;
@@ -334,100 +344,153 @@ function renderEmptySlate() {
     <button class="btn btn--primary btn--px" data-action="refresh" ${ui.busy ? "disabled" : ""}>${icon("refresh", ui.busy ? "spin" : "")}Pull week ${ui.week}</button></div>`;
 }
 
-function renderDups(state, week, dups, tally) {
+// ---- the slate --------------------------------------------------------------
+// The sheet's shape, because it was the right shape: Fav | Spr | Dog reading
+// across, all four players' picks beside it, and the dup priority picker on the
+// same line. One row per game, no second screen, no horizontal scroll.
+
+/** Favorite and dog sides of a game. Pick'em games have no favorite. */
+function sides(g) {
+  const fav = SC.favorite(g);
+  if (!fav) return { favSide: "away", dogSide: "home", pk: true };
+  return { favSide: fav, dogSide: fav === "home" ? "away" : "home", pk: false };
+}
+const abbrOf = (g, side) => (side === "home" ? g.home : g.away);
+
+/** A slim header: your draft slot, and who holds which dup. */
+function renderDupBar(state, week, dups, tally) {
   const pid = actor();
   const pos = dups.order.indexOf(pid) + 1;
   const locked = dups.lockAt && Date.now() >= dups.lockAt;
-  const myPrefs = dups.prefs[pid] || [];
-  const order = dups.order.map((id, i) => `<span class="draft__slot" style="--c:${esc(player(id)?.color)}"><i>${i + 1}</i>${avatar(id)}${esc(nameOf(id))}</span>`).join("");
-  const items = dups.candidates.map((c) => {
-    const owner = Object.entries(dups.assigned).find(([, t]) => t === c.team)?.[0];
-    const rankIdx = myPrefs.indexOf(c.team);
-    const started = SC.hasStarted(c.game);
-    const opp = c.game.home === c.team ? `vs ${c.game.away}` : `@ ${c.game.home}`;
-    const grade = owner ? tally[owner]?.dupGrade : null;
-    return `<div class="dup ${owner ? "dup--taken" : ""} ${started && !owner ? "dup--started" : ""}" style="--c:${owner ? esc(player(owner)?.color) : "var(--ink-soft)"}">
-      <img src="${teamLogo(c.team)}" alt="" loading="lazy">
-      <div class="dup__team">${esc(c.team)}<small>${esc(opp)} · ${esc(fmtKick(c.game.kickoff))}</small></div>
-      <div class="dup__pts">+${fmtPts(c.points)}</div>
-      <div class="dup__owner">${owner ? `${avatar(owner)}<span>${esc(nameOf(owner))}</span>${grade ? `<span class="badge badge--${grade === "win" ? "win" : grade === "loss" ? "loss" : "push"}">${grade === "win" ? `+${cfg.dup.win}` : grade === "loss" ? cfg.dup.loss : "push"}</span>` : ""}` : ""}
-        ${pid && !(locked && !commish()) ? `<button class="rank ${rankIdx >= 0 ? "rank--on" : ""}" data-action="dup" data-team="${esc(c.team)}" ${started && rankIdx < 0 ? "disabled" : ""}>${rankIdx >= 0 ? `#${rankIdx + 1}` : "Rank"}</button>` : ""}
-      </div></div>`;
-  }).join("");
   const mine = dups.assigned[pid];
-  const sub = !pid ? "" : locked ? "Draft locked at first kickoff." : `You're ${ordinal(pos)}: rank up to ${pos} team${pos > 1 ? "s" : ""}. ${mine ? `You've got <b>${esc(mine)}</b>.` : myPrefs.length ? "All your choices are taken. Rank another." : "Nothing ranked yet."}`;
-  return `<section class="section">
-    <div class="section__head"><h2 class="section__title">Dups</h2><span class="section__sub">${sub}</span></div>
-    <div class="rules"><p>Underdogs of ${fmtPts(cfg.dup.minSpread)}+ (never the ${teamName(cfg.dup.exclude?.[0] || "CLE")}), at least one per player. Draft order rotates every week &mdash; last week's first picker drops to last. 1st ranks one team, 2nd ranks two, and so on. A dup that covers is <b>+${cfg.dup.win}</b>; one that doesn't is <b>${cfg.dup.loss}</b>.</p></div>
-    <div class="draft">${order}</div>
-    <div class="duplist">${items || `<div class="empty"><p>No lines yet, so no underdogs to draft. Pull lines first.</p></div>`}</div>
-  </section>`;
+  const held = dups.order.map((id) => {
+    const team = dups.assigned[id];
+    const grade = team ? tally[id]?.dupGrade : null;
+    const cls = ["dupchip", team ? "" : "dupchip--none", grade ? `dupchip--${grade}` : "", id === pid ? "dupchip--me" : ""].join(" ");
+    return `<span class="${cls}" style="--c:${esc(player(id)?.color)}" title="${esc(nameOf(id))}">
+      ${avatar(id)}<b>${team ? esc(team) : "—"}</b></span>`;
+  }).join("");
+  let note;
+  if (!pid) note = "";
+  else if (!dups.candidates.length) note = "No lines yet, so no dups to rank.";
+  else if (locked) note = `Draft locked. ${mine ? `You have <b>${esc(mine)}</b>.` : "You didn't rank one."}`;
+  else note = `You pick <b>${ordinal(pos)}</b> this week &mdash; rank ${pos === 1 ? "one" : `up to ${pos}`} underdog${pos > 1 ? "s" : ""} in the Dup column, best first.${mine ? ` Currently <b>${esc(mine)}</b>.` : ""}`;
+  return `<div class="dupbar">
+    <div class="dupbar__note">${note}</div>
+    <div class="dupbar__held">${held}</div>
+  </div>`;
 }
 
 function renderSlate(state, week, games, tally, dups) {
   const pid = actor();
-  const wk = state.weeks[week];
   const myColor = player(pid)?.color || "var(--accent)";
-  let lastDay = null;
-  const out = [];
+  const pos = dups.order.indexOf(pid) + 1;
+  const dupLocked = Boolean(dups.lockAt && Date.now() >= dups.lockAt && !commish());
+  const myPrefs = dups.prefs[pid] || [];
+
+  const head = `<div class="grow grow--head" role="row">
+    <span>Fav</span><span class="ctr">Spr</span><span>Dog</span>
+    ${state.players.map((p) => `<span class="ctr pname" style="--c:${esc(p.color)}" title="${esc(p.name)}">${esc(p.short || p.name.slice(0, 2))}</span>`).join("")}
+    <span class="ctr">Dup</span>${commish() ? `<span></span>` : ""}
+  </div>`;
+
+  let lastSlot = null;
+  const rows = [];
   for (const g of games) {
-    const dk = dayKey(g.kickoff);
-    if (dk !== lastDay) { out.push(`<div class="slate__day">${g.kickoff ? esc(fmtDayHeading(g.kickoff)) : "TBD"}</div>`); lastDay = dk; }
-    out.push(renderGame(state, week, g, tally, dups, pid, myColor, wk));
+    const slot = `${dayKey(g.kickoff)}|${fmtKick(g.kickoff)}`;
+    if (slot !== lastSlot) {
+      rows.push(`<div class="slate__slot">${g.kickoff ? esc(fmtKick(g.kickoff)) : "TBD"}${g.broadcast ? ` <i>${esc(g.broadcast)}</i>` : ""}</div>`);
+      lastSlot = slot;
+    }
+    rows.push(renderRow(state, g, tally, dups, pid, myColor, { pos, dupLocked, myPrefs }));
   }
-  return `<div class="slate">${out.join("")}</div>`;
+  return `<div class="slate ${commish() ? "slate--commish" : ""}" role="table">${head}${rows.join("")}</div>`;
 }
 
-function renderGame(state, week, g, tally, dups, pid, myColor, wk) {
+function renderRow(state, g, tally, dups, pid, myColor, ctx) {
+  const { favSide, dogSide, pk } = sides(g);
+  const favAbbr = abbrOf(g, favSide);
+  const dogAbbr = abbrOf(g, dogSide);
+  const started = SC.hasStarted(g);
   const final = SC.isFinal(g);
   const live = g.status === "in";
-  const started = SC.hasStarted(g);
-  const fav = SC.favorite(g);
   const winner = SC.straightUpWinner(g);
-  const mySide = pid ? tally[pid]?.sides[g.id] : null;
-  const myDup = pid && dups.assigned[pid] && (g.home === dups.assigned[pid] || g.away === dups.assigned[pid]);
   const margin = final && g.spread != null ? g.homeScore - g.awayScore + g.spread : null;
   const coveredSide = margin == null || margin === 0 ? null : margin > 0 ? "home" : "away";
-  const canPick = pid && (!started || commish()) && !myDup;
 
-  const side = (which) => {
-    const abbr = which === "home" ? g.home : g.away;
-    const score = which === "home" ? g.homeScore : g.awayScore;
-    const rec = which === "home" ? g.homeRecord : g.awayRecord;
-    const isDup = dups.byTeam[abbr] && Object.values(dups.assigned).includes(abbr);
-    const cls = ["side", `side--${which}`, mySide === which ? "side--mine" : "", final && winner && winner !== abbr && winner !== "tie" ? "side--loser" : "", coveredSide === which ? "side--covered" : "", isDup ? "side--dup" : ""].join(" ");
-    const meta = g.spread == null ? (rec ? esc(rec) : "") : fav === which ? `<b>${SC.formatSpread(-Math.abs(g.spread))}</b>` : fav ? `+${fmtPts(Math.abs(g.spread))}` : "PK";
-    return `<button class="${cls}" style="--c:${teamColor(abbr)}" data-action="pick" data-game="${g.id}" data-side="${which}" ${canPick ? "" : "disabled"} aria-pressed="${mySide === which}">
-      <img class="side__logo" src="${teamLogo(abbr)}" alt="" loading="lazy">
-      <div class="side__txt"><div class="side__abbr">${esc(abbr)}</div><div class="side__meta">${meta}${rec && g.spread != null && !(started && score != null) ? ` · ${esc(rec)}` : ""}</div></div>
-      ${started && score != null ? `<div class="side__score ${winner === abbr ? "side__score--w" : final ? "side__score--l" : ""}">${score}</div>` : ""}
+  const myDupTeam = dups.assigned[pid];
+  const myDupHere = myDupTeam && (g.home === myDupTeam || g.away === myDupTeam);
+  const mySide = pid ? tally[pid]?.sides[g.id] : null;
+  const canPick = pid && (!started || commish()) && !myDupHere;
+
+  const teamCell = (side, abbr, isDog) => {
+    const cls = [
+      "cell", "cell--team", isDog ? "cell--dog" : "cell--fav",
+      mySide === side ? "cell--mine" : "",
+      final && winner && winner !== abbr && winner !== "tie" ? "cell--lost" : "",
+      coveredSide === side ? "cell--covered" : "",
+    ].join(" ");
+    const prefix = isDog ? (side === "home" ? "@" : "vs") : "";
+    return `<button class="${cls}" data-action="pick" data-game="${esc(g.id)}" data-side="${side}"
+      ${canPick ? "" : "disabled"} aria-pressed="${mySide === side}"
+      title="${esc(teamName(abbr))}${started ? "" : ` · ${esc(fmtKick(g.kickoff))}`}">
+      ${prefix ? `<i>${prefix}</i>` : ""}<span class="cell__abbr">${esc(abbr)}</span>
+      <span class="cell__name">${esc(teamName(abbr))}</span>
     </button>`;
   };
 
-  const status = final ? `<b>Final</b>` : live ? `<b>${esc(g.clock || "Live")}</b>` : `<b>${esc(fmtKick(g.kickoff))}</b>${g.broadcast ? `<span>${esc(g.broadcast)}</span>` : ""}`;
-  const line = `<span class="line ${g.spread === 0 ? "line--pk" : ""}" title="${esc(g.book || "")}">${esc(SC.lineText(g))}</span>`;
+  // One middle column: the line before kickoff, the score over the line after,
+  // always read favourite-first so it lines up with the columns either side.
+  const sprText = g.spread == null ? "\u2014" : pk ? "PK" : `-${fmtPts(Math.abs(g.spread))}`;
+  const favIsAway = favSide === "away";
+  const scoreText = started && g.awayScore != null && g.homeScore != null
+    ? (favIsAway ? `${g.awayScore}-${g.homeScore}` : `${g.homeScore}-${g.awayScore}`)
+    : null;
+  const midInner = scoreText
+    ? `<b>${esc(scoreText)}</b><i>${esc(sprText)}</i>`
+    : `<b class="mid__line">${esc(sprText)}</b>`;
+  const midTitle = `${esc(SC.lineText(g))}${g.book ? ` \u00b7 ${esc(g.book)}` : ""}${live ? ` \u00b7 ${esc(g.clock || "live")}` : final ? " \u00b7 final" : ""}`;
+  const spr = commish()
+    ? `<button class="cell cell--mid" data-action="edit-line" data-game="${esc(g.id)}" title="${midTitle} \u2014 tap to edit">${midInner}</button>`
+    : `<span class="cell cell--mid" title="${midTitle}">${midInner}</span>`;
 
-  const chips = state.players.map((p) => {
+  const picks = state.players.map((p) => {
     const t = tally[p.id];
-    const s = t.sides[g.id];
+    const side = t.sides[g.id];
     const grade = t.grades[g.id];
     const isDup = t.dup && (g.home === t.dup || g.away === t.dup);
-    const cls = ["chip", !s ? "chip--empty" : "", grade ? `chip--${grade}` : "", p.id === pid ? "chip--me" : "", isDup ? "chip--dup" : ""].join(" ");
-    return `<div class="${cls}" style="--c:${esc(p.color)}" title="${esc(p.name)}"><span class="chip__who">${esc(p.short || p.name.slice(0, 2))}</span><span class="chip__pick">${s ? esc(s === "home" ? g.home : g.away) : "·"}</span></div>`;
+    const letter = !side ? "" : side === favSide ? "F" : "D";
+    const cls = ["cell", "cell--pick", grade ? `is-${grade}` : "", isDup ? "cell--isdup" : "", p.id === pid ? "cell--self" : ""].join(" ");
+    return `<span class="${cls}" style="--c:${esc(p.color)}" title="${esc(p.name)}${side ? `: ${esc(abbrOf(g, side))}` : " — no pick"}">${letter || "·"}</span>`;
   }).join("");
 
-  const tools = commish() ? `<div class="game__tools">
-      <button class="btn btn--ghost btn--sm" data-action="edit-line" data-game="${g.id}">${icon("edit")}Line</button>
-      <button class="btn btn--ghost btn--sm" data-action="edit-score" data-game="${g.id}">${icon("edit")}Score</button>
-      <button class="btn btn--ghost btn--sm btn--danger" data-action="del-game" data-game="${g.id}">${icon("trash")}</button>
-    </div>` : "";
+  // The dup picker lives in the row. Only the week's eligible underdogs get one.
+  const cand = dups.byTeam[dogAbbr];
+  let dup;
+  if (!cand) {
+    dup = `<span class="cell cell--dup cell--dup-off">—</span>`;
+  } else {
+    const rank = ctx.myPrefs.indexOf(dogAbbr) + 1;   // 0 when unranked
+    const owner = Object.entries(dups.assigned).find(([, t]) => t === dogAbbr)?.[0];
+    const disabled = ctx.dupLocked || !pid || (started && !rank);
+    const opts = [`<option value="0"${rank ? "" : " selected"}>—</option>`]
+      .concat(Array.from({ length: ctx.pos }, (_, i) => i + 1).map((n) =>
+        `<option value="${n}"${n === rank ? " selected" : ""}>${n}</option>`))
+      .join("");
+    const heldByOther = owner && owner !== pid;
+    dup = `<span class="cell cell--dup ${rank ? "cell--dup-on" : ""} ${owner ? "cell--dup-taken" : ""}"
+      style="--c:${owner ? esc(player(owner)?.color) : "var(--accent-lift)"}"
+      title="${esc(dogAbbr)} +${fmtPts(cand.points)} dup${owner ? ` — ${esc(nameOf(owner))} has it` : ""}">
+      ${heldByOther && !rank ? `<span class="cell__owner">${esc(player(owner)?.short || nameOf(owner).slice(0, 2))}</span>` : ""}
+      <select data-action="dup-rank" data-team="${esc(dogAbbr)}" ${disabled ? "disabled" : ""} aria-label="Dup priority for ${esc(dogAbbr)}">${opts}</select>
+    </span>`;
+  }
 
-  return `<article class="game ${live ? "game--live" : ""} ${final ? "game--final" : ""} ${myDup ? "game--dup" : ""}" style="--me-c:${esc(myColor)}">
-    <div class="matchup">${side("away")}<div class="at">@</div>${side("home")}</div>
-    <div class="gstatus ${live ? "gstatus--live" : ""} ${final ? "gstatus--final" : ""}">${status}${line}</div>
-    <div class="picks">${chips}</div>
-    ${tools}
-  </article>`;
+  const menu = commish() ? `<button class="cell cell--menu" data-action="row-menu" data-game="${esc(g.id)}" aria-label="Game options">${icon("edit")}</button>` : "";
+  const cls = ["grow", live ? "grow--live" : "", final ? "grow--final" : "", myDupHere ? "grow--mydup" : ""].join(" ");
+  return `<div class="${cls}" style="--me-c:${esc(myColor)}" role="row">
+    ${teamCell(favSide, favAbbr, false)}${spr}${teamCell(dogSide, dogAbbr, true)}${picks}${dup}${menu}
+  </div>`;
 }
 
 function renderLms(state, week, lrow, games) {
@@ -611,6 +674,18 @@ function lmsModal() {
     <div class="teamgrid">${teams.map((t) => `<button class="teamtile ${current === t.abbr ? "teamtile--on" : ""}" style="--c:${teamColor(t.abbr)}" data-action="lms-pick" data-team="${esc(t.abbr)}" ${SC.hasStarted(t.g) && !commish() ? "disabled" : ""}><img src="${teamLogo(t.abbr)}" alt=""><b>${esc(t.abbr)}</b><small>${esc(t.opp)}</small></button>`).join("")}</div>
     ${current ? `<div class="form__actions"><button class="btn btn--ghost btn--danger btn--sm" data-action="lms-pick" data-team="">Clear pick</button></div>` : ""}`, { wide: true });
 }
+function rowMenu(gameId) {
+  const g = gameById(ui.week, gameId);
+  if (!g) return;
+  openModal(`${modalHead(`${g.away} @ ${g.home}`)}
+    <p class="mute" style="margin:0 0 14px;font-size:13px">${esc(fmtKick(g.kickoff))}${g.book ? ` · line from ${esc(g.book)}` : ""}</p>
+    <div class="menu">
+      <button class="btn" data-action="edit-line" data-game="${esc(g.id)}">${icon("lines")}Edit the line</button>
+      <button class="btn" data-action="edit-score" data-game="${esc(g.id)}">${icon("edit")}Edit the score</button>
+      <button class="btn btn--danger" data-action="del-game" data-game="${esc(g.id)}">${icon("trash")}Remove this game</button>
+    </div>`);
+}
+
 function lineModal(gameId) {
   const g = gameById(ui.week, gameId);
   openModal(`${modalHead(`${g.away} @ ${g.home} · line`)}<form data-form="line" data-game="${g.id}">
@@ -689,14 +764,14 @@ document.addEventListener("click", (e) => {
     case "pick-as": pickAsModal(); break;
     case "pick-as-set": ui.pickingAs = el.dataset.id === me() ? null : el.dataset.id; closeModal(); render(); break;
     case "pick": setPick(el.dataset.game, el.dataset.side); break;
-    case "dup": toggleDupPref(el.dataset.team); break;
+    case "row-menu": rowMenu(el.dataset.game); break;
     case "lms-open": lmsModal(); break;
     case "lms-pick": setLms(el.dataset.team || null); break;
     case "refresh": pullSlate(ui.week, { lines: !SC.weekGames(S.getState(), ui.week).length || ui.week === currentWeek() && SC.weekGames(S.getState(), ui.week).some((g) => g.spread == null && g.status === "pre") }); break;
     case "pull-lines": pullSlate(ui.week, { lines: true, forceLines: false }); break;
     case "lock-lines": S.update((d) => { const wk = S.ensureWeek(d, ui.week); wk.linesLocked = !wk.linesLocked; }); toast(S.getState().weeks[ui.week].linesLocked ? "Lines locked for the week" : "Lines unlocked"); break;
     case "add-game": addGameModal(); break;
-    case "edit-line": lineModal(el.dataset.game); break;
+    case "edit-line": lineModal(el.dataset.game); break;   // also reached from the row menu
     case "edit-score": scoreModal(el.dataset.game); break;
     case "line-clear": S.update((d) => { const g = d.weeks[ui.week].games.find((x) => x.id === el.dataset.game); if (g) { g.spread = null; g.manualSpread = false; g.book = null; } }); closeModal(); break;
     case "del-game": if (confirm("Remove this game and everyone's picks on it?")) S.update((d) => { const wk = d.weeks[ui.week]; wk.games = wk.games.filter((g) => g.id !== el.dataset.game); for (const p of Object.values(wk.picks)) delete p[el.dataset.game]; }); break;
@@ -765,6 +840,12 @@ document.addEventListener("submit", (e) => {
     }
   }
   closeModal();
+});
+
+document.addEventListener("change", (e) => {
+  const el = e.target.closest('[data-action="dup-rank"]');
+  if (!el) return;
+  setDupRank(el.dataset.team, Number(el.value) || 0);
 });
 
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modalOpen()) closeModal(); });

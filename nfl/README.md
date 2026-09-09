@@ -72,13 +72,18 @@ API keys.
 
 ## How it plays
 
-- **Picks.** Tap a side. A cover is 1 point, a push is ½. Picks lock at kickoff.
-  The line freezes for everyone once anyone picks the game, when the
-  commissioner locks the week, or at kickoff.
+- **Picks.** One row per game, laid out like the sheet: **Fav | Spr | Dog**, then
+  every player's pick, then the dup picker. Tap either side to take it. A cover
+  is 1 point, a push is ½. Picks lock at kickoff. The line freezes for everyone
+  once anyone picks the game, when the commissioner locks the week, or at
+  kickoff. The middle column shows the line before kickoff and the score over
+  the line after; each player's column shows **F** for the favorite, **D** for
+  the dog, coloured by result.
 - **Dups.** Underdogs of 4.5+ points (never the Browns), padded to at least one
   per player, go up for a draft whose order rotates a seat each week: whoever
   picked first last week drops to last and everyone moves up (week 1 order comes
-  from `dupOrderBase`). Position 1 ranks one team,
+  from `dupOrderBase`). You rank your choices in the Dup column of the slate
+  itself — no separate screen. Position 1 ranks one team,
   position 2 ranks two, and so on; each player gets their highest-ranked team
   still available. Your dup is your pick in that game: +1.5 on a cover, 0 if not.
   The draft locks at the first kickoff among those games. The commissioner can
