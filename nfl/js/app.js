@@ -65,6 +65,7 @@ async function pullSlate(week, { lines = true, forceLines = false, quiet = false
     catch (e) { oddsErr = e; }
   }
   let added = 0, lined = 0;
+  const locked = SC.linesLocked(S.getState(), week, cfg);
   S.update((d) => {
     const wk = S.ensureWeek(d, week);
     for (const f of fetched) {
@@ -78,7 +79,7 @@ async function pullSlate(week, { lines = true, forceLines = false, quiet = false
       });
       // Lines: the pool plays one number. It freezes once anyone has picked the game,
       // once the commissioner locks the week, or once the game kicks off.
-      const frozen = wk.linesLocked || g.manualSpread || anyPickOn(wk, g.id) || g.status !== "pre";
+      const frozen = locked || g.manualSpread || anyPickOn(wk, g.id) || g.status !== "pre";
       const canSet = forceLines || !frozen || g.spread == null;
       if (!canSet) continue;
       const o = odds?.games.find((x) => x.home === g.home && x.away === g.away && Math.abs(new Date(x.commence) - new Date(g.kickoff)) < 3 * 86400e3);
@@ -110,7 +111,7 @@ function autoPull(week) {
   const wk = state.weeks?.[week];
   const games = wk?.games || [];
   const needSchedule = !games.length;
-  const needLines = week === currentWeek() && !wk?.linesLocked && (needSchedule || games.some((g) => g.spread == null && g.status === "pre")) && Date.now() - (wk?.lastLinesPull || 0) > 3600e3;
+  const needLines = week === currentWeek() && !SC.linesLocked(state, week, cfg) && (needSchedule || games.some((g) => g.spread == null && g.status === "pre")) && Date.now() - (wk?.lastLinesPull || 0) > 3600e3;
   if (needSchedule || needLines) pullSlate(week, { lines: needLines, quiet: true });
 }
 
@@ -182,7 +183,10 @@ function setLms(team) {
   const pid = actor();
   flashSaved();
   if (!pid) return toast("Pick who you are first", { bad: true });
-  const g = SC.weekGames(S.getState(), ui.week).find((x) => x.home === team || x.away === team);
+  const state = S.getState();
+  const used = SC.lmsUsed(state, cfg, ui.week, pid).find((u) => u.team === team);
+  if (used) return toast(`You already used ${team} in week ${used.week} this round.`, { bad: true });
+  const g = SC.weekGames(state, ui.week).find((x) => x.home === team || x.away === team);
   if (team && g && SC.hasStarted(g) && !commish()) return toast("That game already kicked off.", { bad: true });
   S.update((d) => {
     const wk = S.ensureWeek(d, ui.week);
@@ -269,6 +273,11 @@ function renderWeek(state) {
   const wrow = led.weekly.rows[week];
   const lrow = led.lms.rows[week];
   const best = Math.max(0, ...state.players.map((p) => tally[p.id].points));
+  const linesFrozen = SC.linesLocked(state, week, cfg);
+  const lockAt = SC.lineLockAt(week, cfg);
+  const lockLabel = lockAt && !linesFrozen
+    ? new Date(lockAt).toLocaleString(undefined, { weekday: "short", hour: "numeric" }).toLowerCase()
+    : "";
   const anyPicks = state.players.some((p) => tally[p.id].picks);
 
   const tiles = state.players.map((p) => {
@@ -308,7 +317,7 @@ function renderWeek(state) {
         ${games.length ? `<span>${esc(fmtRange(games))}</span><span><span class="num">${games.length}</span> games</span>` : `<span>No slate yet</span>`}
         ${finals ? `<span><span class="num">${finals}</span> final</span>` : ""}
         ${live ? `<span class="livepill">${live} live</span>` : ""}
-        ${wk.linesLocked ? `<span>Lines locked</span>` : ""}
+        ${linesFrozen ? `<span>Lines locked</span>` : lockLabel ? `<span>Lines lock ${esc(lockLabel)}</span>` : ""}
       </div>
     </div>
     <div class="tiles">${tiles}</div>
@@ -322,10 +331,9 @@ function renderWeek(state) {
   <div class="toolbar">
     <button class="btn btn--px" data-action="refresh" ${ui.busy ? "disabled" : ""}>${icon("refresh", ui.busy ? "spin" : "")}${games.length ? "Refresh scores" : "Pull slate"}</button>
     ${commish() ? `
-      <button class="btn btn--px" data-action="pull-lines" ${ui.busy ? "disabled" : ""} title="Re-pull spreads from the book for games nobody has picked yet">${icon("lines")}Pull lines</button>
-      <button class="btn btn--px" data-action="lock-lines" title="${wk.linesLocked ? "Unlock" : "Freeze every line for this week"}">${icon("lock")}${wk.linesLocked ? "Unlock lines" : "Lock lines"}</button>
+      <button class="btn btn--px" data-action="lock-lines" title="${linesFrozen ? "Reopen the lines for this week" : `Freeze them now — otherwise they lock ${esc(lockLabel)}`}">${icon("lock")}${linesFrozen ? "Reopen lines" : "Lock lines now"}</button>
       <button class="btn btn--px" data-action="add-game">${icon("plus")}Add game</button>
-      <button class="btn btn--px" data-action="draft-order">${icon("swap")}Draft order</button>` : ""}
+` : ""}
   </div>
 
 
@@ -508,6 +516,7 @@ function renderLms(state, week, lrow, games) {
       : res === "busted" ? `<span class="badge badge--loss">Busted</span>`
       : res === "nopick" ? `<span class="badge badge--loss">No pick</span>`
       : res === "nogame" ? `<span class="badge badge--loss">Not playing</span>`
+      : res === "reused" ? `<span class="badge badge--loss">Already used</span>`
       : team ? `<span class="badge">${g && g.status === "in" ? "Live" : "Locked in"}</span>` : `<span class="badge">Needs a pick</span>`;
     const pay = lrow?.payouts?.[p.id] ? `<span class="badge badge--money">${SC.money(lrow.payouts[p.id])}</span>` : "";
     const sub = g ? `${g.home === team ? `vs ${g.away}` : `@ ${g.home}`} · ${started && g.homeScore != null ? `${g.awayScore}-${g.homeScore}` : fmtKick(g.kickoff)}` : team ? "Not on this week's slate" : (canEdit ? "Tap to choose" : "");
@@ -669,27 +678,41 @@ function lmsModal() {
   const pid = actor();
   const games = SC.weekGames(state, ui.week);
   const current = state.weeks?.[ui.week]?.lms?.[pid];
-  // A team's own line: positive means they're getting points, so the bigger the
-  // number the likelier they lose -- which is exactly what you're shopping for.
-  const ownSpread = (g, abbr) => (g.spread == null ? null : abbr === g.home ? g.spread : -g.spread);
+  const lms = SC.lastManStanding(state, cfg).rows[ui.week];
+  const used = SC.lmsUsed(state, cfg, ui.week, pid);
+  const usedMap = Object.fromEntries(used.map((u) => [u.team, u.week]));
+
+  // Biggest underdog first: the pick is a team to lose, so that is the order
+  // you actually shop in. Teams without a line sit at the bottom.
   const teams = games
     .flatMap((g) => [{ abbr: g.away, g, opp: `@ ${g.home}` }, { abbr: g.home, g, opp: `vs ${g.away}` }])
-    .map((t) => ({ ...t, spread: ownSpread(t.g, t.abbr) }))
-    .sort((a, b) => a.abbr.localeCompare(b.abbr));
-  openModal(`${modalHead("Pick a team to lose")}<p class="mute" style="margin:0 0 12px;font-size:13px">Round ${SC.lastManStanding(state, cfg).rows[ui.week]?.round || 1}. Get it right and you're through to next week. The line is each team's own &mdash; a big <span style="color:var(--accent-lift)">+number</span> is a big underdog.</p>
-    <div class="teamgrid">${teams.map((t) => `<button class="teamtile ${current === t.abbr ? "teamtile--on" : ""}" style="--c:${teamColor(t.abbr)}" data-action="lms-pick" data-team="${esc(t.abbr)}" ${SC.hasStarted(t.g) && !commish() ? "disabled" : ""}><img ${logoAttrs(t.abbr)}><b>${esc(t.abbr)}</b><span class="teamtile__spr ${t.spread != null && t.spread > 0 ? "is-dog" : ""}">${t.spread == null ? "no line" : t.spread === 0 ? "PK" : SC.formatSpread(t.spread)}</span><small>${esc(t.opp)}</small></button>`).join("")}</div>
-    ${current ? `<div class="form__actions"><button class="btn btn--ghost btn--danger btn--sm" data-action="lms-pick" data-team="">Clear pick</button></div>` : ""}`, { wide: true });
-}
-function rowMenu(gameId) {
-  const g = gameById(ui.week, gameId);
-  if (!g) return;
-  openModal(`${modalHead(`${g.away} @ ${g.home}`)}
-    <p class="mute" style="margin:0 0 14px;font-size:13px">${esc(fmtKick(g.kickoff))}${g.book ? ` · line from ${esc(g.book)}` : ""}</p>
-    <div class="menu">
-      <button class="btn" data-action="edit-line" data-game="${esc(g.id)}">${icon("lines")}Edit the line</button>
-      <button class="btn" data-action="edit-score" data-game="${esc(g.id)}">${icon("edit")}Edit the score</button>
-      <button class="btn btn--danger" data-action="del-game" data-game="${esc(g.id)}">${icon("trash")}Remove this game</button>
-    </div>`);
+    .map((t) => ({ ...t, spread: SC.ownSpread(t.g, t.abbr) }))
+    .sort((a, b) => {
+      if ((a.spread == null) !== (b.spread == null)) return a.spread == null ? 1 : -1;
+      return (b.spread ?? 0) - (a.spread ?? 0) || a.abbr.localeCompare(b.abbr);
+    });
+
+  const usedStrip = used.length
+    ? `<div class="usedstrip"><span class="usedstrip__k">Spent this round</span>
+        ${used.map((u) => `<span class="usedchip">${esc(u.team)}<i>wk ${u.week}</i></span>`).join("")}</div>`
+    : "";
+
+  return openModal(`${modalHead("Pick a team to lose")}
+    <p class="mute" style="margin:0 0 12px;font-size:13px">Round ${lms?.round || 1}${lms ? `, weeks ${lms.roundStart}&ndash;${lms.roundEnd}` : ""}. Biggest underdogs first &mdash; a big <span style="color:var(--accent-lift)">+number</span> is likeliest to lose. One team per round: once a week settles, that team is spent.</p>
+    ${usedStrip}
+    <div class="teamgrid">${teams.map((t) => {
+      const spent = usedMap[t.abbr];
+      const started = SC.hasStarted(t.g);
+      const off = Boolean(spent) || (started && !commish());
+      return `<button class="teamtile ${current === t.abbr ? "teamtile--on" : ""} ${spent ? "teamtile--spent" : ""}"
+        style="--c:${teamColor(t.abbr)}" data-action="lms-pick" data-team="${esc(t.abbr)}" ${off ? "disabled" : ""}
+        title="${esc(teamName(t.abbr))}${spent ? ` — used in week ${spent}` : started ? " — kicked off" : ""}">
+        <img ${logoAttrs(t.abbr)}><b>${esc(t.abbr)}</b>
+        <span class="teamtile__spr ${t.spread != null && t.spread > 0 ? "is-dog" : ""}">${t.spread == null ? "no line" : t.spread === 0 ? "PK" : SC.formatSpread(t.spread)}</span>
+        <small>${spent ? `used wk ${spent}` : esc(t.opp)}</small>
+      </button>`;
+    }).join("")}</div>
+    ${current ? `<div class="form__actions"><button type="button" class="btn btn--ghost btn--danger btn--sm" data-action="lms-pick" data-team="">Clear pick</button></div>` : ""}`, { wide: true });
 }
 
 function lineModal(gameId) {
@@ -717,15 +740,6 @@ function addGameModal() {
     <label class="field-row"><span>Kickoff</span><input class="input" name="kickoff" type="datetime-local" value="${toLocalInput()}" required></label>
     <label class="field-row"><span>Home spread</span><input class="input" name="spread" type="number" step="0.5" placeholder="-3.5" inputmode="decimal"></label></div>
     <div class="form__actions"><button type="button" class="btn" data-action="modal-close">Cancel</button><button class="btn btn--primary" type="submit">Add</button></div></form>`);
-}
-function draftOrderModal() {
-  const state = S.getState();
-  const dups = SC.resolveDups(state, cfg, ui.week);
-  const override = Boolean(state.weeks?.[ui.week]?.dupOrder);
-  openModal(`${modalHead(`Draft order · week ${ui.week}`)}<form data-form="draft-order">
-    <p class="mute" style="margin:0 0 12px;font-size:13px">${override ? "Set by hand for this week." : `Rotating order for week ${ui.week}. Next week everyone moves up a seat.`}</p>
-    <div class="fields">${dups.order.map((id, i) => `<label class="field-row"><span>${ordinal(i + 1)}</span><select class="input" name="p${i}">${state.players.map((p) => `<option value="${esc(p.id)}" ${p.id === id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`).join("")}</div>
-    <div class="form__actions">${override ? `<button type="button" class="btn btn--ghost btn--danger btn--sm" data-action="draft-order-reset">Use the rotation</button>` : ""}<button type="button" class="btn" data-action="modal-close">Cancel</button><button class="btn btn--primary" type="submit">Save order</button></div></form>`);
 }
 function betModal(pid) {
   const pr = S.getState().sideBet?.predictions?.[pid] || {};
@@ -774,15 +788,17 @@ document.addEventListener("click", (e) => {
     case "lms-open": lmsModal(); break;
     case "lms-pick": setLms(el.dataset.team || null); break;
     case "refresh": pullSlate(ui.week, { lines: !SC.weekGames(S.getState(), ui.week).length || ui.week === currentWeek() && SC.weekGames(S.getState(), ui.week).some((g) => g.spread == null && g.status === "pre") }); break;
-    case "pull-lines": pullSlate(ui.week, { lines: true, forceLines: false }); break;
-    case "lock-lines": S.update((d) => { const wk = S.ensureWeek(d, ui.week); wk.linesLocked = !wk.linesLocked; }); toast(S.getState().weeks[ui.week].linesLocked ? "Lines locked for the week" : "Lines unlocked"); break;
+    case "lock-lines": {
+      const was = SC.linesLocked(S.getState(), ui.week, cfg);
+      S.update((d) => { S.ensureWeek(d, ui.week).linesLocked = !was; });
+      toast(was ? "Lines reopened" : "Lines locked for the week");
+      break;
+    }
     case "add-game": addGameModal(); break;
     case "edit-line": lineModal(el.dataset.game); break;   // also reached from the row menu
     case "edit-score": scoreModal(el.dataset.game); break;
     case "line-clear": S.update((d) => { const g = d.weeks[ui.week].games.find((x) => x.id === el.dataset.game); if (g) { g.spread = null; g.manualSpread = false; g.book = null; } }); closeModal(); break;
     case "del-game": if (confirm("Remove this game and everyone's picks on it?")) S.update((d) => { const wk = d.weeks[ui.week]; wk.games = wk.games.filter((g) => g.id !== el.dataset.game); for (const p of Object.values(wk.picks)) delete p[el.dataset.game]; }); break;
-    case "draft-order": draftOrderModal(); break;
-    case "draft-order-reset": S.update((d) => { delete S.ensureWeek(d, ui.week).dupOrder; }); closeModal(); break;
     case "bet-edit": betModal(el.dataset.id); break;
     case "bet-actual": betActualModal(); break;
     case "bet-actual-clear": S.update((d) => { d.sideBet.actual = null; }); closeModal(); break;
@@ -816,12 +832,6 @@ document.addEventListener("submit", (e) => {
       if (!away || !home || away === home) return toast("Pick two different teams", { bad: true });
       if (SC.weekGames(S.getState(), ui.week).some((g) => g.id === S.gameId({ away, home }))) return toast("That game is already on the slate", { bad: true });
       S.update((d) => { const wk = S.ensureWeek(d, ui.week); wk.games.push({ id: S.gameId({ away, home }), away, home, kickoff: new Date(f.get("kickoff")).toISOString(), spread: num("spread"), manualSpread: num("spread") != null, status: "pre", homeScore: null, awayScore: null, manual: true }); wk.games.sort((x, y) => new Date(x.kickoff) - new Date(y.kickoff)); });
-      break;
-    }
-    case "draft-order": {
-      const order = S.getState().players.map((_, i) => f.get(`p${i}`));
-      if (new Set(order).size !== order.length) return toast("Each player once", { bad: true });
-      S.update((d) => { S.ensureWeek(d, ui.week).dupOrder = order; });
       break;
     }
     case "bet": {

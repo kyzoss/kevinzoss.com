@@ -75,14 +75,17 @@ API keys.
 - **Picks.** One row per game, laid out like the sheet: **Fav | Spr | Dog**, then
   every player's pick, then the dup picker. Tap either side to take it. A cover
   is 1 point, a push is ½. Picks lock at kickoff. The line freezes for everyone
-  once anyone picks the game, when the commissioner locks the week, or at
-  kickoff. The middle column shows the line before kickoff and the score over
+  once anyone picks the game, at kickoff, or automatically at noon on that
+  week's Tuesday (`lineLockHour`) — pull the fresh numbers Tuesday morning and
+  from then on everyone plays the same line. The commissioner can lock earlier
+  or reopen a week. The middle column shows the line before kickoff and the score over
   the line after; each player's column shows the team they took, coloured by
   result, with a dot when a dup forced the pick.
 - **Dups.** Underdogs of 4.5+ points (never the Browns), padded to at least one
   per player, go up for a draft whose order rotates a seat each week: whoever
   picked first last week drops to last and everyone moves up (week 1 order comes
-  from `dupOrderBase`). You rank your choices in the Dup column of the slate
+  from `dupOrderBase`). The rotation runs the whole season; nothing overrides a
+  single week. You rank your choices in the Dup column of the slate
   itself — no separate screen. Position 1 ranks one team,
   position 2 ranks two, and so on; each player gets their highest-ranked team
   still available. Your dup is your pick in that game: +1.5 on a cover, 0 if not.
@@ -90,8 +93,11 @@ API keys.
   override the order for a week.
 - **Weekly pot.** $4 a week. Best score takes it; a tie rolls the pot; week 18
   splits.
-- **Last man standing.** The picker lists every team with its own line, so the
-  big underdogs — the ones likeliest to lose — stand out. $1 from everyone every
+- **Last man standing.** The picker lists every team biggest-underdog-first with
+  its own line, since the plus numbers are the whole read. **One team per
+  four-week block**: once a week settles, that team is spent and shows struck
+  through, with a strip at the top of the picker listing what you've already
+  used. Picking a spent team is void, same as no pick. $1 from everyone every
   week, **including the weeks you're already out** — that dead money is what the survivors are playing for.
   Name a team to lose; wins, ties and no-picks knock you out for the round.
   Rounds are fixed four-week blocks and survivors split at the end. If everyone
@@ -104,9 +110,9 @@ API keys.
 
 ## Commissioner tools
 
-Whoever is `commissioner` in `config.js` gets: pull lines, lock lines, add/edit
-games, edit lines and scores by hand (pinned against future pulls), set the dup
-draft order, pick on behalf of others, adjustments, side-bet override, reset.
+Whoever is `commissioner` in `config.js` gets: lock the lines early or reopen
+them, add or remove games, edit lines and scores by hand (pinned against future
+pulls), pick on behalf of others, adjustments, side-bet override, and reset.
 Identity is honor-system, same as the sheet.
 
 ## Design notes
