@@ -48,18 +48,31 @@ function toNum(v) {
   return Number.isNaN(n) ? null : n;
 }
 
-/** Home-relative spread: negative when the home side is favored. */
+/**
+ * Home-relative spread: negative when the home side is favored.
+ *
+ * ESPN's numeric `spread` is signed from the favorite's point of view, not the
+ * home team's, so reading it directly flips the line whenever the road team is
+ * favored. Work out who is actually favored first -- from `details`, which names
+ * them, or from the per-team `favorite` flags -- and only then apply the sign.
+ */
 function parseSpread(odds, home, away) {
   if (!odds) return null;
-  if (typeof odds.spread === "number") return odds.spread;
   const details = String(odds.details || "").trim().toUpperCase();
-  if (!details) return null;
   if (details === "EVEN" || details === "PK" || details === "PICK") return 0;
+
   const m = details.match(/^([A-Z]{2,4})\s*([+-]?\d+(?:\.\d+)?)$/);
-  if (!m) return null;
-  const fav = fixAbbr(m[1]);
-  const n = -Math.abs(parseFloat(m[2]));
-  if (fav === home) return n;
-  if (fav === away) return -n;
-  return null;
+  if (m) {
+    const fav = fixAbbr(m[1]);
+    const n = Math.abs(parseFloat(m[2]));
+    if (fav === home) return -n;
+    if (fav === away) return n;
+  }
+
+  const size = typeof odds.spread === "number" ? Math.abs(odds.spread) : null;
+  if (size == null) return null;
+  if (size === 0) return 0;
+  if (odds.homeTeamOdds?.favorite) return -size;
+  if (odds.awayTeamOdds?.favorite) return size;
+  return null; // favorite unknown -- better no line than a backwards one
 }

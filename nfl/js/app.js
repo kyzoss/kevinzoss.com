@@ -8,6 +8,15 @@ import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toLocalInput, toast, ope
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
 
+let savedUntil = 0;
+let savedTimer = null;
+/** Flash "Saved" in the header so an entry visibly lands. */
+function flashSaved() {
+  savedUntil = Date.now() + 1800;
+  clearTimeout(savedTimer);
+  savedTimer = setTimeout(render, 1900);
+}
+
 const ui = {
   tab: "week",
   week: currentWeek(),
@@ -59,8 +68,10 @@ async function pullSlate(week, { lines = true, forceLines = false, quiet = false
   S.update((d) => {
     const wk = S.ensureWeek(d, week);
     for (const f of fetched) {
-      let g = wk.games.find((x) => x.espnId === f.espnId) || wk.games.find((x) => !x.espnId && x.home === f.home && x.away === f.away);
-      if (!g) { g = { id: S.newId(), spread: null, manualSpread: false }; wk.games.push(g); added++; }
+      const id = S.gameId(f);
+      let g = wk.games.find((x) => x.id === id) || wk.games.find((x) => x.espnId === f.espnId);
+      if (!g) { g = { id, spread: null, manualSpread: false }; wk.games.push(g); added++; }
+      g.id = id;
       Object.assign(g, {
         espnId: f.espnId, kickoff: f.kickoff, home: f.home, away: f.away, status: f.status,
         homeScore: f.homeScore, awayScore: f.awayScore, clock: f.clock, homeRecord: f.homeRecord, awayRecord: f.awayRecord, broadcast: f.broadcast,
@@ -120,6 +131,7 @@ function schedulePolling() {
 // ---- mutations ----------------------------------------------------------------
 function setPick(gameId, side) {
   const pid = actor();
+  flashSaved();
   if (!pid) return toast("Pick who you are first", { bad: true });
   const g = gameById(ui.week, gameId);
   if (!g) return;
@@ -137,6 +149,7 @@ function setPick(gameId, side) {
 
 function toggleDupPref(team) {
   const pid = actor();
+  flashSaved();
   if (!pid) return toast("Pick who you are first", { bad: true });
   const state = S.getState();
   const dups = SC.resolveDups(state, cfg, ui.week);
@@ -156,6 +169,7 @@ function toggleDupPref(team) {
 
 function setLms(team) {
   const pid = actor();
+  flashSaved();
   if (!pid) return toast("Pick who you are first", { bad: true });
   const g = SC.weekGames(S.getState(), ui.week).find((x) => x.home === team || x.away === team);
   if (team && g && SC.hasStarted(g) && !commish()) return toast("That game already kicked off.", { bad: true });
@@ -187,9 +201,16 @@ const TABS = [
 
 function renderTopbar() {
   const sync = S.getSync();
-  const syncHtml = sync.enabled
-    ? `<span class="sync sync--${esc(sync.state)}" title="${esc(sync.detail)}"><i class="sync__dot"></i>${sync.state === "live" ? "Live" : sync.state === "error" ? "Sync off" : "Sync"}</span>`
-    : `<span class="sync" title="Saved on this device only"><i class="sync__dot"></i>Local</span>`;
+  const saved = Date.now() < savedUntil;
+  let syncHtml;
+  if (saved) {
+    syncHtml = `<span class="sync sync--live" title="Your entry is stored"><i class="sync__dot"></i>Saved</span>`;
+  } else if (sync.enabled) {
+    const label = sync.state === "live" ? "Synced" : sync.state === "error" ? "Sync off" : "Syncing";
+    syncHtml = `<span class="sync sync--${esc(sync.state)}" title="${esc(sync.detail || "Shared board")}"><i class="sync__dot"></i>${label}</span>`;
+  } else {
+    syncHtml = `<span class="sync" title="Picks are stored in this browser only. Add Supabase in config.js to share one board."><i class="sync__dot"></i>This device</span>`;
+  }
   const who = actor();
   return `<header class="topbar">
     <a class="wordmark" href="./"><span class="wordmark__mark"></span><span class="wordmark__text">${esc(cfg.poolName)}</span><span class="wordmark__season">${cfg.season}</span></a>
@@ -428,7 +449,7 @@ function renderLms(state, week, lrow, games) {
     const pay = lrow?.payouts?.[p.id] ? `<span class="badge badge--money">${SC.money(lrow.payouts[p.id])}</span>` : "";
     const sub = g ? `${g.home === team ? `vs ${g.away}` : `@ ${g.home}`} · ${started && g.homeScore != null ? `${g.awayScore}-${g.homeScore}` : fmtKick(g.kickoff)}` : team ? "Not on this week's slate" : (canEdit ? "Tap to choose" : "");
     return `<div class="lmsrow ${out ? "lmsrow--out" : ""}" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
-      <button class="lmsrow__pick" data-action="lms-open" ${canEdit ? "" : "disabled"}>${team ? `<img src="${teamLogo(team)}" alt="">` : ""}<div><div class="lmsrow__team">${team ? `${esc(team)} <span class="mute" style="font-family:var(--pixel);font-size:11px">to lose</span>` : esc(p.name)}</div><div class="lmsrow__sub">${esc(sub)}</div></div></button>
+      <button class="lmsrow__pick" data-action="lms-open" ${canEdit ? "" : "disabled"}>${team ? `<img src="${teamLogo(team)}" alt="">` : ""}<div><div class="lmsrow__team">${team ? `${esc(team)} <span>to lose</span>` : esc(p.name)}</div><div class="lmsrow__sub">${esc(sub)}</div></div></button>
       <div style="display:grid;gap:4px;justify-items:end">${badge}${pay}</div></div>`;
   }).join("");
   return `<section class="section">
@@ -493,14 +514,14 @@ function renderMoney(state) {
       <div class="mt__sub"><span>In ${SC.money(t.buyIn)}</span> · <span class="${t.net >= 0 ? "pos" : "neg"}">${t.net >= 0 ? "+" : ""}${SC.money(t.net)}</span></div></div>`;
   }).join("");
 
-  const weeklyRows = Object.values(led.weekly.rows).map((r) => `<tr><td>${r.week}</td>${P.map((p) => {
+  const weeklyRows = Object.values(led.weekly.rows).filter((r) => r.inPlay).map((r) => `<tr><td>${r.week}</td>${P.map((p) => {
     const v = r.payouts[p.id];
     return `<td class="${v ? "money" : r.rolled && r.winners.includes(p.id) ? "roll" : "dim"}">${v ? SC.money(v) : r.rolled && r.winners.includes(p.id) ? "tie" : r.pending ? "" : "·"}</td>`;
   }).join("")}<td class="dim">${r.pending ? "open" : r.rolled ? `rolls ${SC.money(r.total)}` : ""}</td></tr>`).join("");
   const weeklyTotals = P.map((p) => `<td>${SC.money(led.totals[p.id].weeklyWon)}</td>`).join("");
 
   let lastRound = 0;
-  const lmsRows = Object.values(led.lms.rows).map((r) => {
+  const lmsRows = Object.values(led.lms.rows).filter((r) => r.inPlay).map((r) => {
     const head = r.round !== lastRound ? `<tr class="round"><td colspan="${P.length + 2}">Round ${r.round} · weeks ${r.roundStart}–${r.roundEnd}</td></tr>` : "";
     lastRound = r.round;
     return head + `<tr><td>${r.week}</td>${P.map((p) => {
@@ -712,7 +733,8 @@ document.addEventListener("submit", (e) => {
     case "add-game": {
       const away = f.get("away"), home = f.get("home");
       if (!away || !home || away === home) return toast("Pick two different teams", { bad: true });
-      S.update((d) => { const wk = S.ensureWeek(d, ui.week); wk.games.push({ id: S.newId(), away, home, kickoff: new Date(f.get("kickoff")).toISOString(), spread: num("spread"), manualSpread: num("spread") != null, status: "pre", homeScore: null, awayScore: null, manual: true }); wk.games.sort((x, y) => new Date(x.kickoff) - new Date(y.kickoff)); });
+      if (SC.weekGames(S.getState(), ui.week).some((g) => g.id === S.gameId({ away, home }))) return toast("That game is already on the slate", { bad: true });
+      S.update((d) => { const wk = S.ensureWeek(d, ui.week); wk.games.push({ id: S.gameId({ away, home }), away, home, kickoff: new Date(f.get("kickoff")).toISOString(), spread: num("spread"), manualSpread: num("spread") != null, status: "pre", homeScore: null, awayScore: null, manual: true }); wk.games.sort((x, y) => new Date(x.kickoff) - new Date(y.kickoff)); });
       break;
     }
     case "draft-order": {

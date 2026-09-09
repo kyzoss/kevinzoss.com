@@ -4,10 +4,9 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0B0B0D",
-  "theme_color": "#0B0B0D",
+  "background_color": "#08080A",
+  "theme_color": "#08080A",
   "icons": [
-    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml" },
-    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+    { "src": "https://a.espncdn.com/i/teamlogos/nfl/500/cle.png", "sizes": "500x500", "type": "image/png" }
   ]
 }

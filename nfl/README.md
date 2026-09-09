@@ -31,6 +31,7 @@ Everything is in `config.js`: players, commissioner, pots, scoring, season dates
 API keys.
 
 - **Schedule and scores** come from ESPN's public scoreboard feed. Free, no key.
+  The same CDN serves all 32 team logos and the Browns mark used as the app icon.
 - **Lines** come from The Odds API using `oddsApiKey`. The free tier is 500
   requests a month; the app pulls once when a week opens and only again when the
   commissioner asks, so a season costs a few dozen calls. The key ships to the
@@ -73,12 +74,22 @@ games, edit lines and scores by hand (pinned against future pulls), set the dup
 draft order, pick on behalf of others, adjustments, side-bet override, reset.
 Identity is honor-system, same as the sheet.
 
+## Design notes
+
+Type follows Oura: their faces (PP Editorial New, Akkurat) are licensed, so this
+ships the closest freely-licensable equivalents -- Instrument Serif for display,
+Instrument Sans for everything operational -- loaded from Google Fonts.
+
+Game ids are derived from the matchup (`AWAY@HOME`), never generated. That is
+what keeps a pick attached to its game across a slate re-pull, a new device and a
+sync; an earlier build used random ids and picks could come unstuck from them.
+
 ## Files
 
 ```
 index.html            shell
 config.js             everything you'd want to change
-css/app.css           the look: modern Tecmo Super Bowl, scarlet and grey
+css/app.css           the look: scarlet on near-black, Oura-style type
 js/app.js             views, actions, data pulls
 js/scoring.js         all the math (pure functions)
 js/store.js           localStorage + optional Supabase mirror

@@ -4,23 +4,43 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pick'em · The Pool</title>
-  <meta name="description" content="Four guys, eighteen weeks, one number. ATS picks, dups, the weekly pot, last man standing and the Browns bet." />
+  <meta name="description" content="Four guys, eighteen weeks, one number. Picks against the spread, the dup draft, last man standing, and ten dollars riding on the Browns." />
+  <!-- Private pool. noindex keeps it out of search; robots.txt deliberately does
+       not block the page, so link previews still resolve. -->
   <meta name="robots" content="noindex, nofollow" />
-  <meta name="theme-color" content="#0B0B0D" />
+
+  <meta property="og:site_name" content="The Pool" />
+  <meta property="og:title" content="Pick'em · Four Guys, One Number" />
+  <meta property="og:description" content="Eighteen weeks against the spread. The dup draft, the weekly pot, last man standing, and ten dollars riding on the Browns. Settled to the dollar." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://kevinzoss.com/nfl/" />
+  <meta property="og:image" content="https://kevinzoss.com/nfl/share.png" />
+  <meta property="og:image:width" content="2400" />
+  <meta property="og:image:height" content="1260" />
+  <meta property="og:image:alt" content="Pick'em, in large serif type, with the season's stakes and the four players below it." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Pick'em · Four Guys, One Number" />
+  <meta name="twitter:description" content="Eighteen weeks against the spread. The dup draft, the weekly pot, last man standing, and ten dollars riding on the Browns." />
+  <meta name="twitter:image" content="https://kevinzoss.com/nfl/share.png" />
+
+  <meta name="theme-color" content="#08080A" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Pick'em" />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <!-- The real Browns mark, from the same CDN the app uses for all 32 teams. -->
+  <link rel="icon" href="https://a.espncdn.com/i/teamlogos/nfl/500/cle.png" type="image/png" />
+  <link rel="apple-touch-icon" href="https://a.espncdn.com/i/teamlogos/nfl/500/cle.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Oura's own faces (PP Editorial New, Akkurat) are licensed; these are their
+       closest freely-licensable equivalents. -->
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./css/app.css" />
 </head>
 <body>
   <div id="app" aria-live="polite"></div>
-  <noscript><p style="padding:24px;font-family:sans-serif">Pick'em needs JavaScript.</p></noscript>
+  <noscript><p style="padding:24px;font-family:system-ui,sans-serif">Pick'em needs JavaScript.</p></noscript>
   <script src="./config.js"></script>
   <script type="module" src="./js/app.js"></script>
 </body>
