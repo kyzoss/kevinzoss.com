@@ -92,8 +92,11 @@ API keys.
   itself — no separate screen. Position 1 ranks one team,
   position 2 ranks two, and so on; each player gets their highest-ranked team
   still available. Your dup is your pick in that game: +1.5 on a cover, 0 if not.
-  The draft locks at the first kickoff among those games. The commissioner can
-  override the order for a week.
+  **If a team you ranked goes to someone above you, that game reconciles to the
+  favorite** — ranking a dog as a dup isn't the same as taking it against the
+  number, and it stops a game sitting unpicked while you wait on the draft. Tap
+  the dog yourself and your own pick stands instead. The draft locks at the first
+  kickoff among those games.
 - **Weekly pot.** $4 a week. Best score takes it; a tie rolls the pot; week 18
   splits.
 - **Last man standing.** The picker lists every team biggest-underdog-first with
