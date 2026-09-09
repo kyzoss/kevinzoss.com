@@ -70,9 +70,9 @@ export function weekComplete(state, week) {
 
 // ---- Dups ------------------------------------------------------------------
 // Each week the big underdogs (spread >= minSpread, never the Browns, at least one
-// per player) form the dup pool. Players draft one each in standings order, by
-// submitting ranked choices: position 1 ranks one team, position 2 ranks two, and
-// so on, so nobody waits on anybody. Your dup forces your pick to that underdog and
+// per player) form the dup pool. Players draft one each in an order that rotates
+// weekly, by submitting ranked choices: position 1 ranks one team, position 2
+// ranks two, and so on, so nobody waits on anybody. Your dup forces your pick to that underdog and
 // scores dup.win on a cover / dup.loss otherwise.
 
 export function underdogOf(game) {
@@ -100,24 +100,22 @@ export function dupCandidates(games, cfg, minCount) {
   return pool;
 }
 
-const orderCache = new WeakMap();
-/** Draft order for a week: standings entering that week, best first. Commissioner can override. */
+/**
+ * Draft order rotates one seat a week: whoever picked first last week drops to
+ * last and everyone else moves up. Week 1 uses `dupOrderBase` from the config,
+ * or the roster order. The commissioner can still override a single week.
+ */
 export function dupOrder(state, cfg, week) {
   const override = state.weeks?.[week]?.dupOrder;
   if (Array.isArray(override) && override.length === state.players.length) return override;
-  let cache = orderCache.get(state);
-  if (!cache) { cache = {}; orderCache.set(state, cache); }
-  if (cache[week]) return cache[week];
-  const totals = Object.fromEntries(state.players.map((p, i) => [p.id, { points: 0, w: 0, i }]));
-  for (let w = 1; w < week; w++) {
-    if (!state.weeks?.[w]) continue;
-    const t = weekTally(state, w, cfg);
-    for (const p of state.players) { totals[p.id].points += t[p.id].points; totals[p.id].w += t[p.id].w; }
-  }
-  const order = state.players.map((p) => p.id).sort((a, b) =>
-    totals[b].points - totals[a].points || totals[b].w - totals[a].w || totals[a].i - totals[b].i);
-  cache[week] = order;
-  return order;
+  const roster = state.players.map((p) => p.id);
+  const configured = Array.isArray(cfg.dupOrderBase) ? cfg.dupOrderBase.filter((id) => roster.includes(id)) : [];
+  // anyone missing from the configured base still gets a seat, at the back
+  const base = configured.length ? [...configured, ...roster.filter((id) => !configured.includes(id))] : roster;
+  const n = base.length;
+  if (!n) return [];
+  const shift = (((week - 1) % n) + n) % n;
+  return [...base.slice(shift), ...base.slice(0, shift)];
 }
 
 /** Resolve the dup draft: { order, candidates, assigned: {pid: team}, byTeam, prefs, lockAt } */

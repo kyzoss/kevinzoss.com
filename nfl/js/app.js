@@ -358,7 +358,7 @@ function renderDups(state, week, dups, tally) {
   const sub = !pid ? "" : locked ? "Draft locked at first kickoff." : `You're ${ordinal(pos)}: rank up to ${pos} team${pos > 1 ? "s" : ""}. ${mine ? `You've got <b>${esc(mine)}</b>.` : myPrefs.length ? "All your choices are taken. Rank another." : "Nothing ranked yet."}`;
   return `<section class="section">
     <div class="section__head"><h2 class="section__title">Dups</h2><span class="section__sub">${sub}</span></div>
-    <div class="rules"><p>Underdogs of ${fmtPts(cfg.dup.minSpread)}+ (never the ${teamName(cfg.dup.exclude?.[0] || "CLE")}), at least one per player. Draft runs in standings order: 1st ranks one team, 2nd ranks two, and so on. A dup that covers is <b>+${cfg.dup.win}</b>; one that doesn't is <b>${cfg.dup.loss}</b>.</p></div>
+    <div class="rules"><p>Underdogs of ${fmtPts(cfg.dup.minSpread)}+ (never the ${teamName(cfg.dup.exclude?.[0] || "CLE")}), at least one per player. Draft order rotates every week &mdash; last week's first picker drops to last. 1st ranks one team, 2nd ranks two, and so on. A dup that covers is <b>+${cfg.dup.win}</b>; one that doesn't is <b>${cfg.dup.loss}</b>.</p></div>
     <div class="draft">${order}</div>
     <div class="duplist">${items || `<div class="empty"><p>No lines yet, so no underdogs to draft. Pull lines first.</p></div>`}</div>
   </section>`;
@@ -500,7 +500,7 @@ function renderStandings(state) {
     }).join("")}
   </tbody><tfoot><tr><td>Total</td>${state.players.map((p) => `<td>${fmtPts(rec[p.id].points)}</td>`).join("")}<td></td></tr></tfoot></table></div>`;
 
-  return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Standings</h2><span class="section__sub">Ranked by money, then ATS points. Draft order for dups follows points.</span></div><div class="board">${rows}</div></section>
+  return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Standings</h2><span class="section__sub">Ranked by money, then ATS points.</span></div><div class="board">${rows}</div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">Week by week</h2><span class="section__sub">Points per week. Bold is the week's outright winner.</span></div>${sheet}</section>`;
 }
 
@@ -585,7 +585,7 @@ function renderSettings(state) {
     </div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">House rules</h2></div><div class="rules">
     <p><b>Picks.</b> Every game, against the spread the pool pulled. A cover is 1 point, a push is ½. Picks lock at kickoff. The line freezes for everyone as soon as anyone picks the game, or when the commissioner locks the week.</p>
-    <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft in standings order. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game: +${cfg.dup.win} if it covers, ${cfg.dup.loss} if it doesn't. The draft locks at the first kickoff among those games.</p>
+    <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game: +${cfg.dup.win} if it covers, ${cfg.dup.loss} if it doesn't. The draft locks at the first kickoff among those games.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
     <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If everyone busts early, the last ones standing take what has accrued and the field re-enters for the rest of the block.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.pot)}. One guess at the ${esc(teamName(cfg.sideBet.team))}' final record before Week 1. Closest wins, points scored breaks ties.</p>
@@ -642,9 +642,9 @@ function draftOrderModal() {
   const dups = SC.resolveDups(state, cfg, ui.week);
   const override = Boolean(state.weeks?.[ui.week]?.dupOrder);
   openModal(`${modalHead(`Draft order · week ${ui.week}`)}<form data-form="draft-order">
-    <p class="mute" style="margin:0 0 12px;font-size:13px">${override ? "Set by hand for this week." : "Following the standings entering this week."}</p>
+    <p class="mute" style="margin:0 0 12px;font-size:13px">${override ? "Set by hand for this week." : `Rotating order for week ${ui.week}. Next week everyone moves up a seat.`}</p>
     <div class="fields">${dups.order.map((id, i) => `<label class="field-row"><span>${ordinal(i + 1)}</span><select class="input" name="p${i}">${state.players.map((p) => `<option value="${esc(p.id)}" ${p.id === id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`).join("")}</div>
-    <div class="form__actions">${override ? `<button type="button" class="btn btn--ghost btn--danger btn--sm" data-action="draft-order-reset">Use standings</button>` : ""}<button type="button" class="btn" data-action="modal-close">Cancel</button><button class="btn btn--primary" type="submit">Save order</button></div></form>`);
+    <div class="form__actions">${override ? `<button type="button" class="btn btn--ghost btn--danger btn--sm" data-action="draft-order-reset">Use the rotation</button>` : ""}<button type="button" class="btn" data-action="modal-close">Cancel</button><button class="btn btn--primary" type="submit">Save order</button></div></form>`);
 }
 function betModal(pid) {
   const pr = S.getState().sideBet?.predictions?.[pid] || {};

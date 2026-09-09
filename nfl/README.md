@@ -76,7 +76,9 @@ API keys.
   The line freezes for everyone once anyone picks the game, when the
   commissioner locks the week, or at kickoff.
 - **Dups.** Underdogs of 4.5+ points (never the Browns), padded to at least one
-  per player, go up for a draft in standings order. Position 1 ranks one team,
+  per player, go up for a draft whose order rotates a seat each week: whoever
+  picked first last week drops to last and everyone moves up (week 1 order comes
+  from `dupOrderBase`). Position 1 ranks one team,
   position 2 ranks two, and so on; each player gets their highest-ranked team
   still available. Your dup is your pick in that game: +1.5 on a cover, 0 if not.
   The draft locks at the first kickoff among those games. The commissioner can

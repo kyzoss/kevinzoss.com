@@ -19,6 +19,10 @@ window.POOL_CONFIG = {
   // Who gets the commissioner tools (pull lines, edit spreads/scores, draft order, adjustments).
   commissioner: "kz",
 
+  // Who drafts dups first in week 1. After that the order rotates a seat a week:
+  // first picker drops to last, everyone else moves up.
+  dupOrderBase: ["az", "kz", "jv", "hz"],
+
   // Scoring. A straight pick is 1 for a cover, 0.5 for a push.
   dup: {
     minSpread: 4.5,     // underdogs getting at least this many points are dup-eligible
