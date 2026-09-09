@@ -287,7 +287,7 @@ function renderWeek(state) {
     ? (lrow.complete && lrow.ended
       ? `Round ${lrow.round} paid: ${Object.entries(lrow.payouts).map(([id, amt]) => `<b>${esc(nameOf(id))}</b> ${SC.money(amt)}`).join(", ")}.`
       : `Round ${lrow.round} · weeks ${lrow.roundStart}–${lrow.roundEnd} · <b>${lmsAlive.length}</b> still standing${lrow.complete ? ` · ${lrow.eliminated.length} out this week` : ""}.`)
-    : "Pick a team to lose. Survivors split it every four weeks.";
+    : `Pick a team to lose. ${SC.money(cfg.lmsPerPlayer ?? 1)} each every week, in or out.`;
 
   return `${renderWeekStrip(state)}
   <section class="field">
@@ -305,7 +305,7 @@ function renderWeek(state) {
 
   <div class="pots">
     <div class="pot"><div class="pot__amt">${SC.money(wrow ? wrow.total : cfg.weeklyPot)}<small>weekly pot${wrow?.carry ? ` · ${SC.money(wrow.carry)} rolled in` : ""}</small></div><div class="pot__txt"><span class="pot__k">Weekly</span>${weeklyTxt}</div></div>
-    <div class="pot"><div class="pot__amt">${SC.money(lrow ? lrow.pot : cfg.lmsPot)}<small>LMS pot</small></div><div class="pot__txt"><span class="pot__k">Last man standing</span>${lmsTxt}</div></div>
+    <div class="pot"><div class="pot__amt">${SC.money(lrow ? lrow.pot : SC.lmsWeekly(state, cfg))}<small>LMS pot</small></div><div class="pot__txt"><span class="pot__k">Last man standing</span>${lmsTxt}</div></div>
   </div>
 
   <div class="toolbar">
@@ -453,7 +453,7 @@ function renderLms(state, week, lrow, games) {
       <div style="display:grid;gap:4px;justify-items:end">${badge}${pay}</div></div>`;
   }).join("");
   return `<section class="section">
-    <div class="section__head"><h2 class="section__title">Last man standing</h2><span class="section__sub">Round ${lrow?.round || 1} · weeks ${lrow?.roundStart || 1}–${lrow?.roundEnd || cfg.lmsRoundWeeks} · pot ${SC.money(lrow?.pot ?? cfg.lmsPot)}</span></div>
+    <div class="section__head"><h2 class="section__title">Last man standing</h2><span class="section__sub">Round ${lrow?.round || 1} · weeks ${lrow?.roundStart || 1}–${lrow?.roundEnd || cfg.lmsRoundWeeks} · pot ${SC.money(lrow?.pot ?? SC.lmsWeekly(state, cfg))}</span></div>
     <div class="lms">${rows}</div>
   </section>`;
 }
@@ -539,7 +539,7 @@ function renderMoney(state) {
   return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Money</h2><span class="section__sub">Season buy-in ${SC.money(led.seasonBuyIn)} across the table · ${SC.money(led.seasonBuyIn / P.length)} each</span></div><div class="moneytiles">${tiles}</div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">Weekly pot · ${SC.money(cfg.weeklyPot)}/wk</h2><span class="section__sub">Best ATS score. Ties roll over. Week ${cfg.weeks} splits.</span></div>
     <div class="grid"><table class="sheet"><thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}<th></th></tr></thead><tbody>${weeklyRows || `<tr><td colspan="${P.length + 2}" class="dim">Nothing settled yet.</td></tr>`}</tbody><tfoot><tr><td>Total</td>${weeklyTotals}<td>${SC.money(P.reduce((s, p) => s + led.totals[p.id].weeklyWon, 0))}</td></tr></tfoot></table></div></section>
-  <section class="section"><div class="section__head"><h2 class="section__title">Last man standing · ${SC.money(cfg.lmsPot)}/wk</h2><span class="section__sub">Name a loser. Survivors split every ${cfg.lmsRoundWeeks} weeks.</span></div>
+  <section class="section"><div class="section__head"><h2 class="section__title">Last man standing · ${SC.money(cfg.lmsPerPlayer ?? 1)} each per week</h2><span class="section__sub">Everyone pays every week, in or out. Survivors split every ${cfg.lmsRoundWeeks} weeks.</span></div>
     <div class="grid"><table class="sheet"><thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}<th>Pot</th></tr></thead><tbody>${lmsRows || `<tr><td colspan="${P.length + 2}" class="dim">Nothing settled yet.</td></tr>`}</tbody><tfoot><tr><td>Total</td>${lmsTotals}<td>${SC.money(P.reduce((s, p) => s + led.totals[p.id].lmsWon, 0))}</td></tr></tfoot></table></div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">Adjustments</h2><span class="section__sub">Side action, corrections, whatever needs squaring.</span>${commish() ? `<button class="btn btn--sm btn--px" data-action="adj-add">${icon("plus")}Add</button>` : ""}</div>
     ${adj ? `<div class="grid"><table class="sheet"><thead><tr><th>Wk</th><th style="text-align:left">Who</th><th>Amt</th><th style="text-align:left">Note</th>${commish() ? "<th></th>" : ""}</tr></thead><tbody>${adj}</tbody></table></div>` : `<p class="mute" style="font-size:13px;margin:0">None.</p>`}</section>`;
@@ -587,7 +587,7 @@ function renderSettings(state) {
     <p><b>Picks.</b> Every game, against the spread the pool pulled. A cover is 1 point, a push is ½. Picks lock at kickoff. The line freezes for everyone as soon as anyone picks the game, or when the commissioner locks the week.</p>
     <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft in standings order. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game: +${cfg.dup.win} if it covers, ${cfg.dup.loss} if it doesn't. The draft locks at the first kickoff among those games.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
-    <p><b>Last man standing.</b> ${SC.money(cfg.lmsPot)} a week. Name a team to lose. If it wins (or ties, or you forget), you're out for the round. Rounds are ${cfg.lmsRoundWeeks} weeks; whoever is still standing at the end splits the pot. If everyone busts early, the last ones standing take it and the field resets.</p>
+    <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If everyone busts early, the last ones standing take what has accrued and the field re-enters for the rest of the block.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.pot)}. One guess at the ${esc(teamName(cfg.sideBet.team))}' final record before Week 1. Closest wins, points scored breaks ties.</p>
   </div></section>`;
 }
