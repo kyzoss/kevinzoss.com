@@ -59,6 +59,30 @@ export function straightUpWinner(game) {
   return game.homeScore > game.awayScore ? game.home : game.away;
 }
 
+/**
+ * When week N's lines freeze: that week's Tuesday at `lineLockHour` local.
+ * Week 1's Tuesday comes from the config and every later week is seven days on.
+ */
+export function lineLockAt(week, cfg) {
+  const at = new Date(`${cfg.week1Tuesday}T00:00:00`);
+  if (Number.isNaN(at.getTime())) return null;
+  at.setDate(at.getDate() + (week - 1) * 7);
+  at.setHours(Number(cfg.lineLockHour ?? 12), 0, 0, 0);
+  return at.getTime();
+}
+
+/**
+ * Lines are frozen once that Tuesday passes. The commissioner can force it
+ * either way for a week: `linesLocked` true locks early, false reopens.
+ */
+export function linesLocked(state, week, cfg, now = Date.now()) {
+  const flag = state.weeks?.[week]?.linesLocked;
+  if (flag === true) return true;
+  if (flag === false) return false;
+  const at = lineLockAt(week, cfg);
+  return at != null && now >= at;
+}
+
 export function weekGames(state, week) {
   return state.weeks?.[week]?.games || [];
 }
@@ -101,13 +125,11 @@ export function dupCandidates(games, cfg, minCount) {
 }
 
 /**
- * Draft order rotates one seat a week: whoever picked first last week drops to
- * last and everyone else moves up. Week 1 uses `dupOrderBase` from the config,
- * or the roster order. The commissioner can still override a single week.
+ * Draft order rotates one seat a week for the whole season: whoever picked
+ * first last week drops to last and everyone else moves up. Week 1 uses
+ * `dupOrderBase` from the config, or the roster order. Nothing overrides it.
  */
 export function dupOrder(state, cfg, week) {
-  const override = state.weeks?.[week]?.dupOrder;
-  if (Array.isArray(override) && override.length === state.players.length) return override;
   const roster = state.players.map((p) => p.id);
   const configured = Array.isArray(cfg.dupOrderBase) ? cfg.dupOrderBase.filter((id) => roster.includes(id)) : [];
   // anyone missing from the configured base still gets a seat, at the back
@@ -246,6 +268,9 @@ export function lastManStanding(state, cfg) {
   let alive = [...all];
   let pot = 0;
   let prevRound = 1;
+  // Teams each player has already spent this block. One team per player per
+  // block: burn the obvious dog in week 1 and you can't come back to it.
+  let used = Object.fromEntries(all.map((id) => [id, []]));
   const rows = {};
   for (let w = 1; w <= cfg.weeks; w++) {
     const wk = state.weeks?.[w] || {};
@@ -253,9 +278,12 @@ export function lastManStanding(state, cfg) {
     const round = Math.floor((w - 1) / roundLen) + 1;
     const roundStart = (round - 1) * roundLen + 1;
     const roundEnd = Math.min(round * roundLen, cfg.weeks);
-    // Crossing into a new block always resets the field, even if the previous
-    // block's last week was never settled.
-    if (round !== prevRound) { alive = [...all]; pot = 0; prevRound = round; }
+    // Crossing into a new block resets the field and everyone's used teams,
+    // even if the previous block's last week was never settled.
+    if (round !== prevRound) {
+      alive = [...all]; pot = 0; prevRound = round;
+      used = Object.fromEntries(all.map((id) => [id, []]));
+    }
 
     const inPlay = games.length > 0;
     const complete = inPlay && weekComplete(state, w);
@@ -263,12 +291,15 @@ export function lastManStanding(state, cfg) {
 
     const row = {
       week: w, round, roundStart, roundEnd, pot, inPlay, complete,
-      aliveEntering: [...alive], picks: {}, results: {}, eliminated: [], payouts: {}, ended: false, pending: !complete,
+      aliveEntering: [...alive], picks: {}, results: {}, eliminated: [], payouts: {},
+      used: Object.fromEntries(all.map((id) => [id, [...used[id]]])),
+      ended: false, pending: !complete,
     };
     for (const id of all) {
       const team = wk.lms?.[id] || null;
       row.picks[id] = team;
       if (!alive.includes(id)) { row.results[id] = "out"; continue; }
+      if (team && used[id].includes(team)) { row.results[id] = "reused"; continue; }
       const game = team ? games.find((g) => g.home === team || g.away === team) : null;
       if (!game) {
         row.results[id] = complete ? (team ? "nogame" : "nopick") : "pending";
@@ -282,6 +313,11 @@ export function lastManStanding(state, cfg) {
     if (complete) {
       const survivors = alive.filter((id) => row.results[id] === "safe");
       row.eliminated = alive.filter((id) => row.results[id] !== "safe");
+      // A team is spent once its week is settled, whatever the outcome.
+      for (const id of alive) {
+        const team = row.picks[id];
+        if (team && !used[id].includes(team)) used[id].push(team);
+      }
       if (survivors.length === 0) {
         splitAmong(row.payouts, alive, pot);
         row.ended = true;
@@ -291,11 +327,36 @@ export function lastManStanding(state, cfg) {
       } else {
         alive = survivors;
       }
+      // An early payout restarts the contest but not the block, so used teams
+      // stand for the rest of the four weeks.
       if (row.ended) { alive = [...all]; pot = 0; }
     }
     rows[w] = row;
   }
-  return { rows, alive, pot };
+  return { rows, alive, pot, used };
+}
+
+/**
+ * Teams this player has already used in the block containing `week`, and so
+ * cannot pick again until the block turns over.
+ */
+export function lmsUsed(state, cfg, week, pid) {
+  const roundLen = Number(cfg.lmsRoundWeeks) || 4;
+  const round = Math.floor((week - 1) / roundLen) + 1;
+  const start = (round - 1) * roundLen + 1;
+  const out = [];
+  for (let w = start; w < week; w++) {
+    const team = state.weeks?.[w]?.lms?.[pid];
+    if (!team || out.some((u) => u.team === team)) continue;
+    if (weekComplete(state, w)) out.push({ team, week: w });   // only a settled week spends the pick
+  }
+  return out;
+}
+
+/** A team's line from its own side: positive means it is getting points. */
+export function ownSpread(game, abbr) {
+  if (game.spread == null) return null;
+  return abbr === game.home ? game.spread : -game.spread;
 }
 
 function splitAmong(payouts, ids, pot) {

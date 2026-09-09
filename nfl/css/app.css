@@ -551,6 +551,21 @@ textarea.input { font-size: 12px; min-height: 130px; font-family: ui-monospace, 
 /* a team getting points is a candidate to lose, which is the point of the pick */
 .teamtile__spr.is-dog { color: var(--accent-lift); }
 .teamtile--on .teamtile__spr { color: var(--ink); }
+/* a team already spent this round: visible, so you can see what you've burned */
+.teamtile--spent { opacity: .4; }
+.teamtile--spent b { text-decoration: line-through; text-decoration-thickness: 1px; }
+.teamtile--spent .teamtile__spr, .teamtile--spent small { color: var(--ink-dim); }
+
+.usedstrip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 14px; }
+.usedstrip__k {
+  font-size: 10px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--ink-mute); margin-right: 2px;
+}
+.usedchip {
+  display: inline-flex; align-items: baseline; gap: 5px; padding: 4px 9px; border-radius: var(--pill);
+  background: var(--bg-2); border: 1px solid var(--line); font-size: 12px; font-weight: 700; color: var(--ink-soft);
+}
+.usedchip i { font-style: normal; font-weight: 400; font-size: 10px; color: var(--ink-dim); }
 
 /* ---------- identity gate ---------- */
 .gate { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: grid; place-items: center; padding: 24px; overflow: auto; }

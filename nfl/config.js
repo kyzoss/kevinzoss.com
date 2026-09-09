@@ -5,9 +5,13 @@
 window.POOL_CONFIG = {
   poolName: "The Pool",
   season: 2026,
-  // The Tuesday before Week 1's Thursday kickoff. Used to pick the default week.
+  // The Tuesday before Week 1's Thursday kickoff. Sets the default week, and
+  // the day each week's lines freeze.
   week1Tuesday: "2026-09-08",
   weeks: 18,
+  // Lines auto-lock at this hour on that week's Tuesday, local time. Pull the
+  // fresh numbers Tuesday morning; from noon everyone plays the same line.
+  lineLockHour: 12,
 
   // The four regulars. `id` is the column key that used to live in the sheet.
   players: [
