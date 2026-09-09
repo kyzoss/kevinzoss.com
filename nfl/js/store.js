@@ -239,6 +239,30 @@ async function pushRemote() {
   }
 }
 
+/**
+ * Read the shared board once and report what came back, without touching local
+ * state. The Setup tab uses this to prove the backend is wired up.
+ */
+export async function testSync() {
+  const chosen = pickBackend();
+  if (!chosen) return { ok: false, detail: "No shared board configured in config.js." };
+  try {
+    await chosen.open?.();
+    const remote = await chosen.read();
+    const at = Number(remote?.updatedAt || remote?.state?.updatedAt || 0);
+    return {
+      ok: true,
+      via: chosen.name,
+      empty: !remote?.state,
+      detail: remote?.state
+        ? `Read the board, last saved ${at ? new Date(at).toLocaleString() : "at an unknown time"}.`
+        : "Connected. The board is empty, so the first save will seed it.",
+    };
+  } catch (e) {
+    return { ok: false, via: chosen.name, detail: e.message || String(e) };
+  }
+}
+
 /** Push immediately instead of waiting out the debounce. */
 export function flush() {
   if (!backend || !saveTimer) return;

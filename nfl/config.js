@@ -55,7 +55,7 @@ window.POOL_CONFIG = {
   // Free, and the Sheet doubles as a readable backup. Paste the Apps Script
   // web-app /exec URL here. Checked first if both are filled in.
   sheet: {
-    url: "",
+    url: "https://script.google.com/macros/s/AKfycbwg970ZaNogp-jFdjKnv9EfNKwQY2cILkZMZBq6qSiPLNIBjovYBtFAgQ_7XMU9z4J3/exec",
     pollSeconds: 15,   // how often to look for the others' picks
   },
 
