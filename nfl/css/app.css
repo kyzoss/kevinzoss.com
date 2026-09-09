@@ -249,10 +249,10 @@ img { display: block; }
    Spr, Dog, the four players and the Dup picker all line up and nothing needs
    horizontal scrolling on a phone. */
 .slate {
-  --cols: minmax(0, 1fr) 52px minmax(0, 1fr) repeat(4, 23px) 42px;
+  --cols: minmax(46px, .82fr) 44px minmax(56px, 1fr) repeat(4, 32px) 38px;
   display: grid; gap: 3px; margin-top: 10px;
 }
-.slate--commish { --cols: minmax(0, 1fr) 50px minmax(0, 1fr) repeat(4, 22px) 40px 24px; }
+.slate--commish { --cols: minmax(42px, .8fr) 42px minmax(50px, 1fr) repeat(4, 32px) 34px 22px; }
 
 .slate__slot {
   display: flex; align-items: center; gap: 9px; margin: 14px 0 3px;
@@ -281,14 +281,14 @@ img { display: block; }
 .grow--final:hover { opacity: 1; }
 
 .cell {
-  display: flex; align-items: center; min-width: 0; min-height: 44px; padding: 0 8px;
+  display: flex; align-items: center; min-width: 0; min-height: 44px; padding: 0 6px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xs);
   font-size: 14px; font-weight: 600; letter-spacing: -.01em; color: var(--ink);
   transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
 
-.cell--team { gap: 3px; justify-content: flex-start; text-align: left; }
-.cell--team i { font-style: normal; font-weight: 400; color: var(--ink-mute); font-size: 11px; flex: none; }
+.cell--team { gap: 2px; justify-content: flex-start; text-align: left; font-size: 13px; }
+.cell--team i { font-style: normal; font-weight: 400; color: var(--ink-mute); font-size: 10px; flex: none; }
 .cell--team:not(:disabled):hover { background: var(--surface-2); border-color: var(--line-2); }
 .cell--team:disabled { cursor: default; }
 .cell__abbr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -303,17 +303,18 @@ img { display: block; }
 .cell--covered .cell__abbr { color: var(--win); }
 
 .cell--mid {
-  flex-direction: column; justify-content: center; gap: 1px; padding: 0 3px;
+  flex-direction: column; justify-content: center; gap: 1px; padding: 0 2px;
   background: var(--bg-2); font-variant-numeric: tabular-nums; line-height: 1.1;
 }
-.cell--mid b { font-size: 12px; font-weight: 600; color: var(--ink); }
-.cell--mid b.mid__line { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+.cell--mid b { font-size: 11px; font-weight: 600; color: var(--ink); }
+.cell--mid b.mid__line { font-size: 12px; font-weight: 500; color: var(--ink-soft); }
 .cell--mid i { font-style: normal; font-size: 9px; color: var(--ink-dim); }
 button.cell--mid:hover b { color: #fff; }
 button.cell--mid:hover { border-color: var(--line-2); }
 
-.cell--pick {
-  position: relative; justify-content: center; padding: 0; font-size: 12px; font-weight: 700;
+.cell.cell--pick {
+  position: relative; justify-content: center; padding: 0; overflow: hidden;
+  font-size: 10px; font-weight: 700; letter-spacing: -.02em;
   background: var(--bg-2); color: var(--c);
 }
 .cell--pick.is-win  { background: var(--win-soft);  border-color: rgba(53,208,127,.42); color: var(--win); }
@@ -322,7 +323,7 @@ button.cell--mid:hover { border-color: var(--line-2); }
 .cell--pick.cell--self { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 55%, transparent); }
 /* a dup is a forced pick -- mark it without stealing room from the letter */
 .cell--pick.cell--isdup::after {
-  content: ""; position: absolute; top: 3px; right: 3px; width: 4px; height: 4px;
+  content: ""; position: absolute; top: 2px; right: 2px; width: 3px; height: 3px;
   border-radius: 50%; background: currentColor;
 }
 
@@ -380,8 +381,10 @@ button.cell--mid:hover { border-color: var(--line-2); }
 .empty p { margin: 0; max-width: 48ch; color: var(--ink-mute); font-size: 14px; }
 
 @media (min-width: 861px) {
-  .slate { --cols: minmax(0, 1fr) 78px minmax(0, 1fr) repeat(4, 42px) 62px; }
-  .slate--commish { --cols: minmax(0, 1fr) 78px minmax(0, 1fr) repeat(4, 42px) 62px 34px; }
+  .slate { --cols: minmax(0, 1fr) 78px minmax(0, 1fr) repeat(4, 52px) 62px; }
+  .slate--commish { --cols: minmax(0, 1fr) 78px minmax(0, 1fr) repeat(4, 52px) 62px 34px; }
+  .cell--team { font-size: 15px; }
+  .cell.cell--pick { font-size: 13px; }
   .cell__name {
     display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
     font-size: 13px; font-weight: 400; color: var(--ink-mute);
@@ -392,11 +395,14 @@ button.cell--mid:hover { border-color: var(--line-2); }
   .cell--mid b.mid__line { font-size: 14px; }
   .cell--mid i { font-size: 10px; }
   .cell { min-height: 46px; font-size: 15px; }
-  .cell--pick { font-size: 13px; }
+  .cell.cell--pick { font-size: 13px; }
 }
 @media (max-width: 360px) {
-  .slate { --cols: minmax(0, 1fr) 46px minmax(0, 1fr) repeat(4, 21px) 38px; }
-  .cell { padding: 0 6px; font-size: 13px; }
+  .slate { --cols: minmax(40px, .8fr) 40px minmax(46px, 1fr) repeat(4, 30px) 32px; }
+  .slate--commish { --cols: minmax(36px, .8fr) 40px minmax(44px, 1fr) repeat(4, 30px) 32px 20px; }
+  .cell--team, .cell--mid { padding: 0 4px; }
+  .cell--team { font-size: 12px; }
+  .cell.cell--pick { font-size: 9px; }
 }
 
 /* ---------- LMS ---------- */
@@ -539,6 +545,12 @@ textarea.input { font-size: 12px; min-height: 130px; font-family: ui-monospace, 
 .teamtile img { width: 32px; height: 32px; }
 .teamtile b { font-size: 13px; font-weight: 600; }
 .teamtile small { font-size: 10px; color: var(--ink-mute); }
+.teamtile__spr {
+  font-size: 11px; font-weight: 600; color: var(--ink-mute); font-variant-numeric: tabular-nums;
+}
+/* a team getting points is a candidate to lose, which is the point of the pick */
+.teamtile__spr.is-dog { color: var(--accent-lift); }
+.teamtile--on .teamtile__spr { color: var(--ink); }
 
 /* ---------- identity gate ---------- */
 .gate { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: grid; place-items: center; padding: 24px; overflow: auto; }

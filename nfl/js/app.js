@@ -1,6 +1,6 @@
 import * as S from "./store.js";
 import * as SC from "./scoring.js";
-import { TEAMS, TEAM_LIST, teamLogo, teamColor, teamName } from "./teams.js";
+import { TEAMS, TEAM_LIST, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js";
 import { fetchWeek } from "./espn.js";
 import { fetchSpreads } from "./odds.js";
 import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toLocalInput, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js";
@@ -330,7 +330,7 @@ function renderWeek(state) {
 
 
   <section class="section">
-    <div class="section__head"><h2 class="section__title">The slate</h2><span class="section__sub">${games.length ? "Tap either side to take it against the number. <b>F</b> favorite, <b>D</b> dog. Locks at kickoff." : ""}</span></div>
+    <div class="section__head"><h2 class="section__title">The slate</h2><span class="section__sub">${games.length ? "Tap either side to take it against the number. Picks lock at kickoff." : ""}</span></div>
     ${games.length ? renderDupBar(state, week, dups, tally) + renderSlate(state, week, games, tally, dups) : renderEmptySlate()}
   </section>
 
@@ -459,9 +459,9 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
     const side = t.sides[g.id];
     const grade = t.grades[g.id];
     const isDup = t.dup && (g.home === t.dup || g.away === t.dup);
-    const letter = !side ? "" : side === favSide ? "F" : "D";
     const cls = ["cell", "cell--pick", grade ? `is-${grade}` : "", isDup ? "cell--isdup" : "", p.id === pid ? "cell--self" : ""].join(" ");
-    return `<span class="${cls}" style="--c:${esc(p.color)}" title="${esc(p.name)}${side ? `: ${esc(abbrOf(g, side))}` : " — no pick"}">${letter || "·"}</span>`;
+    const title = `${esc(p.name)}${side ? `: ${esc(abbrOf(g, side))}${isDup ? " (dup)" : ""}` : " — no pick"}`;
+    return `<span class="${cls}" style="--c:${esc(p.color)}" title="${title}">${side ? esc(abbrOf(g, side)) : "·"}</span>`;
   }).join("");
 
   // The dup picker lives in the row. Only the week's eligible underdogs get one.
@@ -512,7 +512,7 @@ function renderLms(state, week, lrow, games) {
     const pay = lrow?.payouts?.[p.id] ? `<span class="badge badge--money">${SC.money(lrow.payouts[p.id])}</span>` : "";
     const sub = g ? `${g.home === team ? `vs ${g.away}` : `@ ${g.home}`} · ${started && g.homeScore != null ? `${g.awayScore}-${g.homeScore}` : fmtKick(g.kickoff)}` : team ? "Not on this week's slate" : (canEdit ? "Tap to choose" : "");
     return `<div class="lmsrow ${out ? "lmsrow--out" : ""}" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
-      <button class="lmsrow__pick" data-action="lms-open" ${canEdit ? "" : "disabled"}>${team ? `<img src="${teamLogo(team)}" alt="">` : ""}<div><div class="lmsrow__team">${team ? `${esc(team)} <span>to lose</span>` : esc(p.name)}</div><div class="lmsrow__sub">${esc(sub)}</div></div></button>
+      <button class="lmsrow__pick" data-action="lms-open" ${canEdit ? "" : "disabled"}>${team ? `<img ${logoAttrs(team)}>` : ""}<div><div class="lmsrow__team">${team ? `${esc(team)} <span>to lose</span>` : esc(p.name)}</div><div class="lmsrow__sub">${esc(sub)}</div></div></button>
       <div style="display:grid;gap:4px;justify-items:end">${badge}${pay}</div></div>`;
   }).join("");
   return `<section class="section">
@@ -627,7 +627,7 @@ function renderSideBet(state) {
   const a = bet.actual;
   return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">${esc(cfg.sideBet.label)} · ${SC.money(cfg.sideBet.pot)}</h2><span class="section__sub">One guess before Week 1 kicks off. Closest record wins; points scored breaks ties.</span></div>
     <div class="cards">
-      <div class="card" style="display:flex;gap:14px;align-items:center"><img src="${teamLogo(team)}" alt="" style="width:56px;height:56px;filter:drop-shadow(3px 3px 0 rgba(0,0,0,.6))"><div><h4 style="margin:0 0 6px">${esc(TEAMS[team]?.city || "")} ${esc(teamName(team))} · actual</h4>
+      <div class="card" style="display:flex;gap:14px;align-items:center"><img ${logoAttrs(team)} style="width:56px;height:56px"><div><h4 style="margin:0 0 6px">${esc(TEAMS[team]?.city || "")} ${esc(teamName(team))} · actual</h4>
         <div class="pred__big" style="font-size:20px">${a ? `${a.w}-${a.l}${a.t ? `-${a.t}` : ""}` : "0-0"} <span class="mute" style="font-size:11px">· ${a?.pf ?? 0} pts · ${bet.derived?.played ?? 0} played</span></div>
         <div class="mute" style="font-size:12px;margin-top:6px">${bet.settled ? "Settled." : locked ? "Guesses locked. Updates as games go final." : "Guesses open until kickoff."}${commish() ? ` <button class="btn btn--ghost btn--sm" data-action="bet-actual">${icon("edit")}Override</button>` : ""}</div></div></div>
     </div>
@@ -669,9 +669,15 @@ function lmsModal() {
   const pid = actor();
   const games = SC.weekGames(state, ui.week);
   const current = state.weeks?.[ui.week]?.lms?.[pid];
-  const teams = games.flatMap((g) => [{ abbr: g.away, g, opp: `@ ${g.home}` }, { abbr: g.home, g, opp: `vs ${g.away}` }]).sort((a, b) => a.abbr.localeCompare(b.abbr));
-  openModal(`${modalHead("Pick a team to lose")}<p class="mute" style="margin:0 0 12px;font-size:13px">Round ${SC.lastManStanding(state, cfg).rows[ui.week]?.round || 1}. Get it right and you're through to next week.</p>
-    <div class="teamgrid">${teams.map((t) => `<button class="teamtile ${current === t.abbr ? "teamtile--on" : ""}" style="--c:${teamColor(t.abbr)}" data-action="lms-pick" data-team="${esc(t.abbr)}" ${SC.hasStarted(t.g) && !commish() ? "disabled" : ""}><img src="${teamLogo(t.abbr)}" alt=""><b>${esc(t.abbr)}</b><small>${esc(t.opp)}</small></button>`).join("")}</div>
+  // A team's own line: positive means they're getting points, so the bigger the
+  // number the likelier they lose -- which is exactly what you're shopping for.
+  const ownSpread = (g, abbr) => (g.spread == null ? null : abbr === g.home ? g.spread : -g.spread);
+  const teams = games
+    .flatMap((g) => [{ abbr: g.away, g, opp: `@ ${g.home}` }, { abbr: g.home, g, opp: `vs ${g.away}` }])
+    .map((t) => ({ ...t, spread: ownSpread(t.g, t.abbr) }))
+    .sort((a, b) => a.abbr.localeCompare(b.abbr));
+  openModal(`${modalHead("Pick a team to lose")}<p class="mute" style="margin:0 0 12px;font-size:13px">Round ${SC.lastManStanding(state, cfg).rows[ui.week]?.round || 1}. Get it right and you're through to next week. The line is each team's own &mdash; a big <span style="color:var(--accent-lift)">+number</span> is a big underdog.</p>
+    <div class="teamgrid">${teams.map((t) => `<button class="teamtile ${current === t.abbr ? "teamtile--on" : ""}" style="--c:${teamColor(t.abbr)}" data-action="lms-pick" data-team="${esc(t.abbr)}" ${SC.hasStarted(t.g) && !commish() ? "disabled" : ""}><img ${logoAttrs(t.abbr)}><b>${esc(t.abbr)}</b><span class="teamtile__spr ${t.spread != null && t.spread > 0 ? "is-dog" : ""}">${t.spread == null ? "no line" : t.spread === 0 ? "PK" : SC.formatSpread(t.spread)}</span><small>${esc(t.opp)}</small></button>`).join("")}</div>
     ${current ? `<div class="form__actions"><button class="btn btn--ghost btn--danger btn--sm" data-action="lms-pick" data-team="">Clear pick</button></div>` : ""}`, { wide: true });
 }
 function rowMenu(gameId) {
