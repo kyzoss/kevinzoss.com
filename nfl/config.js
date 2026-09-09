@@ -23,8 +23,8 @@ window.POOL_CONFIG = {
   dup: {
     minSpread: 4.5,     // underdogs getting at least this many points are dup-eligible
     exclude: ["CLE"],   // the Browns can never be a dup
-    win: 2,             // your dup covers
-    loss: -1,           // your dup gets covered on
+    win: 1.5,           // your dup covers
+    loss: 0,            // your dup gets covered on
   },
 
   // Money. Pots are per week, split evenly across players for the buy-in.

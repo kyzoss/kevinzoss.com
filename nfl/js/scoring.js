@@ -168,8 +168,8 @@ export function weekTally(state, week, cfg = window.POOL_CONFIG) {
       else if (grade === "push") t.p++;
       if (isDup) {
         t.dupGrade = grade;
-        if (grade === "win") t.points += Number(cfg.dup?.win ?? 2);
-        else if (grade === "loss") t.points += Number(cfg.dup?.loss ?? -1);
+        if (grade === "win") t.points += Number(cfg.dup?.win ?? 1.5);
+        else if (grade === "loss") t.points += Number(cfg.dup?.loss ?? 0);
         else if (grade === "push") t.points += PUSH;
       } else {
         t.points += pointsFor(grade);

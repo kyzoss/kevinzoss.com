@@ -50,7 +50,7 @@ API keys.
 - **Dups.** Underdogs of 4.5+ points (never the Browns), padded to at least one
   per player, go up for a draft in standings order. Position 1 ranks one team,
   position 2 ranks two, and so on; each player gets their highest-ranked team
-  still available. Your dup is your pick in that game: +2 on a cover, −1 if not.
+  still available. Your dup is your pick in that game: +1.5 on a cover, 0 if not.
   The draft locks at the first kickoff among those games. The commissioner can
   override the order for a week.
 - **Weekly pot.** $4 a week. Best score takes it; a tie rolls the pot; week 18
