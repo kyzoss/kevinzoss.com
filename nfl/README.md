@@ -47,7 +47,10 @@ API keys.
      save.
   3. Deploy → New deployment → Web app. *Execute as* **Me**, *Who has access*
      **Anyone**. Copy the `/exec` URL it gives you.
-  4. Put that URL in the `sheet.url` field of `config.js`, commit, push.
+  4. Put that URL in the `sheet.url` field of `config.js`, commit, push. **Done —
+     the pool is on the Sheet at `1XQhl30t…EJhtA`.** Setup → *Test the
+     connection* reads the board and reports what it found, which is the quickest
+     way to tell a deploy problem from a config one.
 
   The script creates three tabs on first save: `state` holds the JSON the app
   reads, `picks` is a readable grid rebuilt on every save — the old spreadsheet,

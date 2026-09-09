@@ -712,8 +712,8 @@ function renderSettings(state) {
       <div class="card"><h4>You</h4><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">${avatar(me(), "avatar--lg")}<b>${esc(nameOf(me()))}</b>${commish() ? `<span class="badge badge--accent">Commish</span>` : ""}</div>
         <div class="toolbar" style="margin:0"><button class="btn btn--sm btn--px" data-action="whoami">Switch player</button>${commish() ? `<button class="btn btn--sm btn--px" data-action="pick-as">Pick as…</button>` : ""}</div></div>
       <div class="card"><h4>Sync</h4>
-        <p style="margin:0 0 10px;font-size:13px;color:var(--ink-soft)">${sync.enabled ? `Shared board via Supabase · <b>${esc(sync.state)}</b>${sync.detail ? ` · ${esc(sync.detail)}` : ""}` : "This device only. Everyone's picks live here, like the sheet did. To put all four phones on one board, fill in the Supabase block in config.js (see README)."}</p>
-        <div class="toolbar" style="margin:0"><button class="btn btn--sm btn--px" data-action="export">Export JSON</button><button class="btn btn--sm btn--px" data-action="import">Import JSON</button>${commish() ? `<button class="btn btn--sm btn--px btn--danger" data-action="reset">Reset season</button>` : ""}</div></div>
+        <p style="margin:0 0 10px;font-size:13px;color:var(--ink-soft)">${sync.enabled ? `Shared board via ${sync.via === "sheet" ? "a Google Sheet" : "Supabase"} · <b>${esc(sync.state)}</b>${sync.detail ? ` · ${esc(sync.detail)}` : ""}` : "This device only. Everyone's picks live here, like the sheet did. To put all four phones on one board, fill in the Supabase block in config.js (see README)."}</p>
+        <div class="toolbar" style="margin:0">${sync.enabled ? `<button class="btn btn--sm btn--px" data-action="test-sync">Test the connection</button>` : ""}<button class="btn btn--sm btn--px" data-action="export">Export JSON</button><button class="btn btn--sm btn--px" data-action="import">Import JSON</button>${commish() ? `<button class="btn btn--sm btn--px btn--danger" data-action="reset">Reset season</button>` : ""}</div></div>
       <div class="card"><h4>Sources</h4><dl class="kv"><dt>Schedule & scores</dt><dd>ESPN</dd><dt>Lines</dt><dd>${cfg.oddsApiKey ? esc((cfg.oddsBooks || [])[0] || "the book") : "ESPN"}</dd><dt>Season</dt><dd>${cfg.season}</dd><dt>Week 1</dt><dd>${esc(cfg.week1Tuesday)}</dd></dl></div>
     </div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">House rules</h2></div><div class="rules">
@@ -865,6 +865,7 @@ document.addEventListener("click", (e) => {
     case "bet-actual-clear": S.update((d) => { d.sideBet.actual = null; }); closeModal(); break;
     case "adj-add": adjModal(); break;
     case "adj-del": S.update((d) => { d.adjustments = d.adjustments.filter((x) => x.id !== el.dataset.id); }); break;
+    case "test-sync": testSync(); break;
     case "export": exportJson(); break;
     case "import": importModal(); break;
     case "reset": if (confirm("Wipe every pick, line and payout for this season? Export first if you want a copy.")) { S.resetState(); toast("Season reset"); } break;
@@ -926,6 +927,12 @@ document.addEventListener("change", (e) => {
 });
 
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modalOpen()) closeModal(); });
+
+async function testSync() {
+  toast("Checking the shared board…");
+  const r = await S.testSync();
+  toast(r.ok ? r.detail : `Sync failed: ${r.detail}`, { bad: !r.ok, ms: 6000 });
+}
 
 function exportJson() {
   const blob = new Blob([JSON.stringify(S.getState(), null, 2)], { type: "application/json" });
