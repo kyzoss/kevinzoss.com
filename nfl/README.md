@@ -9,16 +9,18 @@ Static app, no build step. Open `index.html` over any web server and it runs.
 
 - **Now:** it deploys with the rest of kevinzoss.com, so it is live at
   `https://kevinzoss.com/nfl/` as soon as this folder is on `main`.
-- **nfl.kevinzoss.com:** GitHub Pages allows one custom domain per repository, and
-  this repo's is `kevinzoss.com`. Two ways to give the pool its own subdomain:
+- **nfl.kevinzoss.com:** finance and ops are each their own repo on Vercel behind
+  Cloudflare. This one rides in the kevinzoss.com repo, so point Vercel at the
+  folder instead of a repo:
 
-  1. **Vercel (5 minutes).** Import this repo, set *Root Directory* to `nfl`,
-     framework "Other", no build command. Add `nfl.kevinzoss.com` in the project
-     domains and create the CNAME it asks for at your DNS host. Every push to
-     `main` redeploys.
-  2. **A second GitHub Pages repo.** Create `kyzoss/nfl` and publish this folder to
-     it with `git subtree push --prefix nfl nfl main`, add a `CNAME` file containing
-     `nfl.kevinzoss.com`, and point a DNS CNAME at `kyzoss.github.io`.
+  1. Vercel → Add New Project → import `kyzoss/kevinzoss.com`.
+  2. Root Directory: `nfl`. Framework preset: Other. Leave build and output empty
+     (it is static; `nfl/vercel.json` adds the noindex header).
+  3. Project → Domains → add `nfl.kevinzoss.com`.
+  4. Cloudflare DNS: CNAME `nfl` → `cname.vercel-dns.com`, proxy off (grey cloud)
+     so Vercel can issue the certificate. Live in a minute or two.
+
+  Every push to `main` redeploys both the Pages site and the Vercel project.
 
   Everything in the app uses relative paths, so it works at the root of a domain
   or under `/nfl/` without changes.
