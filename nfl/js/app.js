@@ -382,7 +382,11 @@ function renderDupBar(state, week, dups, tally) {
   if (!pid) note = "";
   else if (!dups.candidates.length) note = "No lines yet, so no dups to rank.";
   else if (locked) note = `Draft locked. ${mine ? `You have <b>${esc(mine)}</b>.` : "You didn't rank one."}`;
-  else note = `You pick <b>${ordinal(pos)}</b> this week &mdash; rank ${pos === 1 ? "one" : `up to ${pos}`} underdog${pos > 1 ? "s" : ""} in the Dup column, best first.${mine ? ` Currently <b>${esc(mine)}</b>.` : ""}`;
+  else {
+    const missed = (dups.prefs[pid] || []).filter((t) => t !== mine);
+    note = `You pick <b>${ordinal(pos)}</b> this week &mdash; rank ${pos === 1 ? "one" : `up to ${pos}`} underdog${pos > 1 ? "s" : ""} in the Dup column, best first.${mine ? ` Currently <b>${esc(mine)}</b>.` : ""}`;
+    if (missed.length) note += ` ${missed.map((t) => esc(t)).join(" and ")} went above you, so ${missed.length > 1 ? "those games" : "that game"} sits on the favorite unless you pick it yourself.`;
+  }
   return `<div class="dupbar">
     <div class="dupbar__note">${note}</div>
     <div class="dupbar__held">${held}</div>
@@ -467,8 +471,11 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
     const side = t.sides[g.id];
     const grade = t.grades[g.id];
     const isDup = t.dup && (g.home === t.dup || g.away === t.dup);
-    const cls = ["cell", "cell--pick", grade ? `is-${grade}` : "", isDup ? "cell--isdup" : "", p.id === pid ? "cell--self" : ""].join(" ");
-    const title = `${esc(p.name)}${side ? `: ${esc(abbrOf(g, side))}${isDup ? " (dup)" : ""}` : " — no pick"}`;
+    const auto = t.auto[g.id];
+    const cls = ["cell", "cell--pick", grade ? `is-${grade}` : "", isDup ? "cell--isdup" : "",
+                 auto ? "cell--auto" : "", p.id === pid ? "cell--self" : ""].join(" ");
+    const why = isDup ? " (dup)" : auto ? ` — the favorite by default, ${esc(auto)} went to someone above them in the draft` : "";
+    const title = `${esc(p.name)}${side ? `: ${esc(abbrOf(g, side))}${why}` : " — no pick"}`;
     return `<span class="${cls}" style="--c:${esc(p.color)}" title="${title}">${side ? esc(abbrOf(g, side)) : "·"}</span>`;
   }).join("");
 
@@ -724,7 +731,7 @@ function renderSettings(state) {
     </div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">House rules</h2></div><div class="rules">
     <p><b>Picks.</b> Every game, against the spread the pool pulled. A cover is 1 point, a push is ½. Picks lock at kickoff. The line freezes for everyone as soon as anyone picks the game, or when the commissioner locks the week.</p>
-    <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game: +${cfg.dup.win} if it covers, ${cfg.dup.loss} if it doesn't. The draft locks at the first kickoff among those games.</p>
+    <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game: +${cfg.dup.win} if it covers, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft locks at the first kickoff among those games.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
     <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and the field re-enters &mdash; a forfeit never shares. And if nobody picked at all, nothing is settled: the pot rolls into next week. The week-by-week tracker is on the Standings tab.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.pot)}. One guess at the ${esc(teamName(cfg.sideBet.team))}' final record before Week 1. Closest wins, points scored breaks ties.</p>
