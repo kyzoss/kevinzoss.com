@@ -281,8 +281,10 @@ export function lastManStanding(state, cfg) {
     // Crossing into a new block resets the field and everyone's used teams,
     // even if the previous block's last week was never settled.
     if (round !== prevRound) {
-      alive = [...all]; pot = 0; prevRound = round;
+      alive = [...all]; prevRound = round;
       used = Object.fromEntries(all.map((id) => [id, []]));
+      // The pot deliberately is not cleared here: an unpaid rollover carries
+      // into the next block rather than evaporating.
     }
 
     const inPlay = games.length > 0;
@@ -293,7 +295,7 @@ export function lastManStanding(state, cfg) {
       week: w, round, roundStart, roundEnd, pot, inPlay, complete,
       aliveEntering: [...alive], picks: {}, results: {}, eliminated: [], payouts: {},
       used: Object.fromEntries(all.map((id) => [id, [...used[id]]])),
-      ended: false, pending: !complete,
+      ended: false, rolled: false, pending: !complete,
     };
     for (const id of all) {
       const team = wk.lms?.[id] || null;
@@ -312,24 +314,39 @@ export function lastManStanding(state, cfg) {
     }
     if (complete) {
       const survivors = alive.filter((id) => row.results[id] === "safe");
-      row.eliminated = alive.filter((id) => row.results[id] !== "safe");
-      // A team is spent once its week is settled, whatever the outcome.
+      // A team is spent only if the pick actually resolved. One that was never
+      // live -- a team on a bye, or a repeat that was voided -- does not use up
+      // your one shot at it.
       for (const id of alive) {
         const team = row.picks[id];
-        if (team && !used[id].includes(team)) used[id].push(team);
+        const resolved = row.results[id] === "safe" || row.results[id] === "busted";
+        if (team && resolved && !used[id].includes(team)) used[id].push(team);
       }
-      if (survivors.length === 0) {
-        splitAmong(row.payouts, alive, pot);
-        row.ended = true;
-      } else if (w === roundEnd) {
-        splitAmong(row.payouts, survivors, pot);
-        row.ended = true;
+      row.eliminated = alive.filter((id) => row.results[id] !== "safe");
+      if (survivors.length > 0) {
+        if (w === roundEnd) {
+          splitAmong(row.payouts, survivors, pot);
+          row.ended = true;
+        } else {
+          alive = survivors;
+        }
       } else {
-        alive = survivors;
+        // Nobody's team lost. A forfeit does not share the pot: only players who
+        // actually made a live pick and got beaten split it. If none of them
+        // even picked, nothing is settled and the pot rolls into next week.
+        const played = alive.filter((id) => row.results[id] === "busted");
+        if (played.length) {
+          splitAmong(row.payouts, played, pot);
+          row.ended = true;
+        } else {
+          // Nothing happened this week: the pot carries and the field is intact,
+          // so nobody is recorded as knocked out.
+          row.rolled = true;
+          row.eliminated = [];
+        }
       }
-      // An early payout restarts the contest but not the block, so used teams
-      // stand for the rest of the four weeks.
       if (row.ended) { alive = [...all]; pot = 0; }
+      // a rollover leaves alive and used untouched by design
     }
     rows[w] = row;
   }
@@ -348,7 +365,10 @@ export function lmsUsed(state, cfg, week, pid) {
   for (let w = start; w < week; w++) {
     const team = state.weeks?.[w]?.lms?.[pid];
     if (!team || out.some((u) => u.team === team)) continue;
-    if (weekComplete(state, w)) out.push({ team, week: w });   // only a settled week spends the pick
+    // Spent only if the pick actually resolved: the team was on that week's
+    // slate and the game finished. Same rule the resolver applies.
+    const game = weekGames(state, w).find((x) => x.home === team || x.away === team);
+    if (game && isFinal(game)) out.push({ team, week: w });
   }
   return out;
 }
