@@ -494,6 +494,14 @@ table.sheet { border-collapse: collapse; width: 100%; font-size: 13px; font-vari
 }
 .lmst--gone { color: var(--ink-dim) !important; font-weight: 400 !important; font-size: 11px; }
 .lmst__none { font-weight: 400; font-size: 11px; }
+/* a week where nothing was settled: shown, but not counted against anyone */
+.lmst--void { color: var(--ink-mute) !important; font-weight: 400 !important; }
+.sheet--lms tr.lmst-rolled td { background: rgba(255,255,255,.02); }
+.lmst__roll {
+  font-style: normal; font-size: 9px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-mute); margin-left: 4px;
+}
+.legend b { color: var(--ink-soft); font-weight: 600; }
 .lmst--paid { background: rgba(53,208,127,.1); }
 .lmst__now {
   font-style: normal; font-size: 9px; font-weight: 700; letter-spacing: .08em;

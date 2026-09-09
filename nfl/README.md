@@ -103,15 +103,18 @@ API keys.
   used. Picking a spent team is void, same as no pick. $1 from everyone every
   week, **including the weeks you're already out** — that dead money is what the survivors are playing for.
   Name a team to lose; wins, ties and no-picks knock you out for the round.
-  Rounds are fixed four-week blocks and survivors split at the end. If everyone
-  busts early, the last ones standing take what accrued and the field re-enters
-  for the rest of the block.
+  Rounds are fixed four-week blocks and survivors split at the end. If every
+  live pick busts in the same week, the players who actually picked split the
+  pot and the field re-enters — **a forfeit never shares**. If nobody made a
+  live pick at all, nothing is settled: the pot rolls into the next week and
+  nobody goes out, carrying across a block boundary if it has to.
 - **Browns record.** $10. One guess before Week 1. Closest wins, points scored
   breaks ties. Actual record is computed from finals as weeks load.
-- **The LMS tracker** on the Money tab is the season's history: a row per week,
+- **The LMS tracker** on the Standings tab is the season's history: a row per week,
   a column per player. A struck-through pick is the one that knocked them out,
-  green is through, and each block's header names every payout it produced. Read
-  a column inside a block and you have that player's spent teams.
+  green is through, and each block's header names every payout it produced. A
+  week marked *rolled* settled nothing, so nobody there is struck out. Read a
+  column inside a block and you have that player's spent teams.
 
 - **Money.** Every payout is derived from results. Manual adjustments cover
   anything else. Export/import JSON from Setup for backups.

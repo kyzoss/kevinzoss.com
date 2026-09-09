@@ -573,6 +573,8 @@ function renderStandings(state) {
   </tbody><tfoot><tr><td>Total</td>${state.players.map((p) => `<td>${fmtPts(rec[p.id].points)}</td>`).join("")}<td></td></tr></tfoot></table></div>`;
 
   return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Standings</h2><span class="section__sub">Ranked by money, then ATS points.</span></div><div class="board">${rows}</div></section>
+  <section class="section"><div class="section__head"><h2 class="section__title">Last man standing</h2><span class="section__sub">${SC.money(cfg.lmsPerPlayer ?? 1)} each every week, in or out · survivors split every ${cfg.lmsRoundWeeks}</span></div>
+    ${renderLmsTracker(state, led)}</section>
   <section class="section"><div class="section__head"><h2 class="section__title">Week by week</h2><span class="section__sub">Points per week. Bold is the week's outright winner.</span></div>${sheet}</section>`;
 }
 
@@ -598,8 +600,6 @@ function renderMoney(state) {
   return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Money</h2><span class="section__sub">Season buy-in ${SC.money(led.seasonBuyIn)} across the table · ${SC.money(led.seasonBuyIn / P.length)} each</span></div><div class="moneytiles">${tiles}</div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">Weekly pot · ${SC.money(cfg.weeklyPot)}/wk</h2><span class="section__sub">Best ATS score. Ties roll over. Week ${cfg.weeks} splits.</span></div>
     <div class="grid"><table class="sheet"><thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}<th></th></tr></thead><tbody>${weeklyRows || `<tr><td colspan="${P.length + 2}" class="dim">Nothing settled yet.</td></tr>`}</tbody><tfoot><tr><td>Total</td>${weeklyTotals}<td>${SC.money(P.reduce((s, p) => s + led.totals[p.id].weeklyWon, 0))}</td></tr></tfoot></table></div></section>
-  <section class="section"><div class="section__head"><h2 class="section__title">Last man standing · ${SC.money(cfg.lmsPerPlayer ?? 1)} each per week</h2><span class="section__sub">Everyone pays every week, in or out. Survivors split every ${cfg.lmsRoundWeeks} weeks.</span></div>
-    ${renderLmsTracker(state, led)}</section>
   <section class="section"><div class="section__head"><h2 class="section__title">Adjustments</h2><span class="section__sub">Side action, corrections, whatever needs squaring.</span>${commish() ? `<button class="btn btn--sm btn--px" data-action="adj-add">${icon("plus")}Add</button>` : ""}</div>
     ${adj ? `<div class="grid"><table class="sheet"><thead><tr><th>Wk</th><th style="text-align:left">Who</th><th>Amt</th><th style="text-align:left">Note</th>${commish() ? "<th></th>" : ""}</tr></thead><tbody>${adj}</tbody></table></div>` : `<p class="mute" style="font-size:13px;margin:0">None.</p>`}</section>`;
 }
@@ -624,6 +624,7 @@ function renderLmsTracker(state, led) {
   }
 
   const OUT = { busted: "their team won", nopick: "no pick", nogame: "team wasn't playing", reused: "already used this block" };
+  const standing = (r) => r.aliveEntering.filter((id) => !r.eliminated.includes(id)).length;
   const blocks = [...byRound.entries()].map(([round, weeks]) => {
     const last = weeks[weeks.length - 1];
     // A block can pay out more than once: if the whole field busts early the pot
@@ -643,12 +644,12 @@ function renderLmsTracker(state, led) {
       // and the block may still be running after the last payout
       const after = weeks.filter((r) => r.week > paid[paid.length - 1].week);
       if (after.length) {
-        const alive = after[after.length - 1].aliveEntering.filter((id) => !OUT[after[after.length - 1].results[id]] && after[after.length - 1].results[id] !== "out");
-        outcome += ` · ${alive.length} still standing for ${SC.money(last.pot)}`;
+        outcome += ` · ${standing(after[after.length - 1])} still standing for ${SC.money(last.pot)}`;
       }
+    } else if (weeks.every((r) => r.rolled || !r.complete)) {
+      outcome = `nothing settled · ${SC.money(last.pot)} rolls on`;
     } else {
-      const alive = last.aliveEntering.filter((id) => last.results[id] !== "out" && !OUT[last.results[id]]);
-      outcome = `${alive.length} still standing · ${SC.money(last.pot)} in the pot`;
+      outcome = `${standing(last)} still standing · ${SC.money(last.pot)} in the pot`;
     }
     const head = `<tr class="round"><td colspan="${P.length + 1}">Round ${round} · weeks ${last.roundStart}–${last.roundEnd} · ${outcome}</td></tr>`;
 
@@ -658,24 +659,29 @@ function renderLmsTracker(state, led) {
         const pick = r.picks[p.id];
         const paid = r.payouts[p.id];
         if (res === "out") return `<td class="lmst lmst--gone" title="${esc(nameOf(p.id))} was already out">out</td>`;
-        const knocked = OUT[res];
-        const cls = ["lmst", knocked ? "lmst--knocked" : "", res === "safe" ? "lmst--safe" : "", paid ? "lmst--paid" : ""].join(" ");
-        const title = `${esc(nameOf(p.id))}: ${pick ? esc(pick) : "no pick"}${knocked ? ` — out, ${knocked}` : res === "safe" ? " — through" : ""}`;
+        // On a rolled week nothing was settled, so nobody is struck out.
+        const knocked = r.rolled ? null : OUT[res];
+        const cls = ["lmst", knocked ? "lmst--knocked" : "", !r.rolled && res === "safe" ? "lmst--safe" : "",
+                     r.rolled ? "lmst--void" : "", paid ? "lmst--paid" : ""].join(" ");
+        const why = r.rolled ? " — nothing settled, the pot rolled" : knocked ? ` — out, ${knocked}` : res === "safe" ? " — through" : "";
+        const title = `${esc(nameOf(p.id))}: ${pick ? esc(pick) : "no pick"}${why}`;
         const label = pick ? esc(pick) : res === "nopick" ? `<span class="lmst__none">no pick</span>` : "—";
         return `<td class="${cls}" title="${title}">${label}${paid ? `<i>${SC.money(paid)}</i>` : ""}</td>`;
       }).join("");
-      return `<tr><td>${r.week === now ? `${r.week} <i class="lmst__now">now</i>` : r.week}</td>${cells}</tr>`;
+      const flag = r.week === now ? `<i class="lmst__now">now</i>` : r.rolled ? `<i class="lmst__roll">rolled</i>` : "";
+      return `<tr class="${r.rolled ? "lmst-rolled" : ""}"><td>${r.week}${flag ? ` ${flag}` : ""}</td>${cells}</tr>`;
     }).join("");
     return head + body;
   }).join("");
 
   const totals = P.map((p) => `<td>${SC.money(led.totals[p.id].lmsWon)}</td>`).join("");
+  const rolled = rows.some((r) => r.rolled);
   return `<div class="grid"><table class="sheet sheet--lms">
       <thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}</tr></thead>
       <tbody>${blocks}</tbody>
       <tfoot><tr><td>Won</td>${totals}</tr></tfoot>
     </table></div>
-    <p class="legend"><span class="legend__x">struck through</span> knocked out that week &middot; a column is the teams that player has spent in the block &middot; each team is good once per block</p>`;
+    <p class="legend"><span class="legend__x">struck through</span> knocked out that week &middot; a column is the teams that player has spent in the block &middot; each team is good once per block${rolled ? " &middot; <b>rolled</b> means nobody made a live pick, so the pot carried and nobody went out" : ""}</p>`;
 }
 
 // ---- side bet -----------------------------------------------------------------
@@ -720,7 +726,7 @@ function renderSettings(state) {
     <p><b>Picks.</b> Every game, against the spread the pool pulled. A cover is 1 point, a push is ½. Picks lock at kickoff. The line freezes for everyone as soon as anyone picks the game, or when the commissioner locks the week.</p>
     <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game: +${cfg.dup.win} if it covers, ${cfg.dup.loss} if it doesn't. The draft locks at the first kickoff among those games.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
-    <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If everyone busts early, the last ones standing take what has accrued and the field re-enters for the rest of the block.</p>
+    <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and the field re-enters &mdash; a forfeit never shares. And if nobody picked at all, nothing is settled: the pot rolls into next week. The week-by-week tracker is on the Standings tab.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.pot)}. One guess at the ${esc(teamName(cfg.sideBet.team))}' final record before Week 1. Closest wins, points scored breaks ties.</p>
   </div></section>`;
 }
