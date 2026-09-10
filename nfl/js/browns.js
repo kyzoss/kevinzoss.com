@@ -11,6 +11,29 @@
 
 const SITE = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
 
+/**
+ * ESPN's position abbreviations, folded onto the five the pool drafts from.
+ * The first roster pull came back with no kicker and no tight end, because
+ * ESPN labels the kicker PK and the punter P -- an exact-match filter drops
+ * both silently, which is the worst way for this to fail.
+ */
+const POS_FIX = {
+  PK: "K",                                              // the kicker: ESPN's own label
+  FB: "RB", HB: "RB", TB: "RB",                         // any back is a back for this
+  SE: "WR", FL: "WR", LWR: "WR", RWR: "WR", SWR: "WR",  // depth charts split the receivers
+  SLOT: "WR", "WR/RB": "WR", "TE/FB": "TE",
+};
+function normalisePos(raw) {
+  const p = String(raw).toUpperCase().trim();
+  if (POS_FIX[p]) return POS_FIX[p];
+  if (p === "PLACE KICKER" || p === "KICKER") return "K";
+  if (p === "TIGHT END") return "TE";
+  if (p === "QUARTERBACK") return "QB";
+  if (p === "RUNNING BACK") return "RB";
+  if (p === "WIDE RECEIVER") return "WR";
+  return p;
+}
+
 /** Stat labels ESPN uses, mapped to the keys our scoring table knows. */
 const PASS = { C_ATT: "completions", YDS: "passYards", TD: "passTD" };
 const RUSH = { YDS: "rushYards", TD: "rushTD" };
@@ -30,7 +53,7 @@ export async function fetchRoster(abbr = "CLE", positions = ["QB", "RB", "WR", "
   // The payload groups athletes ("offense", "defense", "specialTeam"); flatten.
   for (const group of data.athletes || []) {
     for (const a of group.items || group.athletes || []) {
-      const pos = (a.position?.abbreviation || a.position?.name || "").toUpperCase();
+      const pos = normalisePos(a.position?.abbreviation || a.position?.name || "");
       if (!want.has(pos)) continue;
       out.push({
         id: String(a.id ?? a.uid ?? a.displayName),
@@ -49,6 +72,16 @@ export async function fetchRoster(abbr = "CLE", positions = ["QB", "RB", "WR", "
     || (Number(a.number || 999) - Number(b.number || 999))
     || a.name.localeCompare(b.name));
   return out;
+}
+
+/** "QB 4 · RB 5 · WR 7 · TE 4 · K 1" -- so a position that came back empty shows. */
+export function rosterCensus(roster, positions = ["QB", "RB", "WR", "TE", "K"]) {
+  return positions.map((p) => `${p} ${roster.filter((r) => r.pos === p).length}`).join(" · ");
+}
+
+/** Positions the pool expects but the roster has none of. */
+export function missingPositions(roster, positions = ["QB", "RB", "WR", "TE", "K"]) {
+  return positions.filter((p) => !roster.some((r) => r.pos === p));
 }
 
 /**

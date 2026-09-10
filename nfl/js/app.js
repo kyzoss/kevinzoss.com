@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=48b3fdb0";
-import * as SC from "./scoring.js?v=48b3fdb0";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=48b3fdb0";
-import { fetchWeek } from "./espn.js?v=48b3fdb0";
+import * as S from "./store.js?v=66e91e2a";
+import * as SC from "./scoring.js?v=66e91e2a";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=66e91e2a";
+import { fetchWeek } from "./espn.js?v=66e91e2a";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=48b3fdb0";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=48b3fdb0";
+import { fetchSpreads } from "./odds.js?v=66e91e2a";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=66e91e2a";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -1260,7 +1260,11 @@ async function loadRoster() {
     const roster = await BR.fetchRoster(cfg.sideBet?.team || "CLE", cfg.brownOfWeek?.positions);
     if (!roster.length) throw new Error("ESPN returned no players in those positions");
     S.update((d) => { d.brownsRoster = roster; });
-    toast(`${roster.length} players loaded.`);
+    const missing = BR.missingPositions(roster, cfg.brownOfWeek?.positions);
+    const census = BR.rosterCensus(roster, cfg.brownOfWeek?.positions);
+    toast(missing.length
+      ? `${roster.length} loaded — ${census}. No ${missing.join(" or ")}: tell Kevin, ESPN may label them differently.`
+      : `${roster.length} players loaded — ${census}.`, { bad: missing.length > 0, ms: 8000 });
     closeModal();
     brownModal();
   } catch (e) {
