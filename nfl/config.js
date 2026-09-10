@@ -9,6 +9,11 @@ window.POOL_CONFIG = {
   // the day each week's lines freeze.
   week1Tuesday: "2026-09-08",
   weeks: 18,
+  // How often an app that is left open re-checks for a new build, in minutes.
+  // Nobody in this pool should ever have to hard-refresh; the app updates
+  // itself on resume and on this timer.
+  buildCheckMinutes: 10,
+
   // The pool's clock. Every deadline below is this zone's wall clock, so a phone
   // in another timezone still locks at the same instant as everyone else.
   timeZone: "America/Los_Angeles",

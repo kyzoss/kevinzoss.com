@@ -47,6 +47,9 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     view, the scores and payout, the depth-chart picker, a
                     player spent in the round greyed out, and the history and
                     money on the Browns page
+    selfupdate      an app left sitting open notices a new build and reloads
+                    itself, and never does it while a modal is open. Nobody in
+                    the pool should ever be told to hard-refresh
     converge        three devices and one board, reproducing the failure where
                     the website showed every pick, one phone was missing Jim's
                     and Andrew's own picks were gone. Asserts all three agree
