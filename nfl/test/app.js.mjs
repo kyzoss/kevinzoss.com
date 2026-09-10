@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=e4ae4d88";
-import * as SC from "./scoring.js?v=e4ae4d88";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=e4ae4d88";
-import { fetchWeek } from "./espn.js?v=e4ae4d88";
-import { fetchSpreads } from "./odds.js?v=e4ae4d88";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=e4ae4d88";
+import * as S from "./store.js?v=ce2262f9";
+import * as SC from "./scoring.js?v=ce2262f9";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=ce2262f9";
+import { fetchWeek } from "./espn.js?v=ce2262f9";
+import { fetchSpreads } from "./odds.js?v=ce2262f9";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=ce2262f9";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -420,7 +420,7 @@ function renderDupBar(state, week, dups, tally) {
   let note;
   if (!pid) note = "";
   else if (!dups.candidates.length) note = "No lines yet, so no dups to rank.";
-  else if (locked) note = `Draft locked. ${mine ? `You have <b>${esc(mine)}</b>.` : "You didn't rank one."}`;
+  else if (locked) note = `Draft closed ${esc(cutoffLabel(week))}. ${mine ? `You have <b>${esc(mine)}</b>.` : "You didn't rank one."}`;
   else {
     // Only teams somebody else actually took. A team you merely ranked below the
     // one you got has not "gone above you" -- it is still there, unclaimed.
@@ -821,7 +821,7 @@ function renderSettings(state) {
     </div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">House rules</h2></div><div class="rules">
     <p><b>Picks.</b> Every game, straight up: pick the team you think wins. A win is 1 point and nothing else scores — a tie counts as a loss. The spread is not part of it — it only sets which dogs go up for the dup draft. Everything locks at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, and any game that kicks off before then locks at its own kickoff instead.</p>
-    <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game, and it has to win outright: +${cfg.dup.win} if it does, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft locks at the first kickoff among those games.</p>
+    <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game, and it has to win outright: +${cfg.dup.win} if it does, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft closes with the picks, at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, except that a dog whose own game has already kicked off can no longer be ranked.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
     <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and the field re-enters &mdash; a forfeit never shares. And if nobody picked at all, nothing is settled: the pot rolls into next week. The week-by-week tracker is on the Standings tab.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.perPlayer ?? 0)} from everyone, so ${SC.money(SC.sideBetPot(state, cfg))} on the table. One guess each at the ${esc(teamName(cfg.sideBet.team))}' final record before Week 1. Closest wins, points scored breaks ties.</p>

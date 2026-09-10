@@ -221,7 +221,12 @@ export function resolveDups(state, cfg, week) {
     const hit = list.find((t) => !taken.has(t));
     if (hit) { assigned[pid] = hit; taken.add(hit); }
   });
-  const lockAt = candidates.length ? Math.min(...candidates.map((c) => new Date(c.game.kickoff).getTime() || Infinity)) : null;
+  // The draft closes with everything else: 10:00 Pacific on the week's Sunday.
+  // It used to close at the first kickoff among the dup games, which on a week
+  // with an eligible Thursday dog gave the table about four hours to rank.
+  // Ranking a dog whose own game has already kicked off is still refused --
+  // that is per-game, and it is what stops anyone drafting a known result.
+  const lockAt = candidates.length ? pickCutoffAt(week, cfg) : null;
   const byOwner = {};   // dup team -> the player who holds it
   for (const [pid, team] of Object.entries(assigned)) byOwner[team] = pid;
   return { order, candidates, assigned, byTeam, byOwner, prefs, lockAt };

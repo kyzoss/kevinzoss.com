@@ -110,6 +110,27 @@ console.log("— dup draft order rotates weekly");
 }
 
 
+console.log("- the dup draft closes with the picks, not at the first kickoff");
+{
+  const st = blank();
+  // a Thursday dog and a Sunday dog, both eligible
+  const thu = g("ARI", "LAC", -9.5, null, null, "2026-09-11T00:15:00Z");
+  const sun = g("NO", "TB", -7, null, null, "2026-09-13T17:00:00Z");
+  st.weeks[1] = { games: [thu, sun], picks: {}, lms: {}, dupPrefs: { az: ["ARI"] } };
+  const d = SC.resolveDups(st, cfg, 1);
+  eq("draft closes at the pick cutoff", d.lockAt, SC.pickCutoffAt(1, cfg));
+  eq("not at the first kickoff", d.lockAt === Date.parse("2026-09-11T00:15:00Z"), false);
+  // Friday: the draft is open, but the Thursday dog is beyond ranking
+  const fri = Date.parse("2026-09-11T18:00:00Z");
+  eq("draft still open on Friday", fri < d.lockAt, true);
+  eq("a dog that already kicked off cannot be ranked", SC.pickLocked(thu, 1, cfg, fri), true);
+  eq("a dog still to play can be", SC.pickLocked(sun, 1, cfg, fri), false);
+  // Sunday 10:01: everything shut
+  const after = SC.pickCutoffAt(1, cfg) + 60000;
+  eq("draft shut after the cutoff", after >= d.lockAt, true);
+  eq("and so is the Sunday dog", SC.pickLocked(sun, 1, cfg, after), true);
+}
+
 console.log("- dups are exclusive: nobody else may take a drafted dog");
 {
   const st = blank();
