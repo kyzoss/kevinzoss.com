@@ -2,6 +2,9 @@
 # One gate. Everything must pass before Jim touches it.
 cd /home/user/kevinzoss.com
 SP=/home/user/kevinzoss.com/nfl/test
+# Parse checks need a copy with a .mjs extension. It goes to a temp dir, never
+# into the repo: writing it under nfl/test/ left the tree dirty after every run.
+TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 fails=0
 line() { printf "%-34s %s\n" "$1" "$2"; }
 
@@ -11,11 +14,11 @@ if python3 $SP/audit.py | tail -2 | grep -q "0 failed"; then
 else line "stamp + cache audit" "FAIL"; fails=$((fails+1)); fi
 
 for f in nfl/js/*.js; do
-  cp "$f" "$SP/$(basename $f).mjs"
-  node --check "$SP/$(basename $f).mjs" >/dev/null 2>&1 || { line "parse $(basename $f)" "FAIL"; fails=$((fails+1)); }
+  cp "$f" "$TMP/$(basename $f).mjs"
+  node --check "$TMP/$(basename $f).mjs" >/dev/null 2>&1 || { line "parse $(basename $f)" "FAIL"; fails=$((fails+1)); }
 done
-cp nfl/sheet/Code.gs $SP/Code.js
-node --check $SP/Code.js >/dev/null 2>&1 && line "parse all js + Code.gs" "PASS" || { line "parse all js + Code.gs" "FAIL"; fails=$((fails+1)); }
+cp nfl/sheet/Code.gs $TMP/Code.js
+node --check $TMP/Code.js >/dev/null 2>&1 && line "parse all js + Code.gs" "PASS" || { line "parse all js + Code.gs" "FAIL"; fails=$((fails+1)); }
 for j in vercel.json nfl/vercel.json nfl/manifest.webmanifest nfl/version.json nfl/recover-week1.json; do
   python3 -c "import json;json.load(open('$j'))" 2>/dev/null || { line "valid json $j" "FAIL"; fails=$((fails+1)); }
 done
