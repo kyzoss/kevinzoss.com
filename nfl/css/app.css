@@ -582,6 +582,12 @@ table.sheet { border-collapse: collapse; width: 100%; font-size: 13px; font-vari
   transition: border-color .18s ease;
 }
 .input:focus { outline: none; border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+/* A value the form works out for you. Looks like a field so the row lines up,
+   but dashed and dimmed so nobody tries to type in it. */
+.input--derived {
+  display: flex; align-items: center; border-style: dashed; background: transparent;
+  color: var(--ink-mute); cursor: default;
+}
 textarea.input { font-size: 12px; min-height: 130px; font-family: ui-monospace, Menlo, monospace; }
 .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
 .form__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap; }
