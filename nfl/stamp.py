@@ -46,5 +46,9 @@ for f in ["index.html"] + ASSETS:
         path.write_text(after, encoding="utf-8")
         changed.append(f)
 
+# A tiny file the running app can poll. A Home Screen app resumes instead of
+# reloading, so it needs something cheap to ask "am I still the current build?"
+(here / "version.json").write_text('{"v":"%s"}\n' % version, encoding="utf-8")
+
 print(f"  version v={version}")
 print("  stamped:", ", ".join(changed) if changed else "nothing to do")
