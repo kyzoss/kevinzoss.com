@@ -34,6 +34,9 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     build
     redirect        it moves origins only after proving the other host serves
                     this exact build; stale or 404 means stay put
+    coldstart       a brand-new storage partition -- the Home Screen case --
+                    fills itself from the shared board, and says plainly that it
+                    cannot reach it rather than looking like an empty week
     dupranks        a dup shows as its rank in that player's own column
     recover         recoverPicksFromLog rebuilds a narrowed board from the log
 
