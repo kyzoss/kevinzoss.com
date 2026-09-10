@@ -45,16 +45,38 @@
   <!-- One origin for the whole pool. A browser and a Home Screen app on the same
        device get separate storage per origin, so being reachable at both
        kevinzoss.com/nfl/ and nfl.kevinzoss.com meant two boards that never
-       agreed. Anything but the canonical host is sent there before app code
-       runs; localhost and file:// are left alone so development still works. -->
+       agreed.
+
+       But it only moves you once it has PROVED the other host serves this exact
+       build. Jumping to a host whose deploy is stale, or that 404s, is worse
+       than two origins -- and that is precisely what happened here, so the
+       check is the point. Fails closed: any doubt and you stay where you are,
+       which still works. -->
   <script>
     (function () {
       var CANON = "nfl.kevinzoss.com";
       var h = location.hostname;
       if (!h || h === CANON) return;
-      if (location.protocol !== "https:" && location.protocol !== "http:") return;
+      if (location.protocol !== "https:") return;
       if (/^(localhost|127\.|0\.0\.0\.0|\[?::1)/.test(h) || h.endsWith(".local")) return;
-      location.replace("https://" + CANON + "/" + location.search + location.hash);
+
+      var mine = null;
+      var candidates = ["https://" + CANON + "/", "https://" + CANON + location.pathname];
+      var ask = function (base) {
+        return fetch(new URL("version.json", base).href, { cache: "no-store" })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) { return d && d.v === mine ? base : null; })
+          .catch(function () { return null; });
+      };
+      fetch(new URL("version.json", location.href).href, { cache: "no-store" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          mine = d && d.v;
+          if (!mine) return null;
+          return ask(candidates[0]).then(function (hit) { return hit || ask(candidates[1]); });
+        })
+        .then(function (base) { if (base) location.replace(base + location.search + location.hash); })
+        .catch(function () { /* stay put: this origin works */ });
     })();
   </script>
   <script src="./config.js?v=fe43e184"></script>
