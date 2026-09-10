@@ -9,16 +9,30 @@
  *   picks   a readable grid, rebuilt on every save (the old spreadsheet, basically)
  *   log     an append-only history, so a bad save can always be recovered
  *
- * Setup lives in nfl/README.md. Short version: Extensions -> Apps Script, paste
- * this in, Deploy -> New deployment -> Web app, execute as *me*, access
- * *anyone*, then put the /exec URL into nfl/config.js.
+ * Setup lives in nfl/README.md. Short version:
+ *
+ *   First time only: Extensions -> Apps Script, paste this in, save, then
+ *   Deploy -> New deployment -> Web app, execute as *me*, access *anyone*, and
+ *   put the /exec URL it gives you into nfl/config.js.
+ *
+ *   Updating an existing install: paste the new code in, save, then
+ *   Deploy -> Manage deployments -> pencil (Edit) -> Version: New version ->
+ *   Deploy. That keeps the same /exec URL, so config.js needs no change and
+ *   every phone stays connected. Do NOT use New deployment for an update -- it
+ *   mints a fresh /exec URL, leaves the old code serving the app, and breaks
+ *   sync until config.js is changed.
+ *
+ * Setup -> Test the connection reports SCRIPT_VERSION, so you can tell whether
+ * the deployment is actually running this file.
  *
  * The URL is the only credential. Anyone holding it can read and write the
  * pool, which is the same trust model as a shared spreadsheet link.
  */
 
-// Bumped whenever this file changes, and reported back by doGet, so the app can
-// tell you whether the deployment you are talking to is actually the current one.
+// Bumped whenever the behaviour of this file changes -- not for comment edits,
+// which would only send everyone off to redeploy for nothing. Reported back by
+// doGet and doPost, so the app can tell you whether the deployment you are
+// talking to is actually the current one.
 var SCRIPT_VERSION = 'merge-1';
 
 var STATE_SHEET = 'state';

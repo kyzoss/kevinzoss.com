@@ -45,12 +45,24 @@ API keys.
   1. Make a new Google Sheet.
   2. Extensions → Apps Script. Delete the placeholder, paste in `sheet/Code.gs`,
      save.
-  3. Deploy → New deployment → Web app. *Execute as* **Me**, *Who has access*
-     **Anyone**. Copy the `/exec` URL it gives you.
+  3. Deploy → **New deployment** → Web app. *Execute as* **Me**, *Who has
+     access* **Anyone**. Copy the `/exec` URL it gives you. (New deployment is
+     for this first-time setup only — see below for updates.)
   4. Put that URL in the `sheet.url` field of `config.js`, commit, push. **Done —
      the pool is on the Sheet at `1XQhl30t…EJhtA`.** Setup → *Test the
      connection* reads the board and reports what it found, which is the quickest
      way to tell a deploy problem from a config one.
+
+  **Updating the script on an install that already works.** When `sheet/Code.gs`
+  changes in this repo, paste the new file over the old one in the Apps Script
+  editor, save, then Deploy → **Manage deployments** → the pencil (*Edit*) →
+  *Version* → **New version** → Deploy. That reuses the existing deployment, so
+  the `/exec` URL stays the same and nothing in `config.js` or on anyone's phone
+  needs to change. Using *New deployment* for an update instead mints a second
+  `/exec` URL and leaves the old code serving the app, which silently breaks
+  sync. The script reports a `SCRIPT_VERSION` and Setup → *Test the connection*
+  prints it, so you can confirm the deployment is running the file you just
+  pasted rather than a stale one.
 
   The script creates three tabs on first save: `state` holds the JSON the app
   reads, `picks` is a readable grid rebuilt on every save — the old spreadsheet,
