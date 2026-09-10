@@ -60,9 +60,17 @@ API keys.
   the `/exec` URL stays the same and nothing in `config.js` or on anyone's phone
   needs to change. Using *New deployment* for an update instead mints a second
   `/exec` URL and leaves the old code serving the app, which silently breaks
-  sync. The script reports a `SCRIPT_VERSION` and Setup → *Test the connection*
-  prints it, so you can confirm the deployment is running the file you just
-  pasted rather than a stale one.
+  sync.
+
+  Verify it two ways, because they fail differently. Before deploying, confirm
+  the editor really holds the new file — search it for `SCRIPT_VERSION` and for
+  the function the update added; the editor keeps whatever was last saved to
+  Drive, which may be months older than the repo. After deploying, open
+  `<the /exec URL>?season=2026` in a browser: the JSON must carry a `version`
+  field matching `SCRIPT_VERSION` in `sheet/Code.gs`. A response with **no**
+  `version` field at all is the pre-versioning script, i.e. the deploy did not
+  take. Setup → *Test the connection* reports the same version from inside the
+  app, which is the friendlier check once you trust the app is loading.
 
   The script creates three tabs on first save: `state` holds the JSON the app
   reads, `picks` is a readable grid rebuilt on every save — the old spreadsheet,
