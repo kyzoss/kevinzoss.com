@@ -33,7 +33,7 @@
 // which would only send everyone off to redeploy for nothing. Reported back by
 // doGet and doPost, so the app can tell you whether the deployment you are
 // talking to is actually the current one.
-var SCRIPT_VERSION = 'owned-merge-1';
+var SCRIPT_VERSION = 'owned-merge-2';
 
 var STATE_SHEET = 'state';
 var PICKS_SHEET = 'picks';
@@ -172,6 +172,107 @@ function hasPlayerData_(doc) {
   var preds = ((doc && doc.sideBet) || {}).predictions || {};
   for (var p in preds) if (preds[p]) return true;
   return false;
+}
+
+// ---- recovery --------------------------------------------------------------
+
+/**
+ * Rebuild the board from the log, then save it.
+ *
+ * Run this by hand from the Apps Script editor (pick it in the function
+ * dropdown and press Run) after picks have gone missing. It walks every logged
+ * save oldest-first and unions in any pick, LMS team, dup ranking or Browns
+ * guess that the current board is missing, so nothing that was ever saved can
+ * stay lost. It never removes anything.
+ *
+ * The one thing to know before running it: a pick somebody deliberately undid
+ * will come back, because the log cannot tell an undo apart from a loss. Undo
+ * it again afterwards if that happens.
+ *
+ * Reports what it restored in the execution log.
+ */
+function recoverPicksFromLog() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var log = sheet_(LOG_SHEET, ['savedAtLocal', 'season', 'updatedAt', 'json']);
+    var rows = log.getDataRange().getValues();
+    if (rows.length < 2) { Logger.log('The log is empty -- nothing to recover from.'); return; }
+
+    // Every season present in the log, newest board first.
+    var seasons = {};
+    for (var i = 1; i < rows.length; i++) if (rows[i][1]) seasons[String(rows[i][1])] = true;
+
+    for (var season in seasons) {
+      var current = findSeasonRow_(season);
+      var board = current ? JSON.parse(current.json) : null;
+      var added = { picks: 0, lms: 0, dupPrefs: 0, predictions: 0 };
+
+      for (var r = 1; r < rows.length; r++) {
+        if (String(rows[r][1]) !== season || !rows[r][3]) continue;
+        var past;
+        try { past = JSON.parse(rows[r][3]); } catch (err) { continue; }
+        if (!board) { board = past; continue; }
+        added = absorb_(board, past, added);
+      }
+      if (!board) continue;
+
+      board.updatedAt = Date.now();
+      writeState_(season, board, board.updatedAt);
+      writePicks_(board);
+      appendLog_(season, board, board.updatedAt);
+      Logger.log('Season %s: restored %s pick(s), %s LMS pick(s), %s dup ranking(s), %s Browns guess(es).',
+                 season, added.picks, added.lms, added.dupPrefs, added.predictions);
+      Logger.log('Board now holds: %s', census_(board));
+    }
+  } finally {
+    try { lock.releaseLock(); } catch (ignored) {}
+  }
+}
+
+/** Fold anything `past` has and `board` is missing into `board`. Adds only. */
+function absorb_(board, past, added) {
+  board.weeks = board.weeks || {};
+  for (var wk in (past.weeks || {})) {
+    var from = past.weeks[wk] || {};
+    var into = board.weeks[wk] || (board.weeks[wk] = { games: [], picks: {}, lms: {}, dupPrefs: {} });
+    into.picks = into.picks || {}; into.lms = into.lms || {}; into.dupPrefs = into.dupPrefs || {};
+    if ((from.games || []).length > (into.games || []).length) into.games = from.games;
+
+    var pid;
+    for (pid in (from.picks || {})) {
+      into.picks[pid] = into.picks[pid] || {};
+      for (var gid in from.picks[pid]) {
+        if (into.picks[pid][gid] == null && from.picks[pid][gid] != null) {
+          into.picks[pid][gid] = from.picks[pid][gid]; added.picks++;
+        }
+      }
+    }
+    for (pid in (from.lms || {})) if (into.lms[pid] == null && from.lms[pid]) { into.lms[pid] = from.lms[pid]; added.lms++; }
+    for (pid in (from.dupPrefs || {})) {
+      if ((into.dupPrefs[pid] || []).length === 0 && (from.dupPrefs[pid] || []).length) {
+        into.dupPrefs[pid] = from.dupPrefs[pid]; added.dupPrefs++;
+      }
+    }
+  }
+  board.sideBet = board.sideBet || { predictions: {}, actual: null };
+  board.sideBet.predictions = board.sideBet.predictions || {};
+  var preds = (past.sideBet || {}).predictions || {};
+  for (var p in preds) if (board.sideBet.predictions[p] == null && preds[p]) { board.sideBet.predictions[p] = preds[p]; added.predictions++; }
+  if (!(board.adjustments || []).length && (past.adjustments || []).length) board.adjustments = past.adjustments;
+  return added;
+}
+
+/** "kz 16, az 15, hz 6" -- a quick readable count per player per week. */
+function census_(board) {
+  var out = [];
+  for (var wk in (board.weeks || {})) {
+    var picks = (board.weeks[wk] || {}).picks || {};
+    var bits = [];
+    for (var pid in picks) bits.push(pid + ' ' + Object.keys(picks[pid] || {}).length);
+    if (bits.length) out.push('week ' + wk + ': ' + bits.join(', '));
+  }
+  return out.length ? out.join(' | ') : 'no picks at all';
 }
 
 // ---- storage ---------------------------------------------------------------
