@@ -14,6 +14,11 @@ import hashlib, pathlib, re
 
 here = pathlib.Path(__file__).parent
 ASSETS = ["config.js", "css/app.css"] + sorted(p.relative_to(here).as_posix() for p in (here / "js").glob("*.js"))
+# index.html and the manifest carry no stamp of their own, but a change to
+# either -- the origin guard, the share tags, where an installed icon points --
+# is a change to the app, and the version has to move or the running app will
+# never notice. version.json itself is excluded: it is written from this hash.
+HASHED = ["index.html", "manifest.webmanifest"] + ASSETS
 STAMP = re.compile(r"\?v=[0-9a-f]{8}")
 
 def bare(text):
@@ -21,7 +26,7 @@ def bare(text):
     return STAMP.sub("", text)
 
 digest = hashlib.md5()
-for a in ASSETS:
+for a in HASHED:
     digest.update(a.encode())
     digest.update(bare((here / a).read_text(encoding="utf-8")).encode())
 version = digest.hexdigest()[:8]

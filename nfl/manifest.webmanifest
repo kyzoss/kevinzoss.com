@@ -1,8 +1,8 @@
 {
   "name": "Pick'em · The Pool",
   "short_name": "Pick'em",
-  "start_url": "https://nfl.kevinzoss.com/",
-  "scope": "https://nfl.kevinzoss.com/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#08080A",
   "theme_color": "#08080A",
@@ -13,6 +13,5 @@
       "type": "image/png"
     }
   ],
-  "id": "https://nfl.kevinzoss.com/",
   "description": "Annual weekly picks, LMS & Browns record game"
 }
