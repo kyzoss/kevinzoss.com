@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=605a1d8c";
-import * as SC from "./scoring.js?v=605a1d8c";
-import { TEAMS, TEAM_LIST, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=605a1d8c";
-import { fetchWeek } from "./espn.js?v=605a1d8c";
-import { fetchSpreads } from "./odds.js?v=605a1d8c";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toLocalInput, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=605a1d8c";
+import * as S from "./store.js?v=611cbbaa";
+import * as SC from "./scoring.js?v=611cbbaa";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=611cbbaa";
+import { fetchWeek } from "./espn.js?v=611cbbaa";
+import { fetchSpreads } from "./odds.js?v=611cbbaa";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=611cbbaa";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -295,7 +295,7 @@ function renderWeek(state) {
     const lead = anyPicks && t.points === best && t.picks > 0 && state.players.filter((q) => tally[q.id].points === best).length === 1;
     return `<div class="tile ${lead ? "tile--lead" : ""}" style="--c:${esc(p.color)}">
       <div class="tile__name">${avatar(p.id)}<span>${esc(p.name)}</span><span class="tile__pos" title="Draft position">${ordinal(pos)}</span></div>
-      <div class="tile__big">${t.picks ? fmtPts(t.points) : "—"}<small>${t.w}-${t.l}${t.p ? `-${t.p}` : ""}</small></div>
+      <div class="tile__big">${t.picks ? fmtPts(t.points) : "—"}<small>${t.w}-${t.l}</small></div>
       <div class="tile__sub"><span>${t.picks}/${games.length} picked</span>${t.dup ? `<span>Dup <b>${esc(t.dup)}</b></span>` : ""}</div>
     </div>`;
   }).join("");
@@ -309,7 +309,7 @@ function renderWeek(state) {
   } else if (anyPicks && finals) {
     const leaders = state.players.filter((p) => tally[p.id].points === best && tally[p.id].picks);
     weeklyTxt = leaders.length === 1 ? `<b>${esc(leaders[0].name)}</b> leads with ${fmtPts(best)}. ${games.length - finals} to play.` : `${leaders.map((p) => esc(p.name)).join(" & ")} tied at ${fmtPts(best)}. ${games.length - finals} to play.`;
-  } else weeklyTxt = `Best ATS score takes it. Ties roll over${week === cfg.weeks ? "" : " to next week"}.`;
+  } else weeklyTxt = `Most wins takes it. Ties roll over${week === cfg.weeks ? "" : " to next week"}.`;
 
   const lmsAlive = lrow ? lrow.aliveEntering : state.players.map((p) => p.id);
   const lmsTxt = lrow
@@ -341,13 +341,12 @@ function renderWeek(state) {
     <button class="btn btn--px" data-action="refresh" ${ui.busy ? "disabled" : ""}>${icon("refresh", ui.busy ? "spin" : "")}${games.length ? "Refresh scores" : "Pull slate"}</button>
     ${commish() ? `
       <button class="btn btn--px" data-action="lock-lines" title="${linesFrozen ? "Reopen the lines for this week" : `Freeze them now — otherwise they lock ${esc(lockLabel)}`}">${icon("lock")}${linesFrozen ? "Reopen lines" : "Lock lines now"}</button>
-      <button class="btn btn--px" data-action="add-game">${icon("plus")}Add game</button>
 ` : ""}
   </div>
 
 
   <section class="section">
-    <div class="section__head"><h2 class="section__title">The slate</h2><span class="section__sub">${games.length ? "Tap either side to take it against the number. Picks lock at kickoff." : ""}</span></div>
+    <div class="section__head"><h2 class="section__title">The slate</h2><span class="section__sub">${games.length ? "Tap the team you think wins. Picks lock at kickoff." : ""}</span></div>
     ${games.length ? renderDupBar(state, week, dups, tally) + renderSlate(state, week, games, tally, dups) : renderEmptySlate()}
   </section>
 
@@ -357,7 +356,7 @@ function renderWeek(state) {
 function fmtPts(n) { return Number.isInteger(n) ? String(n) : n.toFixed(1); }
 
 function renderEmptySlate() {
-  return `<div class="empty"><h3>No games loaded</h3><p>Pull this week's schedule and lines. ESPN provides the games and scores; the book provides the spreads. You can also add games by hand.</p>
+  return `<div class="empty"><h3>No games loaded</h3><p>Pull this week's schedule and lines. ESPN provides the games and scores; the book provides the spreads that set the dup dogs.</p>
     <button class="btn btn--primary btn--px" data-action="refresh" ${ui.busy ? "disabled" : ""}>${icon("refresh", ui.busy ? "spin" : "")}Pull week ${ui.week}</button></div>`;
 }
 
@@ -436,8 +435,7 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
   const final = SC.isFinal(g);
   const live = g.status === "in";
   const winner = SC.straightUpWinner(g);
-  const margin = final && g.spread != null ? g.homeScore - g.awayScore + g.spread : null;
-  const coveredSide = margin == null || margin === 0 ? null : margin > 0 ? "home" : "away";
+  const wonSide = !final || winner === "tie" || !winner ? null : winner === g.home ? "home" : "away";
 
   const mySide = pid ? tally[pid]?.sides[g.id] : null;
   const mySource = pid ? tally[pid]?.sources[g.id] : null;
@@ -452,7 +450,7 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
       "cell", "cell--team", isDog ? "cell--dog" : "cell--fav",
       mySide === side ? "cell--mine" : "",
       final && winner && winner !== abbr && winner !== "tie" ? "cell--lost" : "",
-      coveredSide === side ? "cell--covered" : "",
+      wonSide === side ? "cell--won" : "",
     ].join(" ");
     const prefix = isDog ? (side === "home" ? "@" : "vs") : "";
     return `<button class="${cls}" data-action="pick" data-game="${esc(g.id)}" data-side="${side}"
@@ -566,7 +564,7 @@ function renderStandings(state) {
 
   const rows = ranked.map((p, i) => {
     const r = rec[p.id], t = led.totals[p.id];
-    const pct = r.w + r.l ? ((r.w + 0.5 * r.p) / (r.w + r.l + r.p) * 100).toFixed(0) : "—";
+    const pct = r.w + r.l ? (r.w / (r.w + r.l) * 100).toFixed(0) : "—";
     const spark = Array.from({ length: cfg.weeks }, (_, k) => k + 1).map((w) => {
       const v = r.byWeek[w];
       if (v == null) return `<i class="spark--none" title="Week ${w}"></i>`;
@@ -575,7 +573,7 @@ function renderStandings(state) {
     }).join("");
     return `<div class="row ${i === 0 && t.won > 0 ? "row--lead" : ""}" style="--c:${esc(p.color)}">
       <div class="row__rank">${i + 1}</div>${avatar(p.id, "avatar--lg")}
-      <div class="row__name">${esc(p.name)}<small>${r.w}-${r.l} ATS${r.p ? ` · ${r.p} push${r.p === 1 ? "" : "es"}` : ""} · ${pct}%</small></div>
+      <div class="row__name">${esc(p.name)}<small>${r.w}-${r.l} · ${pct}%</small></div>
       <div class="stat stat--money"><div class="stat__v money">${SC.money(t.won)}</div><div class="stat__k">Won</div></div>
       <div class="stat"><div class="stat__v">${fmtPts(r.points)}</div><div class="stat__k">Points</div></div>
       <div class="stat stat--wide"><div class="stat__v">${t.weeklyWins}</div><div class="stat__k">Weeks</div></div>
@@ -596,7 +594,7 @@ function renderStandings(state) {
     }).join("")}
   </tbody><tfoot><tr><td>Total</td>${state.players.map((p) => `<td>${fmtPts(rec[p.id].points)}</td>`).join("")}<td></td></tr></tfoot></table></div>`;
 
-  return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Standings</h2><span class="section__sub">Ranked by money, then ATS points.</span></div><div class="board">${rows}</div></section>
+  return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Standings</h2><span class="section__sub">Ranked by money, then points.</span></div><div class="board">${rows}</div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">Last man standing</h2><span class="section__sub">${SC.money(cfg.lmsPerPlayer ?? 1)} each every week, in or out · survivors split every ${cfg.lmsRoundWeeks}</span></div>
     ${renderLmsTracker(state, led)}</section>
   <section class="section"><div class="section__head"><h2 class="section__title">Week by week</h2><span class="section__sub">Points per week. Bold is the week's outright winner.</span></div>${sheet}</section>`;
@@ -622,7 +620,7 @@ function renderMoney(state) {
   const adj = (state.adjustments || []).map((a) => `<tr><td>${a.week || ""}</td><td style="text-align:left">${esc(nameOf(a.player))}</td><td class="${a.amount >= 0 ? "win" : "dim"}">${SC.money(a.amount)}</td><td style="text-align:left;color:var(--ink-soft)">${esc(a.note || "")}</td>${commish() ? `<td><button class="btn btn--ghost btn--sm btn--danger" data-action="adj-del" data-id="${esc(a.id)}">${icon("trash")}</button></td>` : ""}</tr>`).join("");
 
   return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Money</h2><span class="section__sub">Season buy-in ${SC.money(led.seasonBuyIn)} across the table · ${SC.money(led.seasonBuyIn / P.length)} each</span></div><div class="moneytiles">${tiles}</div></section>
-  <section class="section"><div class="section__head"><h2 class="section__title">Weekly pot · ${SC.money(cfg.weeklyPot)}/wk</h2><span class="section__sub">Best ATS score. Ties roll over. Week ${cfg.weeks} splits.</span></div>
+  <section class="section"><div class="section__head"><h2 class="section__title">Weekly pot · ${SC.money(cfg.weeklyPot)}/wk</h2><span class="section__sub">Most wins. Ties roll over. Week ${cfg.weeks} splits.</span></div>
     <div class="grid"><table class="sheet"><thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}<th></th></tr></thead><tbody>${weeklyRows || `<tr><td colspan="${P.length + 2}" class="dim">Nothing settled yet.</td></tr>`}</tbody><tfoot><tr><td>Total</td>${weeklyTotals}<td>${SC.money(P.reduce((s, p) => s + led.totals[p.id].weeklyWon, 0))}</td></tr></tfoot></table></div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">Adjustments</h2><span class="section__sub">Side action, corrections, whatever needs squaring.</span>${commish() ? `<button class="btn btn--sm btn--px" data-action="adj-add">${icon("plus")}Add</button>` : ""}</div>
     ${adj ? `<div class="grid"><table class="sheet"><thead><tr><th>Wk</th><th style="text-align:left">Who</th><th>Amt</th><th style="text-align:left">Note</th>${commish() ? "<th></th>" : ""}</tr></thead><tbody>${adj}</tbody></table></div>` : `<p class="mute" style="font-size:13px;margin:0">None.</p>`}</section>`;
@@ -767,8 +765,8 @@ function renderSettings(state) {
       <div class="card"><h4>Sources</h4><dl class="kv"><dt>Schedule & scores</dt><dd>ESPN</dd><dt>Lines</dt><dd>${cfg.oddsApiKey ? esc((cfg.oddsBooks || [])[0] || "the book") : "ESPN"}</dd><dt>Season</dt><dd>${cfg.season}</dd><dt>Week 1</dt><dd>${esc(cfg.week1Tuesday)}</dd></dl></div>
     </div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">House rules</h2></div><div class="rules">
-    <p><b>Picks.</b> Every game, against the spread the pool pulled. A cover is 1 point, a push is ½. Picks lock at kickoff. The line freezes for everyone as soon as anyone picks the game, or when the commissioner locks the week.</p>
-    <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game: +${cfg.dup.win} if it covers, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft locks at the first kickoff among those games.</p>
+    <p><b>Picks.</b> Every game, straight up: pick the team you think wins. A win is 1 point and nothing else scores — a tie counts as a loss. The spread is not part of it — it only sets which dogs go up for the dup draft. Picks lock at kickoff.</p>
+    <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game, and it has to win outright: +${cfg.dup.win} if it does, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft locks at the first kickoff among those games.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
     <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and the field re-enters &mdash; a forfeit never shares. And if nobody picked at all, nothing is settled: the pot rolls into next week. The week-by-week tracker is on the Standings tab.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.perPlayer ?? 0)} from everyone, so ${SC.money(SC.sideBetPot(state, cfg))} on the table. One guess each at the ${esc(teamName(cfg.sideBet.team))}' final record before Week 1. Closest wins, points scored breaks ties.</p>
@@ -843,15 +841,6 @@ function scoreModal(gameId) {
     <p class="mute" style="font-size:12px;margin:10px 0 0">Refreshing from ESPN will overwrite this once the feed catches up.</p>
     <div class="form__actions"><button type="button" class="btn" data-action="modal-close">Cancel</button><button class="btn btn--primary" type="submit">Save</button></div></form>`);
 }
-function addGameModal() {
-  const opts = TEAM_LIST.map((t) => `<option value="${t}">${t} · ${esc(teamName(t))}</option>`).join("");
-  openModal(`${modalHead(`Add game · week ${ui.week}`)}<form data-form="add-game">
-    <div class="fields"><label class="field-row"><span>Away</span><select class="input" name="away" required><option value="">—</option>${opts}</select></label>
-    <label class="field-row"><span>Home</span><select class="input" name="home" required><option value="">—</option>${opts}</select></label>
-    <label class="field-row"><span>Kickoff</span><input class="input" name="kickoff" type="datetime-local" value="${toLocalInput()}" required></label>
-    <label class="field-row"><span>Home spread</span><input class="input" name="spread" type="number" step="0.5" placeholder="-3.5" inputmode="decimal"></label></div>
-    <div class="form__actions"><button type="button" class="btn" data-action="modal-close">Cancel</button><button class="btn btn--primary" type="submit">Add</button></div></form>`);
-}
 function betModal(pid) {
   const pr = S.getState().sideBet?.predictions?.[pid] || {};
   const n = seasonGames();
@@ -923,7 +912,6 @@ document.addEventListener("click", (e) => {
       toast(was ? "Lines reopened" : "Lines locked for the week");
       break;
     }
-    case "add-game": addGameModal(); break;
     case "edit-line": lineModal(el.dataset.game); break;   // also reached from the row menu
     case "edit-score": scoreModal(el.dataset.game); break;
     case "line-clear": S.update((d) => { const g = d.weeks[ui.week].games.find((x) => x.id === el.dataset.game); if (g) { g.spread = null; g.manualSpread = false; g.book = null; } }); closeModal(); break;
@@ -956,13 +944,6 @@ document.addEventListener("submit", (e) => {
     }
     case "score": {
       S.update((d) => { const g = d.weeks[ui.week].games.find((x) => x.id === form.dataset.game); if (!g) return false; g.awayScore = num("away"); g.homeScore = num("home"); g.status = f.get("status"); g.manualScore = true; });
-      break;
-    }
-    case "add-game": {
-      const away = f.get("away"), home = f.get("home");
-      if (!away || !home || away === home) return toast("Pick two different teams", { bad: true });
-      if (SC.weekGames(S.getState(), ui.week).some((g) => g.id === S.gameId({ away, home }))) return toast("That game is already on the slate", { bad: true });
-      S.update((d) => { const wk = S.ensureWeek(d, ui.week); wk.games.push({ id: S.gameId({ away, home }), away, home, kickoff: new Date(f.get("kickoff")).toISOString(), spread: num("spread"), manualSpread: num("spread") != null, status: "pre", homeScore: null, awayScore: null, manual: true }); wk.games.sort((x, y) => new Date(x.kickoff) - new Date(y.kickoff)); });
       break;
     }
     case "bet": {

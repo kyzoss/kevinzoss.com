@@ -27,12 +27,14 @@ window.POOL_CONFIG = {
   // first picker drops to last, everyone else moves up.
   dupOrderBase: ["az", "kz", "jv", "hz"],
 
-  // Scoring. A straight pick is 1 for a cover, 0.5 for a push.
+  // Scoring. Picks are straight up -- a win is 1 point, and a tie counts as a
+  // loss, so nothing pays a half. The spread is pulled only to decide which
+  // dogs are dup-eligible; it never grades a pick.
   dup: {
     minSpread: 4.5,     // underdogs getting at least this many points are dup-eligible
     exclude: ["CLE"],   // the Browns can never be a dup
-    win: 1.5,           // your dup covers
-    loss: 0,            // your dup gets covered on
+    win: 1.5,           // your dup wins outright
+    loss: 0,            // your dup loses (a tie counts here too)
   },
 
   // Money.

@@ -188,6 +188,10 @@ let backend = null;      // { name, read(), write(state), watch?(onRemote) }
 let pollTimer = null;
 let readOk = false;      // has this device seen the shared board yet?
 let scriptVersion = "";  // reported by the Apps Script, so a stale deploy shows up
+// What sheet/Code.gs says in this checkout. If the deployment reports anything
+// else it is running older code, which last time meant the pool's picks were
+// one blank device away from being wiped.
+const EXPECTED_SCRIPT_VERSION = "straight-up-1";
 
 export async function initSync() {
   backend = pickBackend();
@@ -316,9 +320,11 @@ export async function testSync() {
     await chosen.open?.();
     const remote = await chosen.read();
     const at = Number(remote?.updatedAt || remote?.state?.updatedAt || 0);
-    const guard = scriptVersion
-      ? `Script ${scriptVersion} — the merge guard is live.`
-      : "Script has no version, so it predates the merge guard. Re-deploy sheet/Code.gs.";
+    const guard = !scriptVersion
+      ? "Script has no version, so it predates the merge guard. Re-deploy sheet/Code.gs."
+      : scriptVersion === EXPECTED_SCRIPT_VERSION
+        ? `Script ${scriptVersion} — up to date.`
+        : `Script ${scriptVersion}, but this app expects ${EXPECTED_SCRIPT_VERSION}. Re-deploy sheet/Code.gs (Manage deployments → pencil → New version).`;
     return {
       ok: true,
       via: chosen.name,

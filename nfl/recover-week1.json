@@ -338,6 +338,12 @@
           "ARI@LAC": "home",
           "DAL@NYG": "away",
           "DEN@KC": "away"
+        },
+        "jv": {
+          "NE@SEA": "home"
+        },
+        "hz": {
+          "NE@SEA": "home"
         }
       },
       "lms": {

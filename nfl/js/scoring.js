@@ -1,9 +1,8 @@
 // Pure functions. Everything the sheet used to compute by hand lives here:
-// ATS grading, weekly pot with rollovers, Last Man Standing rounds, the side bet,
+// straight-up grading, weekly pot with rollovers, Last Man Standing rounds, the side bet,
 // and the season money ledger. No DOM, no storage.
 
 export const WIN = 1;
-export const PUSH = 0.5;
 
 /** Which side is favored by the home-relative spread. */
 export function favorite(game) {
@@ -36,20 +35,23 @@ export function hasStarted(game, now = Date.now()) {
   return game.kickoff ? new Date(game.kickoff).getTime() <= now : false;
 }
 
-/** 'win' | 'loss' | 'push' | null (not final / no spread / no pick) */
+/**
+ * Straight up: did the team you picked win the game? The spread has nothing to
+ * do with it -- it only decides which dogs are dup-eligible and what the slate
+ * displays. A game with no line still grades. A tie is a loss: your team did
+ * not win, so there are no half points anywhere in the pool.
+ *
+ * 'win' | 'loss' | null (not final, or no pick)
+ */
 export function gradePick(game, side) {
-  if (!side || !isFinal(game) || game.spread == null) return null;
-  const margin = game.homeScore - game.awayScore + game.spread; // >0 => home covers
-  if (margin === 0) return "push";
-  const homeCovers = margin > 0;
-  if (side === "home") return homeCovers ? "win" : "loss";
-  return homeCovers ? "loss" : "win";
+  if (!side || !isFinal(game)) return null;
+  const diff = game.homeScore - game.awayScore;
+  if (diff === 0) return "loss";
+  return (side === "home") === (diff > 0) ? "win" : "loss";
 }
 
 export function pointsFor(grade) {
-  if (grade === "win") return WIN;
-  if (grade === "push") return PUSH;
-  return 0;
+  return grade === "win" ? WIN : 0;
 }
 
 /** Straight-up winner abbreviation, 'tie', or null when not final. */
@@ -203,7 +205,7 @@ export function weekTally(state, week, cfg = window.POOL_CONFIG) {
   const dups = resolveDups(state, cfg, week);
   const out = {};
   for (const p of state.players) {
-    const t = { points: 0, w: 0, l: 0, p: 0, picks: 0, grades: {}, sides: {}, sources: {}, auto: {}, dup: dups.assigned[p.id] || null, dupGrade: null };
+    const t = { points: 0, w: 0, l: 0, picks: 0, grades: {}, sides: {}, sources: {}, auto: {}, dup: dups.assigned[p.id] || null, dupGrade: null };
     const picks = wk.picks?.[p.id] || {};
     // dogs this player ranked, so an unclaimed one still falls back to the favorite
     const ranked = new Set((dups.prefs[p.id] || []).filter((team) => team !== t.dup));
@@ -219,12 +221,10 @@ export function weekTally(state, week, cfg = window.POOL_CONFIG) {
       t.grades[g.id] = grade;
       if (grade === "win") t.w++;
       else if (grade === "loss") t.l++;
-      else if (grade === "push") t.p++;
       if (isDup) {
         t.dupGrade = grade;
         if (grade === "win") t.points += Number(cfg.dup?.win ?? 1.5);
         else if (grade === "loss") t.points += Number(cfg.dup?.loss ?? 0);
-        else if (grade === "push") t.points += PUSH;
       } else {
         t.points += pointsFor(grade);
       }
@@ -430,13 +430,13 @@ function splitAmong(payouts, ids, pot) {
 /** Season ATS record and per-week points for every player. */
 export function seasonRecords(state, cfg) {
   const out = {};
-  for (const p of state.players) out[p.id] = { w: 0, l: 0, p: 0, points: 0, byWeek: {}, weeklyWins: 0, lmsWins: 0 };
+  for (const p of state.players) out[p.id] = { w: 0, l: 0, points: 0, byWeek: {}, weeklyWins: 0, lmsWins: 0 };
   for (let w = 1; w <= cfg.weeks; w++) {
     if (!state.weeks?.[w]) continue;
     const tally = weekTally(state, w, cfg);
     for (const p of state.players) {
       const t = tally[p.id];
-      out[p.id].w += t.w; out[p.id].l += t.l; out[p.id].p += t.p; out[p.id].points += t.points;
+      out[p.id].w += t.w; out[p.id].l += t.l; out[p.id].points += t.points;
       out[p.id].byWeek[w] = t.picks ? t.points : null;
     }
   }
