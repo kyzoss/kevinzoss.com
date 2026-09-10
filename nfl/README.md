@@ -123,6 +123,12 @@ API keys.
   picks do, at 10:00 Pacific on the week's Sunday -- except that a dog whose own
   game has already kicked off can no longer be ranked, which is what stops
   anyone drafting a result they have already watched.
+- **Nobody is ever told to hard-refresh.** The app carries the build it was
+  served with, and compares it against `version.json` when it is opened, when it
+  is resumed, and on a timer while it sits open (`buildCheckMinutes`). If a newer
+  build is live it reloads itself, unless a modal is open -- it will not yank the
+  page away mid-choice. Assume the pool will not clear a cache on request,
+  because they will not.
 - **Brown of the week.** $1 each a week. Pick one Cleveland player and score
   their game against the pool's table: a point per 100 passing yards and per
   completion, 2 a passing TD; a point per 5 rushing yards, 6 a rushing TD; a

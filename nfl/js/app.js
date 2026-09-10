@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=a1cd6907";
-import * as SC from "./scoring.js?v=a1cd6907";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=a1cd6907";
-import { fetchWeek } from "./espn.js?v=a1cd6907";
+import * as S from "./store.js?v=92736de8";
+import * as SC from "./scoring.js?v=92736de8";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=92736de8";
+import { fetchWeek } from "./espn.js?v=92736de8";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=a1cd6907";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=a1cd6907";
+import { fetchSpreads } from "./odds.js?v=92736de8";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=92736de8";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -1363,6 +1363,9 @@ let lastBuildCheck = 0;
 async function checkBuild() {
   if (BUILD === "dev") return;                       // unstamped local copy
   if (Date.now() - lastBuildCheck < 10000) return;   // don't thrash on app switching
+  // Never yank the page out from under someone mid-choice. It will be checked
+  // again on the next tick, and on the next time the app is opened.
+  if (modalOpen()) return;
   lastBuildCheck = Date.now();
   try {
     const res = await fetch(`./version.json?t=${Date.now()}`, { cache: "no-store" });
@@ -1392,4 +1395,17 @@ document.addEventListener("visibilitychange", () => {
 globalThis.addEventListener?.("pageshow", () => {
   checkBuild();
   if (ui.tab === "week" && SC.weekGames(S.getState(), ui.week).length) refreshScores(ui.week);
+});
+
+// A device that is opened and closed picks up a new build on resume. One left
+// sitting open would never notice, so it also checks on a timer -- because the
+// alternative is asking four people to hard-refresh whenever anything ships,
+// and that is not a thing a pool of four friends is going to reliably do.
+const BUILD_CHECK_MS = Math.max(30, Number(cfg.buildCheckMinutes ?? 10) * 60) * 1000;
+let buildTimer = setInterval(checkBuild, BUILD_CHECK_MS);
+document.addEventListener("visibilitychange", () => {
+  clearInterval(buildTimer);
+  // Only while it is actually on screen; a backgrounded tab is handled by the
+  // resume hooks above.
+  if (!document.hidden) buildTimer = setInterval(checkBuild, BUILD_CHECK_MS);
 });

@@ -66,6 +66,11 @@ if echo "$out" | grep -q "KZ Quinshon Judkins 23 points" \
   line "brown of the week, end to end" "PASS"
 else line "brown of the week, end to end" "FAIL — $(echo "$out" | tail -3 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
+out=$(timeout 190 node $SP/selfupdate.mjs 2>&1)
+if echo "$out" | grep -q "self-updates, and never mid-choice"; then
+  line "self-updates while left open" "PASS"
+else line "self-updates while left open" "FAIL — $(echo "$out" | tail -3 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/converge.mjs 2>&1)
 if echo "$out" | grep -q "converged both ways, and an unpick still sticks"; then
   line "three devices converge" "PASS"
