@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=a940e897";
-import * as SC from "./scoring.js?v=a940e897";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=a940e897";
-import { fetchWeek } from "./espn.js?v=a940e897";
-import { fetchSpreads } from "./odds.js?v=a940e897";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=a940e897";
+import * as S from "./store.js?v=fe43e184";
+import * as SC from "./scoring.js?v=fe43e184";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=fe43e184";
+import { fetchWeek } from "./espn.js?v=fe43e184";
+import { fetchSpreads } from "./odds.js?v=fe43e184";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=fe43e184";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -44,6 +44,11 @@ function avatar(id, size = "") {
   const p = player(id);
   if (!p) return "";
   return `<span class="avatar ${size}" style="--c:${esc(p.color)}">${esc(p.short || p.name.slice(0, 2))}</span>`;
+}
+/** "TB", "TB and IND", "TB, IND and SF" -- never "TB and IND and SF". */
+function listOf(items) {
+  if (items.length < 3) return items.join(" and ");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 function ordinal(n) { return n + (["th", "st", "nd", "rd"][((n % 100) - 20) % 10] || ["th", "st", "nd", "rd"][n % 100] || "th"); }
 function gameById(week, id) { return SC.weekGames(S.getState(), week).find((g) => g.id === id); }
@@ -394,21 +399,36 @@ function renderDupBar(state, week, dups, tally) {
   const pos = dups.order.indexOf(pid) + 1;
   const locked = dups.lockAt && Date.now() >= dups.lockAt;
   const mine = dups.assigned[pid];
+  // An assignment can still move while somebody picking ahead of you has not
+  // ranked: they might take the dog you are provisionally holding.
+  const waitingOn = (id) => dups.order
+    .slice(0, dups.order.indexOf(id))
+    .filter((other) => !(dups.prefs[other] || []).length)
+    .map((other) => nameOf(other));
   const held = dups.order.map((id) => {
     const team = dups.assigned[id];
     const grade = team ? tally[id]?.dupGrade : null;
-    const cls = ["dupchip", team ? "" : "dupchip--none", grade ? `dupchip--${grade}` : "", id === pid ? "dupchip--me" : ""].join(" ");
-    return `<span class="${cls}" style="--c:${esc(player(id)?.color)}" title="${esc(nameOf(id))}">
-      ${avatar(id)}<b>${team ? esc(team) : "—"}</b></span>`;
+    const pending = team && !locked ? waitingOn(id) : [];
+    const cls = ["dupchip", team ? "" : "dupchip--none", grade ? `dupchip--${grade}` : "",
+                 id === pid ? "dupchip--me" : "", pending.length ? "dupchip--pending" : ""].join(" ");
+    const ordered = (dups.prefs[id] || []).map((t, i) => `${i + 1}. ${t}`).join(" · ");
+    const tip = `${nameOf(id)}${ordered ? ` — ranked ${ordered}` : " — nothing ranked"}`
+      + (pending.length ? ` · not settled until ${pending.join(" and ")} rank${pending.length > 1 ? "" : "s"}` : "");
+    return `<span class="${cls}" style="--c:${esc(player(id)?.color)}" title="${esc(tip)}">
+      ${avatar(id)}<b>${team ? esc(team) : "—"}</b>${pending.length ? `<u title="Provisional">?</u>` : ""}</span>`;
   }).join("");
   let note;
   if (!pid) note = "";
   else if (!dups.candidates.length) note = "No lines yet, so no dups to rank.";
   else if (locked) note = `Draft locked. ${mine ? `You have <b>${esc(mine)}</b>.` : "You didn't rank one."}`;
   else {
-    const missed = (dups.prefs[pid] || []).filter((t) => t !== mine);
+    // Only teams somebody else actually took. A team you merely ranked below the
+    // one you got has not "gone above you" -- it is still there, unclaimed.
+    const lost = (dups.prefs[pid] || []).filter((t) => dups.byOwner?.[t] && dups.byOwner[t] !== pid);
+    const waiting = dups.order.slice(0, pos - 1).filter((id) => !(dups.prefs[id] || []).length).map(nameOf);
     note = `You pick <b>${ordinal(pos)}</b> this week &mdash; rank ${pos === 1 ? "one" : `up to ${pos}`} underdog${pos > 1 ? "s" : ""} in the Dup column, best first.${mine ? ` Currently <b>${esc(mine)}</b>.` : ""}`;
-    if (missed.length) note += ` ${missed.map((t) => esc(t)).join(" and ")} went above you, so ${missed.length > 1 ? "those games" : "that game"} sits on the favorite unless you pick it yourself.`;
+    if (lost.length) note += ` ${listOf(lost.map(esc))} went to someone picking above you, so ${lost.length > 1 ? "those games sit" : "that game sits"} on the favorite unless you pick it yourself.`;
+    if (mine && waiting.length) note += ` Not settled yet: ${listOf(waiting.map(esc))} ${waiting.length > 1 ? "have" : "has"} not ranked, and could take <b>${esc(mine)}</b>.`;
   }
   return `<div class="dupbar">
     <div class="dupbar__note">${note}</div>
@@ -523,11 +543,23 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
         `<option value="${n}"${n === rank ? " selected" : ""}>${n}</option>`))
       .join("");
     const heldByOther = owner && owner !== pid;
-    dup = `<span class="cell cell--dup ${rank ? "cell--dup-on" : ""} ${owner ? "cell--dup-taken" : ""}"
+    // Who has ranked this dog and where in their list. Until everyone above you
+    // has ranked, an assignment is only provisional, and this is what says so:
+    // read the digits and you can see the draft as it actually stands.
+    const ranked = state.players
+      .map((p) => ({ p, n: (dups.prefs[p.id] || []).indexOf(dogAbbr) + 1 }))
+      .filter((r) => r.n > 0)
+      .sort((a, b) => dups.order.indexOf(a.p.id) - dups.order.indexOf(b.p.id));
+    const strip = ranked.length
+      ? `<span class="dupranks">${ranked.map(({ p, n }) => `<i style="--c:${esc(p.color)}"
+          title="${esc(p.name)} ranked ${esc(dogAbbr)} #${n}${owner === p.id ? " — and has it" : ""}">${n}</i>`).join("")}</span>`
+      : "";
+    dup = `<span class="cell cell--dup ${rank ? "cell--dup-on" : ""} ${owner ? "cell--dup-taken" : ""} ${strip ? "cell--dup-ranked" : ""}"
       style="--c:${owner ? esc(player(owner)?.color) : "var(--accent-lift)"}"
-      title="${esc(dogAbbr)} +${fmtPts(cand.points)} dup${owner ? ` — ${esc(nameOf(owner))} has it` : ""}">
+      title="${esc(dogAbbr)} +${fmtPts(cand.points)} dup${owner ? ` — ${esc(nameOf(owner))} has it` : ""}${ranked.length ? ` · ranked by ${ranked.map((r) => `${r.p.short || r.p.name} #${r.n}`).join(", ")}` : ""}">
       ${heldByOther && !rank ? `<span class="cell__owner">${esc(player(owner)?.short || nameOf(owner).slice(0, 2))}</span>` : ""}
       <select data-action="dup-rank" data-team="${esc(dogAbbr)}" ${disabled ? "disabled" : ""} aria-label="Dup priority for ${esc(dogAbbr)}">${opts}</select>
+      ${strip}
     </span>`;
   }
 
