@@ -119,8 +119,10 @@ API keys.
   **If a team you ranked goes to someone above you, that game reconciles to the
   favorite** — ranking a dog as a dup isn't the same as picking it, and it stops
   a game sitting unpicked while you wait on the draft. Tap
-  the dog yourself and your own pick stands instead. The draft locks at the first
-  kickoff among those games.
+  the dog yourself and your own pick stands instead. The draft closes when the
+  picks do, at 10:00 Pacific on the week's Sunday -- except that a dog whose own
+  game has already kicked off can no longer be ranked, which is what stops
+  anyone drafting a result they have already watched.
 - **Weekly pot.** $4 a week. Best score takes it; a tie rolls the pot; week 18
   splits.
 - **Last man standing.** The picker lists every team biggest-underdog-first with
