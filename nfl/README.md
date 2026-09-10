@@ -139,6 +139,14 @@ Game ids are derived from the matchup (`AWAY@HOME`), never generated. That is
 what keeps a pick attached to its game across a slate re-pull, a new device and a
 sync; an earlier build used random ids and picks could come unstuck from them.
 
+## Changing anything under `nfl/`
+
+Run `python3 nfl/stamp.py` before you commit. It stamps one build version onto
+`index.html`'s asset links **and** onto the ES module imports inside `js/*.js`,
+because stamping the HTML alone still lets a fresh `app.js` pull a cached
+`scoring.js`. Without it a phone — a home-screen install especially — can run a
+stale mix of files and appear not to have picked up a change at all.
+
 ## Files
 
 ```
@@ -151,6 +159,7 @@ js/store.js           localStorage + optional Supabase mirror
 js/espn.js            schedule/scores feed
 js/odds.js            The Odds API client
 js/teams.js           32 teams, colours, logos
+stamp.py              cache-busts every asset with one build version
 sheet/Code.gs         Google Sheet backend + the readable backup grid
 supabase/schema.sql   one table, two policies, realtime
 ```

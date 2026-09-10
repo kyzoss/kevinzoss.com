@@ -157,19 +157,43 @@ export function resolveDups(state, cfg, week) {
     if (hit) { assigned[pid] = hit; taken.add(hit); }
   });
   const lockAt = candidates.length ? Math.min(...candidates.map((c) => new Date(c.game.kickoff).getTime() || Infinity)) : null;
-  return { order, candidates, assigned, byTeam, prefs, lockAt };
+  const byOwner = {};   // dup team -> the player who holds it
+  for (const [pid, team] of Object.entries(assigned)) byOwner[team] = pid;
+  return { order, candidates, assigned, byTeam, byOwner, prefs, lockAt };
 }
 
 /** The side a player is effectively on for a game (dup overrides the stored pick). */
-export function effectiveSide(game, storedSide, dupTeam, lostDup = false) {
+/**
+ * Which side a player is on in a game, and why. A dup is exclusive: the dog
+ * belongs to whoever drafted it, and nobody else may take that team, so every
+ * other player is locked onto the favorite. Sources:
+ *
+ *   "dup"     you drafted this dog; it is your pick at dup odds
+ *   "locked"  someone else drafted this dog, so you are on the favorite
+ *   "pick"    your own tap
+ *   "default" you ranked this dog, nobody got it, and you left the game alone,
+ *             so it sits on the favorite until you say otherwise
+ */
+export function sideFor(game, pid, dups, storedSide, ranked = null) {
+  const dog = underdogOf(game);
+  const owner = dog ? dups.byOwner?.[dog] : null;
+  if (owner) {
+    const dogSide = game.home === dog ? "home" : "away";
+    if (owner === pid) return { side: dogSide, source: "dup", team: dog };
+    return { side: dogSide === "home" ? "away" : "home", source: "locked", team: dog };
+  }
+  if (storedSide) return { side: storedSide, source: "pick" };
+  if (dog && ranked?.has(dog)) {
+    const fav = favorite(game);
+    if (fav) return { side: fav, source: "default", team: dog };
+  }
+  return { side: null, source: null };
+}
+
+/** Kept for callers that only need the side. */
+export function effectiveSide(game, storedSide, dupTeam) {
   if (dupTeam && (game.home === dupTeam || game.away === dupTeam)) return game.home === dupTeam ? "home" : "away";
-  if (storedSide) return storedSide;
-  // Ranking a dog as a dup is not the same as taking it against the number. If
-  // the draft went to someone above you, the pick reconciles to the favorite
-  // rather than leaving you on a dog you only wanted at dup odds -- or, worse,
-  // leaving the game unpicked because you were waiting on the draft.
-  if (lostDup) return favorite(game);
-  return null;
+  return storedSide || null;
 }
 
 /** Per-player ATS tally for a week: { points, w, l, p, picks, grades, sides, dup } */
@@ -179,18 +203,18 @@ export function weekTally(state, week, cfg = window.POOL_CONFIG) {
   const dups = resolveDups(state, cfg, week);
   const out = {};
   for (const p of state.players) {
-    const t = { points: 0, w: 0, l: 0, p: 0, picks: 0, grades: {}, sides: {}, auto: {}, dup: dups.assigned[p.id] || null, dupGrade: null };
+    const t = { points: 0, w: 0, l: 0, p: 0, picks: 0, grades: {}, sides: {}, sources: {}, auto: {}, dup: dups.assigned[p.id] || null, dupGrade: null };
     const picks = wk.picks?.[p.id] || {};
-    // dogs this player ranked and did not win
-    const missed = new Set((dups.prefs[p.id] || []).filter((team) => team !== t.dup));
+    // dogs this player ranked, so an unclaimed one still falls back to the favorite
+    const ranked = new Set((dups.prefs[p.id] || []).filter((team) => team !== t.dup));
     for (const g of games) {
-      const isDup = t.dup && (g.home === t.dup || g.away === t.dup);
-      const lostDup = !picks[g.id] && missed.has(underdogOf(g));
-      const side = effectiveSide(g, picks[g.id], t.dup, lostDup);
+      const { side, source, team } = sideFor(g, p.id, dups, picks[g.id], ranked);
       if (!side) continue;
+      const isDup = source === "dup";
       t.picks++;
       t.sides[g.id] = side;
-      if (lostDup) t.auto[g.id] = underdogOf(g);   // which dup miss caused the fallback
+      t.sources[g.id] = source;
+      if (source === "locked" || source === "default") t.auto[g.id] = team;
       const grade = gradePick(g, side);
       t.grades[g.id] = grade;
       if (grade === "win") t.w++;
@@ -252,6 +276,13 @@ export function weeklyPot(state, cfg) {
     rows[w] = row;
   }
   return { rows, carry };
+}
+
+/** The side bet pot: everyone's stake. Older configs set a flat `pot`. */
+export function sideBetPot(state, cfg) {
+  const bet = cfg.sideBet || {};
+  if (bet.perPlayer != null) return (Number(bet.perPlayer) || 0) * state.players.length;
+  return Number(bet.pot) || 0;
 }
 
 /**
@@ -451,7 +482,7 @@ export function sideBet(state, cfg) {
     const top = ranked[0];
     const winners = ranked.filter((r) => r.winDiff === top.winDiff && r.ptsDiff === top.ptsDiff).map((r) => r.id);
     result.winners = winners;
-    splitAmong(result.payouts, winners, Number(cfg.sideBet.pot) || 0);
+    splitAmong(result.payouts, winners, sideBetPot(state, cfg));
   }
   return result;
 }
@@ -475,10 +506,11 @@ export function ledger(state, cfg) {
     const adjustments = (state.adjustments || []).filter((a) => a.player === p.id).reduce((s, a) => s + Number(a.amount || 0), 0);
     const won = weeklyWon + lmsWon + betWon + adjustments;
     const lmsStake = (cfg.lmsPerPlayer != null ? Number(cfg.lmsPerPlayer) || 0 : (Number(cfg.lmsPot) || 0) / n) * cfg.weeks;
-    const buyIn = (Number(cfg.weeklyPot) || 0) / n * cfg.weeks + lmsStake + (Number(cfg.sideBet?.pot) || 0) / n;
+    const betStake = cfg.sideBet?.perPlayer != null ? Number(cfg.sideBet.perPlayer) || 0 : sideBetPot(state, cfg) / n;
+    const buyIn = (Number(cfg.weeklyPot) || 0) / n * cfg.weeks + lmsStake + betStake;
     totals[p.id] = { weeklyWon, lmsWon, betWon, adjustments, won, buyIn, net: won - buyIn, weeklyWins, lmsWins };
   }
-  const seasonBuyIn = ((Number(cfg.weeklyPot) || 0) + lmsWeekly(state, cfg)) * cfg.weeks + (Number(cfg.sideBet?.pot) || 0);
+  const seasonBuyIn = ((Number(cfg.weeklyPot) || 0) + lmsWeekly(state, cfg)) * cfg.weeks + sideBetPot(state, cfg);
   return { weekly, lms, bet, totals, seasonBuyIn };
 }
 

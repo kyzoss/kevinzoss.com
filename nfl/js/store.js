@@ -148,39 +148,60 @@ export function gameId(game) {
 
 let backend = null;      // { name, read(), write(state), watch?(onRemote) }
 let pollTimer = null;
+let readOk = false;      // has this device seen the shared board yet?
 
 export async function initSync() {
   backend = pickBackend();
   if (!backend) return syncStatus;
   syncStatus = { enabled: true, state: "connecting", detail: "", via: backend.name };
   emit();
-  try {
-    await backend.open?.();
-    const remote = await backend.read();
-    if (remote?.state) {
-      const incoming = migrate(remote.state);
-      const theirs = Number(remote.updatedAt || incoming.updatedAt || 0);
-      const mine = Number(state.updatedAt || 0);
-      if (theirs > mine || !mine) applyRemote(incoming);
-      else if (mine > theirs) await pushRemote();
-    } else {
-      await pushRemote();
-    }
-    if (backend.watch) {
-      backend.watch((next, at) => {
-        if (next && Number(at || next.updatedAt || 0) > Number(state.updatedAt || 0)) applyRemote(migrate(next));
-      }, (st) => { syncStatus = { ...syncStatus, state: st }; emit(); });
-    } else {
-      startPolling();
-    }
-    syncStatus = { enabled: true, state: "live", detail: "", via: backend.name };
-  } catch (e) {
-    console.error("sync failed", e);
-    syncStatus = { enabled: true, state: "error", detail: e.message || String(e), via: backend.name };
-    backend = null;
-  }
-  emit();
+  // Polling starts whatever happens: a home-screen app cold-starting before the
+  // network is up used to fail once and stay disconnected for the whole session,
+  // which on a fresh install means the board never arrives at all.
+  if (!backend.watch) startPolling();
+  await connect(3);
   return syncStatus;
+}
+
+/** Try the first read, retrying a few times before settling into polling. */
+async function connect(tries) {
+  for (let attempt = 1; attempt <= tries; attempt++) {
+    if (!backend) return;
+    try {
+      await backend.open?.();
+      const remote = await backend.read();
+      readOk = true;   // only now may this device write to the board
+      if (remote?.state) {
+        const incoming = migrate(remote.state);
+        const theirs = Number(remote.updatedAt || incoming.updatedAt || 0);
+        const mine = Number(state.updatedAt || 0);
+        if (theirs > mine || !mine) applyRemote(incoming);
+        else if (mine > theirs) await pushRemote();
+      } else {
+        await pushRemote();
+      }
+      if (backend.watch) {
+        backend.watch((next, at) => {
+          if (next && Number(at || next.updatedAt || 0) > Number(state.updatedAt || 0)) applyRemote(migrate(next));
+        }, (st) => { syncStatus = { ...syncStatus, state: st }; emit(); });
+      }
+      syncStatus = { enabled: true, state: "live", detail: "", via: backend.name };
+      emit();
+      return;
+    } catch (e) {
+      console.error(`sync attempt ${attempt} failed`, e);
+      syncStatus = { enabled: true, state: attempt < tries ? "connecting" : "error",
+                     detail: e.message || String(e), via: backend.name };
+      emit();
+      if (attempt < tries) await new Promise((r) => setTimeout(r, attempt * 1200));
+    }
+  }
+  // The backend is deliberately kept: polling and the next save can still
+  // recover once the network comes back.
+}
+
+if (typeof window !== "undefined") {
+  addEventListener("online", () => { if (backend && syncStatus.state === "error") connect(1); });
 }
 
 function pickBackend() {
@@ -203,6 +224,7 @@ async function pull() {
   if (!backend) return;
   try {
     const remote = await backend.read();
+    readOk = true;
     if (!remote?.state) return;
     const theirs = Number(remote.updatedAt || remote.state.updatedAt || 0);
     if (theirs > Number(state.updatedAt || 0)) applyRemote(migrate(remote.state));
@@ -223,6 +245,11 @@ function applyRemote(remote) {
 
 async function pushRemote() {
   if (!backend) return;
+  if (!readOk) {
+    // Everything is still saved locally and will go up as soon as a read lands.
+    console.warn("holding the save: this device has not read the shared board yet");
+    return;
+  }
   try {
     // Two phones can save at almost the same moment. The backend keeps whichever
     // is newer and hands the winner back; take it rather than carrying on with a
