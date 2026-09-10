@@ -4,7 +4,7 @@
     { "source": "/(.*)", "headers": [ { "key": "X-Robots-Tag", "value": "noindex, nofollow" } ] },
     {
       "comment": "Assets are stamped with a build version, so revalidating costs nothing and a phone can never sit on an old app.",
-      "source": "/(.*)\\.(html|js|css|webmanifest)",
+      "source": "/(.*)\\.(html|js|css|json|webmanifest)",
       "headers": [ { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" } ]
     },
     { "source": "/", "headers": [ { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" } ] }

@@ -261,7 +261,14 @@ function startPolling() {
   clearInterval(pollTimer);
   pollTimer = setInterval(() => { if (!document.hidden) pull(); }, every);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
+  // A Home Screen app resumed from the page cache does not reliably fire
+  // visibilitychange, so an open could otherwise show yesterday's board.
+  // Guarded: this module is also loaded outside a browser by the tests.
+  globalThis.addEventListener?.("pageshow", () => pull());
 }
+
+/** Read the shared board right now, rather than waiting out the poll interval. */
+export function refresh() { return pull(); }
 
 async function pull() {
   if (!backend) return;

@@ -1,0 +1,74 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body { background: #0B0B0D; color: #F4F4F2; position: relative; font-family: "Silkscreen", monospace; }
+  .glow { position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 60% at 24% -18%, rgba(187,0,0,.5), transparent 68%); }
+  .scan { position: absolute; inset: 0; z-index: 5; opacity: .5;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, transparent 1px 3px); }
+  /* the field runs off the bottom, like a Tecmo kickoff screen */
+  .turf { position: absolute; left: 0; right: 0; bottom: 0; height: 118px; border-top: 3px solid #2B2B33;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.16) 0 3px, transparent 3px 8.33%),
+      linear-gradient(180deg, #0F6B3B, #073B21); }
+  .turf::after { content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.55)); }
+  .wrap { position: relative; z-index: 3; height: 100%;
+    display: grid; grid-template-columns: 1fr 330px; align-items: center; gap: 44px;
+    padding: 26px 60px 144px; }
+  .eyebrow { font-size: 18px; letter-spacing: .16em; color: #A7A9AC; }
+  .eyebrow b { color: #E1262E; font-weight: 400; }
+  h1 { font-family: "Press Start 2P", "Silkscreen", monospace; font-size: 92px; line-height: 1;
+    color: #E1262E; text-shadow: 7px 7px 0 rgba(0,0,0,.85); margin: 24px 0 0; }
+  .tag { font-size: 24px; color: #F4F4F2; margin-top: 26px; letter-spacing: .02em; }
+  .stats { display: flex; gap: 11px; margin-top: 30px; }
+  .stat { border: 3px solid #2B2B33; background: rgba(6,7,15,.72); padding: 10px 14px; }
+  .stat b { display: block; font-family: "Press Start 2P", "Silkscreen", monospace; font-size: 19px; color: #fff; }
+  .stat span { display: block; font-size: 14px; color: #8B8B94; letter-spacing: .1em; margin-top: 8px; }
+  .roster { position: absolute; left: 60px; bottom: 34px; z-index: 6; display: flex; gap: 10px; }
+  .chip { display: flex; align-items: center; gap: 10px; padding: 7px 14px 7px 7px;
+    background: rgba(6,7,15,.85); border: 3px solid var(--c); }
+  .chip__i { width: 28px; height: 28px; display: grid; place-items: center; font-size: 14px;
+    color: var(--c); border: 2px solid var(--c); border-radius: 50%; }
+  .chip__n { font-size: 16px; letter-spacing: .06em; }
+  .right { display: grid; justify-items: center; gap: 18px; }
+  .mark { width: 290px; height: 290px; border-radius: 34px; display: grid; place-items: center; align-content: center;
+    gap: 14px; background: linear-gradient(165deg, rgba(255,60,0,.22), rgba(11,11,13,.9));
+    box-shadow: inset 0 0 0 3px rgba(255,60,0,.55), 9px 9px 0 rgba(0,0,0,.75); }
+  .mark span { font-family: "Press Start 2P", "Silkscreen", monospace; font-size: 62px; color: #FF3C00;
+    letter-spacing: .04em; text-shadow: 4px 4px 0 rgba(0,0,0,.6); }
+  .mark small { font-size: 15px; color: #A7A9AC; letter-spacing: .22em; }
+  .bet { text-align: center; }
+  .bet b { font-family: "Press Start 2P", "Silkscreen", monospace; font-size: 30px; color: #FF3C00;
+    text-shadow: 4px 4px 0 rgba(0,0,0,.8); }
+  .bet span { display: block; font-size: 15px; color: #A7A9AC; letter-spacing: .12em; margin-top: 12px; }
+</style></head><body>
+  <div class="glow"></div>
+  <div class="turf"></div>
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">THE POOL <b>&middot;</b> 2026 SEASON <b>&middot;</b> EST. IN A SPREADSHEET</div>
+      <h1>PICK'EM</h1>
+      <div class="tag">Annual weekly picks, LMS &amp; Browns record game.</div>
+      <div class="stats">
+        <div class="stat"><b>18</b><span>WEEKS</span></div>
+        <div class="stat"><b>WIN</b><span>OR NOTHING</span></div>
+        <div class="stat"><b>DUPS</b><span>DRAFTED</span></div>
+        <div class="stat"><b>$184</b><span>ON THE TABLE</span></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="mark"><span>CLE</span><small>CLEVELAND</small></div>
+      <div class="bet"><b>$10</b><span>RIDING ON THE BROWNS</span></div>
+    </div>
+  </div>
+  <div class="roster">
+      <div class="chip" style="--c:#4CC9F0"><span class="chip__i">AZ</span><span class="chip__n">ANDREW</span></div>
+      <div class="chip" style="--c:#FF9F1C"><span class="chip__i">KZ</span><span class="chip__n">KEVIN</span></div>
+      <div class="chip" style="--c:#B388FF"><span class="chip__i">JV</span><span class="chip__n">JIM</span></div>
+      <div class="chip" style="--c:#A3E635"><span class="chip__i">HZ</span><span class="chip__n">HOWARD</span></div>
+  </div>
+  <div class="scan"></div>
+</body></html>

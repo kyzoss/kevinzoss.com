@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=611cbbaa";
-import * as SC from "./scoring.js?v=611cbbaa";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=611cbbaa";
-import { fetchWeek } from "./espn.js?v=611cbbaa";
-import { fetchSpreads } from "./odds.js?v=611cbbaa";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=611cbbaa";
+import * as S from "./store.js?v=7c6be0ca";
+import * as SC from "./scoring.js?v=7c6be0ca";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=7c6be0ca";
+import { fetchWeek } from "./espn.js?v=7c6be0ca";
+import { fetchSpreads } from "./odds.js?v=7c6be0ca";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=7c6be0ca";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -145,7 +145,9 @@ function setPick(gameId, side) {
   if (!pid) return toast("Pick who you are first", { bad: true });
   const g = gameById(ui.week, gameId);
   if (!g) return;
-  if (SC.hasStarted(g) && !commish()) return toast("Kicked off. Picks are locked.", { bad: true });
+  if (SC.pickLocked(g, ui.week, cfg) && !commish()) {
+    return toast(SC.hasStarted(g) ? "Kicked off. That pick is locked." : `Picks closed ${cutoffLabel(ui.week)}.`, { bad: true });
+  }
   const dups = SC.resolveDups(S.getState(), cfg, ui.week);
   const dup = dups.assigned[pid];
   if (dup && (g.home === dup || g.away === dup)) return toast(`${dup} is your dup this week. That pick is locked in.`, { bad: true });
@@ -196,7 +198,9 @@ function setLms(team) {
   const used = SC.lmsUsed(state, cfg, ui.week, pid).find((u) => u.team === team);
   if (used) return toast(`You already used ${team} in week ${used.week} this round.`, { bad: true });
   const g = SC.weekGames(state, ui.week).find((x) => x.home === team || x.away === team);
-  if (team && g && SC.hasStarted(g) && !commish()) return toast("That game already kicked off.", { bad: true });
+  if (team && g && SC.pickLocked(g, ui.week, cfg) && !commish()) {
+    return toast(SC.hasStarted(g) ? "That game already kicked off." : `Picks closed ${cutoffLabel(ui.week)}.`, { bad: true });
+  }
   S.update((d) => {
     const wk = S.ensureWeek(d, ui.week);
     if (team) wk.lms[pid] = team; else delete wk.lms[pid];
@@ -346,11 +350,21 @@ function renderWeek(state) {
 
 
   <section class="section">
-    <div class="section__head"><h2 class="section__title">The slate</h2><span class="section__sub">${games.length ? "Tap the team you think wins. Picks lock at kickoff." : ""}</span></div>
+    <div class="section__head"><h2 class="section__title">The slate</h2><span class="section__sub">${games.length ? `Tap the team you think wins. ${SC.pickLocked({}, week, cfg) ? "Picks are closed for this week." : `All picks lock ${esc(cutoffLabel(week))}, or at kickoff for anything earlier.`}` : ""}</span></div>
     ${games.length ? renderDupBar(state, week, dups, tally) + renderSlate(state, week, games, tally, dups) : renderEmptySlate()}
   </section>
 
   ${games.length ? renderLms(state, week, lrow, games) : ""}`;
+}
+
+/** The week's pick deadline, in the pool's zone, e.g. "Sun 10:00 AM PDT". */
+function cutoffLabel(week) {
+  const at = SC.pickCutoffAt(week, cfg);
+  if (at == null) return "at the deadline";
+  return new Date(at).toLocaleString(undefined, {
+    timeZone: cfg.timeZone || "America/Los_Angeles",
+    weekday: "short", hour: "numeric", minute: "2-digit", timeZoneName: "short",
+  });
 }
 
 function fmtPts(n) { return Number.isInteger(n) ? String(n) : n.toFixed(1); }
@@ -422,7 +436,7 @@ function renderSlate(state, week, games, tally, dups) {
       rows.push(`<div class="slate__slot">${g.kickoff ? esc(fmtKick(g.kickoff)) : "TBD"}${g.broadcast ? ` <i>${esc(g.broadcast)}</i>` : ""}</div>`);
       lastSlot = slot;
     }
-    rows.push(renderRow(state, g, tally, dups, pid, myColor, { pos, dupLocked, myPrefs }));
+    rows.push(renderRow(state, g, tally, dups, pid, myColor, { pos, dupLocked, myPrefs, week }));
   }
   return `<div class="slate ${commish() ? "slate--commish" : ""}" role="table">${head}${rows.join("")}</div>`;
 }
@@ -432,6 +446,7 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
   const favAbbr = abbrOf(g, favSide);
   const dogAbbr = abbrOf(g, dogSide);
   const started = SC.hasStarted(g);
+  const shut = SC.pickLocked(g, ctx.week, cfg);
   const final = SC.isFinal(g);
   const live = g.status === "in";
   const winner = SC.straightUpWinner(g);
@@ -443,7 +458,7 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
   // settled for the whole table: the owner holds the dog, everyone else the
   // favorite, and there is nothing left to tap.
   const dupOwner = dups.byOwner[dogAbbr] || null;
-  const canPick = pid && (!started || commish()) && !dupOwner;
+  const canPick = pid && (!shut || commish()) && !dupOwner;
 
   const teamCell = (side, abbr, isDog) => {
     const cls = [
@@ -531,8 +546,8 @@ function renderLms(state, week, lrow, games) {
     const res = lrow?.results[p.id] || "pending";
     const out = res === "out";
     const g = team ? games.find((x) => x.home === team || x.away === team) : null;
-    const started = g ? SC.hasStarted(g) : false;
-    const canEdit = p.id === pid && !out && (!started || commish());
+    const shut = g ? SC.pickLocked(g, week, cfg) : SC.pickLocked({}, week, cfg);
+    const canEdit = p.id === pid && !out && (!shut || commish());
     const badge = out ? `<span class="badge">Out</span>`
       : res === "safe" ? `<span class="badge badge--win">Safe</span>`
       : res === "busted" ? `<span class="badge badge--loss">Busted</span>`
@@ -765,7 +780,7 @@ function renderSettings(state) {
       <div class="card"><h4>Sources</h4><dl class="kv"><dt>Schedule & scores</dt><dd>ESPN</dd><dt>Lines</dt><dd>${cfg.oddsApiKey ? esc((cfg.oddsBooks || [])[0] || "the book") : "ESPN"}</dd><dt>Season</dt><dd>${cfg.season}</dd><dt>Week 1</dt><dd>${esc(cfg.week1Tuesday)}</dd></dl></div>
     </div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">House rules</h2></div><div class="rules">
-    <p><b>Picks.</b> Every game, straight up: pick the team you think wins. A win is 1 point and nothing else scores — a tie counts as a loss. The spread is not part of it — it only sets which dogs go up for the dup draft. Picks lock at kickoff.</p>
+    <p><b>Picks.</b> Every game, straight up: pick the team you think wins. A win is 1 point and nothing else scores — a tie counts as a loss. The spread is not part of it — it only sets which dogs go up for the dup draft. Everything locks at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, and any game that kicks off before then locks at its own kickoff instead.</p>
     <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game, and it has to win outright: +${cfg.dup.win} if it does, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft locks at the first kickoff among those games.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
     <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and the field re-enters &mdash; a forfeit never shares. And if nobody picked at all, nothing is settled: the pot rolls into next week. The week-by-week tracker is on the Standings tab.</p>
@@ -812,7 +827,7 @@ function lmsModal() {
     <div class="teamgrid">${teams.map((t) => {
       const spent = usedMap[t.abbr];
       const started = SC.hasStarted(t.g);
-      const off = Boolean(spent) || (started && !commish());
+      const off = Boolean(spent) || (SC.pickLocked(t.g, ui.week, cfg) && !commish());
       return `<button class="teamtile ${current === t.abbr ? "teamtile--on" : ""} ${spent ? "teamtile--spent" : ""}"
         style="--c:${teamColor(t.abbr)}" data-action="lms-pick" data-team="${esc(t.abbr)}" ${off ? "disabled" : ""}
         title="${esc(teamName(t.abbr))}${spent ? ` — used in week ${spent}` : started ? " — kicked off" : ""}">
@@ -1021,8 +1036,35 @@ function exportJson() {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
+// ---- staying current ----------------------------------------------------------
+// A Home Screen app resumes instead of reloading, so an open can hand you stale
+// data *and* stale code. The store pulls the board on resume; this covers the
+// code. app.js's own URL carries the build stamp, so it knows what it is.
+const BUILD = new URL(import.meta.url).searchParams.get("v") || "dev";
+let lastBuildCheck = 0;
+
+async function checkBuild() {
+  if (BUILD === "dev") return;                       // unstamped local copy
+  if (Date.now() - lastBuildCheck < 10000) return;   // don't thrash on app switching
+  lastBuildCheck = Date.now();
+  try {
+    const res = await fetch(`./version.json?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return;
+    const { v } = await res.json();
+    if (v && v !== BUILD) location.reload();
+  } catch { /* offline: keep running what we have */ }
+}
+
 // ---- boot ---------------------------------------------------------------------
 S.subscribe(() => render());
 render();
 S.initSync().then(() => { if (me()) autoPull(ui.week); });
-document.addEventListener("visibilitychange", () => { if (!document.hidden && ui.tab === "week" && SC.weekGames(S.getState(), ui.week).length) refreshScores(ui.week); });
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  checkBuild();
+  if (ui.tab === "week" && SC.weekGames(S.getState(), ui.week).length) refreshScores(ui.week);
+});
+globalThis.addEventListener?.("pageshow", () => {
+  checkBuild();
+  if (ui.tab === "week" && SC.weekGames(S.getState(), ui.week).length) refreshScores(ui.week);
+});

@@ -65,12 +65,75 @@ export function straightUpWinner(game) {
  * When week N's lines freeze: that week's Tuesday at `lineLockHour` local.
  * Week 1's Tuesday comes from the config and every later week is seven days on.
  */
+/**
+ * How far a zone is from UTC at an instant, in ms. Read off Intl rather than
+ * assumed, so daylight saving is whatever the zone actually did that day.
+ */
+function zoneOffset(utcMs, zone) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  }).formatToParts(new Date(utcMs));
+  const f = {};
+  for (const { type, value } of parts) f[type] = value;
+  const wall = Date.UTC(+f.year, +f.month - 1, +f.day, +f.hour % 24, +f.minute, +f.second);
+  return wall - utcMs;
+}
+
+/**
+ * The instant when a wall-clock time in `zone` happens. Guess, measure the
+ * offset there, correct, then measure again in case the correction stepped
+ * across a daylight-saving boundary.
+ */
+function zonedInstant({ y, m, d, hour = 0, minute = 0 }, zone) {
+  const wall = Date.UTC(y, m - 1, d, hour, minute);
+  let at = wall - zoneOffset(wall, zone);
+  at = wall - zoneOffset(at, zone);
+  return at;
+}
+
+/** The pool's clock. Everything scheduled is anchored to it, not to the phone. */
+function poolZone(cfg) {
+  return cfg.timeZone || "America/Los_Angeles";
+}
+
+/** Calendar date `days` after the configured week-1 Tuesday, week by week. */
+function weekDate(week, days, cfg) {
+  const [y, m, d] = String(cfg.week1Tuesday || "").split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const at = new Date(Date.UTC(y, m - 1, d));
+  at.setUTCDate(at.getUTCDate() + (week - 1) * 7 + days);
+  return { y: at.getUTCFullYear(), m: at.getUTCMonth() + 1, d: at.getUTCDate() };
+}
+
 export function lineLockAt(week, cfg) {
-  const at = new Date(`${cfg.week1Tuesday}T00:00:00`);
-  if (Number.isNaN(at.getTime())) return null;
-  at.setDate(at.getDate() + (week - 1) * 7);
-  at.setHours(Number(cfg.lineLockHour ?? 12), 0, 0, 0);
-  return at.getTime();
+  const date = weekDate(week, 0, cfg);
+  if (!date) return null;
+  return zonedInstant({ ...date, hour: Number(cfg.lineLockHour ?? 12) }, poolZone(cfg));
+}
+
+/**
+ * The one deadline for picks: 10:00 in the pool's zone on that week's Sunday,
+ * five days after the week's Tuesday. Not the phone's 10:00 -- everybody gets
+ * the same instant wherever they are.
+ */
+export function pickCutoffAt(week, cfg) {
+  const date = weekDate(week, Number(cfg.pickCutoff?.daysAfterTuesday ?? 5), cfg);
+  if (!date) return null;
+  return zonedInstant({ ...date, hour: Number(cfg.pickCutoff?.hour ?? 10) }, poolZone(cfg));
+}
+
+/**
+ * Can this game still be picked or changed? Locked by whichever comes first:
+ * the week's cutoff, or the game kicking off. The cutoff alone is not enough --
+ * Thursday and Saturday games are over before Sunday morning, and nobody gets
+ * to pick a result they have already watched.
+ */
+export function pickLocked(game, week, cfg, now = Date.now()) {
+  if (hasStarted(game, now)) return true;
+  const cut = pickCutoffAt(week, cfg);
+  return cut != null && now >= cut;
 }
 
 /**
