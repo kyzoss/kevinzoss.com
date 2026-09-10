@@ -1,0 +1,9 @@
+# Debug screenshots and parse-check copies. Both used to get swept into commits
+# by `git add -A`; the QA gate writes its copies to a temp dir now, and these
+# patterns stop the rest recurring. _config.yml is Jekyll's and is committed.
+_dup-*.png
+_bootfail.png
+_card.html
+nfl/test/*.js.mjs
+nfl/test/Code.js
+nfl/js/*.bak
