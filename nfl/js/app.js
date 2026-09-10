@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=92736de8";
-import * as SC from "./scoring.js?v=92736de8";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=92736de8";
-import { fetchWeek } from "./espn.js?v=92736de8";
+import * as S from "./store.js?v=4dc390b3";
+import * as SC from "./scoring.js?v=4dc390b3";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=4dc390b3";
+import { fetchWeek } from "./espn.js?v=4dc390b3";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=92736de8";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=92736de8";
+import { fetchSpreads } from "./odds.js?v=4dc390b3";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=4dc390b3";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -456,23 +456,15 @@ function renderDupBar(state, week, dups, tally) {
   const pos = dups.order.indexOf(pid) + 1;
   const locked = dups.lockAt && Date.now() >= dups.lockAt;
   const mine = dups.assigned[pid];
-  // An assignment can still move while somebody picking ahead of you has not
-  // ranked: they might take the dog you are provisionally holding.
-  const waitingOn = (id) => dups.order
-    .slice(0, dups.order.indexOf(id))
-    .filter((other) => !(dups.prefs[other] || []).length)
-    .map((other) => nameOf(other));
   const held = dups.order.map((id) => {
     const team = dups.assigned[id];
     const grade = team ? tally[id]?.dupGrade : null;
-    const pending = team && !locked ? waitingOn(id) : [];
     const cls = ["dupchip", team ? "" : "dupchip--none", grade ? `dupchip--${grade}` : "",
-                 id === pid ? "dupchip--me" : "", pending.length ? "dupchip--pending" : ""].join(" ");
+                 id === pid ? "dupchip--me" : ""].join(" ");
     const ordered = (dups.prefs[id] || []).map((t, i) => `${i + 1}. ${t}`).join(" · ");
-    const tip = `${nameOf(id)}${ordered ? ` — ranked ${ordered}` : " — nothing ranked"}`
-      + (pending.length ? ` · not settled until ${pending.join(" and ")} rank${pending.length > 1 ? "" : "s"}` : "");
+    const tip = `${nameOf(id)}${ordered ? ` — ranked ${ordered}` : " — nothing ranked"}`;
     return `<span class="${cls}" style="--c:${esc(player(id)?.color)}" title="${esc(tip)}">
-      ${avatar(id)}<b>${team ? esc(team) : "—"}</b>${pending.length ? `<u title="Provisional">?</u>` : ""}</span>`;
+      ${avatar(id)}<b>${team ? esc(team) : "—"}</b></span>`;
   }).join("");
   // Your seat in this week's draft, and nothing else. The row of chips below
   // already says who holds what, the Dup column says how you ranked it, and a
@@ -568,22 +560,18 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
     const src = t.sources[g.id];
     const isDup = src === "dup";
     const auto = t.auto[g.id];
-    // A dup that is still provisional shows which choice it was -- the number is
-    // the thing you cannot read anywhere else while the draft is unsettled.
-    // Once it is secured it reads as the team, marked D: it is a pick now, not
-    // a preference, and the number stops mattering.
+    // A dup reads as the team, marked D. The draft has handed it over, so it is
+    // a pick now rather than a preference; which choice it was is in the title.
     const rank = isDup ? (dups.prefs[p.id] || []).indexOf(dogAbbr) + 1 : 0;
-    const held = isDup && dups.secured?.[dogAbbr];
     const cls = ["cell", "cell--pick", grade ? `is-${grade}` : "", isDup ? "cell--isdup" : "",
-                 held ? "cell--dupset" : rank ? "cell--rank" : "",
+                 isDup ? "cell--dupset" : "",
                  auto ? "cell--auto" : "", p.id === pid ? "cell--self" : ""].join(" ");
-    const why = isDup
-      ? (held ? ` — their dup${rank ? `, pick #${rank}` : ""}` : ` — their #${rank} dup, not settled yet`)
+    const why = isDup ? ` — their dup${rank ? `, pick #${rank}` : ""}`
       : src === "locked" ? ` — on the favorite: ${esc(auto)} is a dup, so it is off limits`
       : src === "default" ? ` — the favorite by default, they ranked ${esc(auto)} and nobody got it`
       : "";
     const title = `${esc(p.name)}${side ? `: ${esc(abbrOf(g, side))}${why}` : " — no pick"}`;
-    const face = !side ? "·" : (rank && !held) ? String(rank) : esc(abbrOf(g, side));
+    const face = !side ? "·" : esc(abbrOf(g, side));
     return `<span class="${cls}" style="--c:${esc(p.color)}" title="${title}">${face}</span>`;
   }).join("");
 

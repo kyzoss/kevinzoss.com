@@ -131,6 +131,28 @@ console.log("- the dup draft closes with the picks, not at the first kickoff");
   eq("and so is the Sunday dog", SC.pickLocked(sun, 1, cfg, after), true);
 }
 
+console.log("- a dup is locked in the moment the draft hands it over");
+{
+  const st = blank();
+  const dogs = [g("NO","TB",-14), g("CHI","GB",-10), g("LAR","SEA",-6.5), g("SF","ARI",-4.5)];
+  // Jim has ranked nothing, so the old rule left Howard's dup "provisional"
+  // and unmarked -- one person not getting round to it made the whole table
+  // look unsettled.
+  st.weeks[1] = { games: dogs, picks: {}, lms: {},
+    dupPrefs: { az: ["NO"], kz: ["CHI"], jv: [], hz: ["LAR","SF","CHI","NO"] } };
+  const d = SC.resolveDups(st, cfg, 1);
+  eq("everyone who got one holds it", d.assigned, { az:"NO", kz:"CHI", hz:"LAR" });
+  eq("and every one of them is locked in",
+     Object.keys(d.assigned).map((pid) => d.secured[d.assigned[pid]]), [true, true, true]);
+  eq("nothing unassigned is marked", d.secured["SF"], undefined);
+  // it can still move if somebody above ranks that dog later: the draft working
+  st.weeks[1].dupPrefs.jv = ["LAR"];
+  const d2 = SC.resolveDups(st, cfg, 1);
+  eq("a later ranking above you takes it", d2.assigned.jv, "LAR");
+  eq("and you fall to your next choice", d2.assigned.hz, "SF");
+  eq("both still read as locked in", [d2.secured["LAR"], d2.secured["SF"]], [true, true]);
+}
+
 console.log("- dups are exclusive: nobody else may take a drafted dog");
 {
   const st = blank();
