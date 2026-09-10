@@ -194,7 +194,7 @@ let actorId = "";        // who is entering picks on this device, sent with ever
 // What sheet/Code.gs says in this checkout. If the deployment reports anything
 // else it is running older code, which last time meant the pool's picks were
 // one blank device away from being wiped.
-const EXPECTED_SCRIPT_VERSION = "owned-merge-1";
+const EXPECTED_SCRIPT_VERSION = "owned-merge-2";
 
 export async function initSync() {
   backend = pickBackend();
