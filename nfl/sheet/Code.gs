@@ -71,11 +71,11 @@ function doPost(e) {
 
     // Merge rather than replace. A phone with empty storage that pulls the
     // slate has a newer timestamp but no picks, and a straight replace lets it
-    // wipe everyone -- which is exactly what happened once. A player only ever
-    // edits their own entries, so keeping the stored entry for any player the
-    // incoming document does not mention is always safe, while a real unpick
-    // still arrives inside that player's own map and is honoured.
-    // Who is saving. Their own entries may be replaced; nobody else's may shrink.
+    // wipe everyone -- which is exactly what happened once.
+    //
+    // `owner` is the player doing the saving. Only their entries may be
+    // replaced, which is what lets an unpick through; everyone else's are added
+    // to and never narrowed. See mergeOwned_.
     var owner = String(body.actor || '');
     var merged = existing ? mergeState_(JSON.parse(existing.json), state, owner) : state;
     writeState_(season, merged, incoming);
