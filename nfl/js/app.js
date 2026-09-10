@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=82f5c807";
-import * as SC from "./scoring.js?v=82f5c807";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=82f5c807";
-import { fetchWeek } from "./espn.js?v=82f5c807";
-import { fetchSpreads } from "./odds.js?v=82f5c807";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=82f5c807";
+import * as S from "./store.js?v=ba6af205";
+import * as SC from "./scoring.js?v=ba6af205";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=ba6af205";
+import { fetchWeek } from "./espn.js?v=ba6af205";
+import { fetchSpreads } from "./odds.js?v=ba6af205";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=ba6af205";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -1076,6 +1076,7 @@ function exportJson() {
 // data *and* stale code. The store pulls the board on resume; this covers the
 // code. app.js's own URL carries the build stamp, so it knows what it is.
 const BUILD = new URL(import.meta.url).searchParams.get("v") || "dev";
+window.__BUILD__ = BUILD;   // so the boot error screen can report it
 let lastBuildCheck = 0;
 
 async function checkBuild() {

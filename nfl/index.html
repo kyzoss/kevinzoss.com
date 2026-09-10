@@ -37,7 +37,7 @@
   <!-- Oura's own faces (PP Editorial New, Akkurat) are licensed; these are their
        closest freely-licensable equivalents. -->
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./css/app.css?v=82f5c807" />
+  <link rel="stylesheet" href="./css/app.css?v=ba6af205" />
 </head>
 <body>
   <div id="app" aria-live="polite"></div>
@@ -79,7 +79,39 @@
         .catch(function () { /* stay put: this origin works */ });
     })();
   </script>
-  <script src="./config.js?v=82f5c807"></script>
-  <script type="module" src="./js/app.js?v=82f5c807"></script>
+  <!-- A module that throws at import time renders nothing at all, and a black
+       screen says nothing about why. This paints the failure where it happened
+       instead. Inline and first, so it is running before anything can break. -->
+  <script>
+    (function () {
+      var shown = false;
+      function show(what, detail) {
+        if (shown) return; shown = true;
+        var app = document.getElementById("app") || document.body;
+        if (app.innerHTML.replace(/\s/g, "").length > 40) return;  // it rendered; not a blank screen
+        app.innerHTML =
+          '<div style="max-width:34rem;margin:12vh auto;padding:0 20px;font:14px/1.6 ui-sans-serif,system-ui,sans-serif;color:#F4F4F2">' +
+          '<h1 style="font-size:19px;margin:0 0 10px">The app could not start</h1>' +
+          '<p style="color:#A7A9AC;margin:0 0 14px">Send this to Kevin. It says exactly what broke.</p>' +
+          '<pre style="white-space:pre-wrap;word-break:break-word;background:#141418;border:1px solid #2B2B33;' +
+          'border-radius:10px;padding:12px;font:12px/1.5 ui-monospace,Menlo,monospace;color:#FF8A6B;margin:0 0 14px">' +
+          (what + ": " + detail).replace(/[<>&]/g, "") + "\n\nbuild " + (window.__BUILD__ || "unknown") +
+          "\n" + location.href + '</pre>' +
+          '<p style="margin:0"><a href="?fresh=' + Date.now() + '" style="color:#FF3C00">Reload, ignoring the cache</a></p>' +
+          '</div>';
+      }
+      addEventListener("error", function (e) {
+        if (e.target && e.target.tagName === "SCRIPT") return show("Could not load", e.target.src || "a script");
+        show("Error", (e.message || "unknown") + (e.filename ? " (" + e.filename.split("/").pop() + ")" : ""));
+      }, true);
+      addEventListener("unhandledrejection", function (e) {
+        show("Failed", (e.reason && (e.reason.message || e.reason)) || "unknown");
+      });
+      // If nothing has rendered a few seconds in, something silent went wrong.
+      setTimeout(function () { show("Nothing rendered", "the app loaded but drew nothing"); }, 6000);
+    })();
+  </script>
+  <script src="./config.js?v=ba6af205"></script>
+  <script type="module" src="./js/app.js?v=ba6af205"></script>
 </body>
 </html>
