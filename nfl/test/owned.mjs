@@ -40,6 +40,25 @@ eq("your own LMS change goes through", merge(s2, wk({}, { kz:'NYJ' }, {}), 'kz')
 eq("someone else's LMS is not cleared", merge(s2, wk({}, {}, {}), 'kz').weeks[1].lms.hz, 'CLE');
 eq("someone else's dup ranking survives", merge(s2, wk({}, {}, { kz:['TB'] }), 'kz').weeks[1].dupPrefs.hz, ['TB','IND']);
 eq("your own dup ranking is replaced", merge(s2, wk({}, {}, { kz:['TB'] }), 'kz').weeks[1].dupPrefs.kz, ['TB']);
+// brown of the week is per-player data and gets the same protection
+const s4 = wk({}, {}, {});
+s4.weeks[1].brown = { hz: 'chubb', kz: 'flacco' };
+s4.weeks[1].brownStats = { chubb: { rushTD: 1 } };
+const thin4 = wk({}, {}, {});
+thin4.weeks[1].brown = { kz: 'cooper' };
+eq("your own brown pick can change",
+   merge(s4, thin4, 'kz').weeks[1].brown.kz, 'cooper');
+eq("someone else's brown pick survives a save that omits it",
+   merge(s4, thin4, 'kz').weeks[1].brown.hz, 'chubb');
+eq("nobody can overwrite another player's brown",
+   merge(s4, (() => { const d = wk({}, {}, {}); d.weeks[1].brown = { hz: 'njoku' }; return d; })(), 'kz').weeks[1].brown.hz,
+   'chubb');
+eq("a blank save cannot erase the box score",
+   Object.keys(merge(s4, wk({}, {}, {}), 'kz').weeks[1].brownStats), ['chubb']);
+eq("the roster is not cleared by a device that lacks it",
+   (() => { const st = wk({ kz: { g1: 'home' } }); st.brownsRoster = [{ id: '1' }];
+            return merge(st, wk({}), 'kz').brownsRoster.length; })(), 1);
+
 // a blank device still cannot touch the table-level values
 const s3 = wk({ kz:{g1:'home'} }); s3.sideBet.actual = {w:5,l:12};
 eq("a device with no player data cannot clear the record",

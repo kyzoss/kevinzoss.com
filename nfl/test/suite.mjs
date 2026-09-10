@@ -266,9 +266,18 @@ console.log("— LMS stake is charged even when you're out");
 { // a full 18-week season: every player is charged all 18 weeks regardless
   const st = blank();
   const led = SC.ledger(st, cfg);
-  eq("LMS share of the buy-in is 18 x $1", led.totals.az.buyIn - (4 / 4 * 18) - 10, 18);
-  eq("per-player buy-in", led.totals.az.buyIn, 46);
-  eq("season pot",        led.seasonBuyIn, 184);
+  // Named one game at a time, because subtracting "everything else" from the
+  // buy-in silently absorbed a new game the first time one was added.
+  const stake = { weekly: 4 / 4 * 18, lms: 1 * 18, brown: 1 * 18, record: 10 };
+  eq("weekly share",     stake.weekly, 18);
+  eq("LMS share",        stake.lms, 18);
+  eq("brown-of-week share", stake.brown, 18);
+  eq("Browns-record share", stake.record, 10);
+  eq("per-player buy-in is those four", led.totals.az.buyIn,
+     stake.weekly + stake.lms + stake.brown + stake.record);
+  eq("per-player buy-in", led.totals.az.buyIn, 64);
+  eq("season pot",        led.seasonBuyIn, 256);
+  eq("season pot is four players' worth", led.seasonBuyIn, 64 * 4);
 }
 
 
@@ -403,6 +412,57 @@ console.log("- LMS: an unresolved pick does not spend the team");
   eq("a resolved pick is spent",  SC.lmsUsed(st, cfg, 2, "kz").map((u) => u.team), ["KC"]);
 }
 
+console.log("— brown of the week");
+{
+  // the table from the pool's own scoring sheet
+  eq("QB: 249 yds, 22 comp, 2 TD, 1 two-pointer",
+     SC.scoreBrownLine({ passYards: 249, completions: 22, passTD: 2, pass2pt: 1 }, cfg).total, 2 + 22 + 4 + 2);
+  eq("RB: 87 yds and a score",   SC.scoreBrownLine({ rushYards: 87, rushTD: 1 }, cfg).total, 17 + 6);
+  eq("WR: 104 yds, 7 rec, a TD", SC.scoreBrownLine({ recYards: 104, receptions: 7, recTD: 1 }, cfg).total, 10 + 21 + 6);
+  eq("K: 3 PAT and 2 field goals", SC.scoreBrownLine({ pat: 3, fg: 2 }, cfg).total, 6 + 12);
+  eq("per-unit stats floor, they do not round", SC.scoreBrownLine({ passYards: 149 }, cfg).total, 1);
+  eq("under one unit scores nothing", SC.scoreBrownLine({ rushYards: 4 }, cfg).total, 0);
+  eq("a stat the feed omitted is a zero, not a crash", SC.scoreBrownLine({}, cfg).total, 0);
+  eq("an unknown stat is ignored", SC.scoreBrownLine({ tackles: 9 }, cfg).total, 0);
+
+  // rounds behave like LMS: four weeks, then everyone is available again
+  eq("weeks 1-4 are round 1", [1, 4].map((w) => SC.brownRound(w, cfg).round), [1, 1]);
+  eq("week 5 starts round 2", SC.brownRound(5, cfg).round, 2);
+
+  const st = blank();
+  st.weeks[1] = { games: [], picks: {}, lms: {}, brown: { kz: "chubb" }, brownStats: { chubb: { rushTD: 1 } } };
+  st.weeks[2] = { games: [], picks: {}, lms: {}, brown: { kz: "cooper" }, brownStats: { cooper: { receptions: 2 } } };
+  st.weeks[3] = { games: [], picks: {}, lms: {}, brown: { kz: "njoku" } };   // never scored
+  eq("a scored week spends the player", SC.brownUsed(st, cfg, 3, "kz").map((u) => u.id), ["chubb", "cooper"]);
+  eq("an unscored week does not", SC.brownUsed(st, cfg, 4, "kz").map((u) => u.id), ["chubb", "cooper"]);
+  eq("the round reset clears them", SC.brownUsed(st, cfg, 5, "kz").length, 0);
+
+  // the pot pays weekly and a tie splits it -- nothing rolls over
+  const t = blank();
+  t.weeks[1] = { games: [], picks: {}, lms: {},
+    brown: { kz: "chubb", az: "chubb", jv: "cooper", hz: "cooper" },
+    brownStats: { chubb: { rushYards: 87, rushTD: 1 }, cooper: { recYards: 50, receptions: 4 } } };
+  const bow = SC.brownOfWeek(t, cfg);
+  eq("the pot is everyone's dollar", bow.rows[1].pot, cfg.brownOfWeek.perPlayer * 4);
+  eq("best score wins", bow.rows[1].best, 23);
+  eq("both on the winner split it", bow.rows[1].payouts, { az: 2, kz: 2 });
+  const all = blank();
+  all.weeks[1] = { games: [], picks: {}, lms: {},
+    brown: { kz: "x", az: "x", jv: "x", hz: "x" }, brownStats: { x: { rushTD: 1 } } };
+  eq("all four on one man get their dollar back",
+     SC.brownOfWeek(all, cfg).rows[1].payouts, { az: 1, kz: 1, jv: 1, hz: 1 });
+  const none = blank();
+  none.weeks[1] = { games: [], picks: {}, lms: {}, brown: { kz: "x" }, brownStats: {} };
+  eq("an unscored week pays nobody", SC.brownOfWeek(none, cfg).rows[1].payouts, {});
+  eq("and is not settled", SC.brownOfWeek(none, cfg).rows[1].settled, false);
+
+  // and it reaches the money
+  const led = SC.ledger(t, cfg);
+  eq("winnings land in the ledger", led.totals.kz.brownWon, 2);
+  eq("the stake is in the buy-in",
+     led.totals.kz.buyIn, 4 / 4 * cfg.weeks + 1 * cfg.weeks + 1 * cfg.weeks + 10);
+}
+
 console.log("— side bet");
 {
   const st = blank();
@@ -429,10 +489,10 @@ console.log("— ledger totals");
   st.weeks[1] = { games: [g("A","B",-7,20,30)], picks: { az:{"A@B":"home"} }, lms: { az:"A" }, dupPrefs: {} };
   st.adjustments = [{ id:"a1", player:"kz", amount:-5, note:"side action" }];
   const led = SC.ledger(st, cfg);
-  eq("buy-in per player", led.totals.az.buyIn, 46);
-  eq("season pot",        led.seasonBuyIn, 184);
+  eq("buy-in per player", led.totals.az.buyIn, 64);
+  eq("season pot",        led.seasonBuyIn, 256);
   eq("adjustment counts", led.totals.kz.won, -5);
-  eq("net = won - in",    led.totals.az.net, led.totals.az.won - 46);
+  eq("net = won - in",    led.totals.az.net, led.totals.az.won - 64);
 }
 
 console.log(`\n${pass} passed, ${fail} failed\n`);

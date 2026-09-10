@@ -583,15 +583,108 @@ export function sideBet(state, cfg) {
   return result;
 }
 
+// ---- brown of the week -----------------------------------------------------
+
+/**
+ * Score one player's game line against the pool's table.
+ *
+ * `per` counts whole units and throws the remainder away: 149 passing yards is
+ * one point, not one and a half. `each` is a straight multiple. A stat the feed
+ * did not report counts as zero rather than breaking the total, because a
+ * missing line and a zero line are the same thing for a player who did not do
+ * that on the day.
+ */
+export function scoreBrownLine(line, cfg) {
+  const table = cfg.brownOfWeek?.scoring || {};
+  let total = 0;
+  const parts = [];
+  for (const [stat, rule] of Object.entries(table)) {
+    const n = Number(line?.[stat] || 0);
+    if (!n) continue;
+    const pts = rule.per ? Math.floor(n / rule.per) * (rule.points ?? 1) : n * (rule.each ?? 0);
+    if (!pts) continue;
+    total += pts;
+    parts.push({ stat, n, pts });
+  }
+  return { total, parts };
+}
+
+/** Which round a week falls in, and its bounds. Mirrors the LMS blocks. */
+export function brownRound(week, cfg) {
+  const len = Number(cfg.brownOfWeek?.roundWeeks) || 4;
+  const round = Math.floor((week - 1) / len) + 1;
+  return { round, start: (round - 1) * len + 1, end: Math.min(round * len, cfg.weeks) };
+}
+
+/**
+ * Players this person has already spent in `week`'s round. A pick only counts
+ * as spent once its week has actually been scored -- otherwise a pick you made
+ * for a week that never got stats would lock the player away for nothing.
+ */
+export function brownUsed(state, cfg, week, pid) {
+  const { start } = brownRound(week, cfg);
+  const out = [];
+  for (let w = start; w < week; w++) {
+    const pick = state.weeks?.[w]?.brown?.[pid];
+    if (pick && state.weeks?.[w]?.brownStats?.[pick]) out.push({ id: pick, week: w });
+  }
+  return out;
+}
+
+/** What the pot is worth each week: everyone's stake, in or out. */
+export function brownWeekly(state, cfg) {
+  return (Number(cfg.brownOfWeek?.perPlayer) || 0) * state.players.length;
+}
+
+/**
+ * The whole game, week by week: what everyone picked, what it scored, who took
+ * the week and for how much. The pot pays weekly and a tie splits it, so unlike
+ * LMS nothing ever rolls over.
+ */
+export function brownOfWeek(state, cfg) {
+  const rows = {};
+  const totals = Object.fromEntries(state.players.map((p) => [p.id, { won: 0, weeks: 0, points: 0, paid: 0 }]));
+  const pot = brownWeekly(state, cfg);
+  for (let w = 1; w <= cfg.weeks; w++) {
+    const wk = state.weeks?.[w];
+    if (!wk) continue;
+    const picks = wk.brown || {};
+    const stats = wk.brownStats || {};
+    const scored = {};
+    let best = -Infinity;
+    for (const p of state.players) {
+      const who = picks[p.id];
+      if (!who) continue;
+      const line = stats[who];
+      if (!line) { scored[p.id] = { who, points: null }; continue; }
+      const { total, parts } = scoreBrownLine(line, cfg);
+      scored[p.id] = { who, points: total, parts };
+      totals[p.id].points += total;
+      if (total > best) best = total;
+    }
+    const settled = Object.values(scored).some((s) => s.points != null);
+    const winners = settled ? Object.entries(scored).filter(([, s]) => s.points === best).map(([id]) => id) : [];
+    const payouts = {};
+    if (winners.length) splitAmong(payouts, winners, pot);
+    for (const [id, amt] of Object.entries(payouts)) { totals[id].won += amt; totals[id].weeks++; }
+    rows[w] = { week: w, picks: scored, best: settled ? best : null, winners, payouts, pot, settled };
+  }
+  for (const p of state.players) totals[p.id].paid = pot / state.players.length * Object.keys(rows).length;
+  return { rows, totals, pot };
+}
+
 /** Everything the money tab needs. */
 export function ledger(state, cfg) {
   const weekly = weeklyPot(state, cfg);
   const lms = lastManStanding(state, cfg);
   const bet = sideBet(state, cfg);
+  const brown = brownOfWeek(state, cfg);
   const n = state.players.length || 1;
   const totals = {};
   for (const p of state.players) {
     let weeklyWon = 0, lmsWon = 0, weeklyWins = 0, lmsWins = 0;
+    const brownWon = brown.totals[p.id]?.won || 0;
+    const brownWins = brown.totals[p.id]?.weeks || 0;
     for (const row of Object.values(weekly.rows)) {
       if (row.payouts[p.id]) { weeklyWon += row.payouts[p.id]; weeklyWins++; }
     }
@@ -600,14 +693,19 @@ export function ledger(state, cfg) {
     }
     const betWon = bet.payouts[p.id] || 0;
     const adjustments = (state.adjustments || []).filter((a) => a.player === p.id).reduce((s, a) => s + Number(a.amount || 0), 0);
-    const won = weeklyWon + lmsWon + betWon + adjustments;
+    const won = weeklyWon + lmsWon + betWon + brownWon + adjustments;
     const lmsStake = (cfg.lmsPerPlayer != null ? Number(cfg.lmsPerPlayer) || 0 : (Number(cfg.lmsPot) || 0) / n) * cfg.weeks;
     const betStake = cfg.sideBet?.perPlayer != null ? Number(cfg.sideBet.perPlayer) || 0 : sideBetPot(state, cfg) / n;
-    const buyIn = (Number(cfg.weeklyPot) || 0) / n * cfg.weeks + lmsStake + betStake;
-    totals[p.id] = { weeklyWon, lmsWon, betWon, adjustments, won, buyIn, net: won - buyIn, weeklyWins, lmsWins };
+    // Brown of the week is staked every week of the season, in or out, the
+    // same as LMS -- the buy-in has to include it or every net figure is wrong.
+    const brownStake = (Number(cfg.brownOfWeek?.perPlayer) || 0) * cfg.weeks;
+    const buyIn = (Number(cfg.weeklyPot) || 0) / n * cfg.weeks + lmsStake + betStake + brownStake;
+    totals[p.id] = { weeklyWon, lmsWon, betWon, brownWon, adjustments, won, buyIn,
+                     net: won - buyIn, weeklyWins, lmsWins, brownWins };
   }
-  const seasonBuyIn = ((Number(cfg.weeklyPot) || 0) + lmsWeekly(state, cfg)) * cfg.weeks + sideBetPot(state, cfg);
-  return { weekly, lms, bet, totals, seasonBuyIn };
+  const seasonBuyIn = ((Number(cfg.weeklyPot) || 0) + lmsWeekly(state, cfg) + brownWeekly(state, cfg)) * cfg.weeks
+    + sideBetPot(state, cfg);
+  return { weekly, lms, bet, brown, totals, seasonBuyIn };
 }
 
 export function money(n) {

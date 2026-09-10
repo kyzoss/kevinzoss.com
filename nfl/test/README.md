@@ -18,7 +18,13 @@ pool. It exits non-zero on any failure, so it can gate a push.
     sync-test       store behaviour: the read-before-write guard, merges,
                     game-id migration
     owned           the Apps Script merge: a save may only replace the saver's
-                    own entries, never narrow anyone else's
+                    own entries, never narrow anyone else's -- picks, LMS, dup
+                    rankings and brown-of-week picks alike
+    browns-feed     the ESPN box-score mapping. NOTE: the payload it tests is
+                    hand-built to ESPN's documented shape, because the sandbox
+                    this was written in cannot reach espn.com. If the real shape
+                    differs these still pass, so verify one real game's numbers
+                    before trusting an automatic brown-of-week score.
 
     ── rendering (real Chromium)
     smoke           every tab, both layouts, as a player who has an LMS pick
@@ -37,6 +43,10 @@ pool. It exits non-zero on any failure, so it can gate a push.
     coldstart       a brand-new storage partition -- the Home Screen case --
                     fills itself from the shared board, and says plainly that it
                     cannot reach it rather than looking like an empty week
+    brown           brown of the week end to end: the section on the week
+                    view, the scores and payout, the depth-chart picker, a
+                    player spent in the round greyed out, and the history and
+                    money on the Browns page
     dupranks        a dup shows as its rank in that player's own column
     recover         recoverPicksFromLog rebuilds a narrowed board from the log
 

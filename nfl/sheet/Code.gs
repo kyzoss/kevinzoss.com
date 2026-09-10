@@ -33,7 +33,7 @@
 // which would only send everyone off to redeploy for nothing. Reported back by
 // doGet and doPost, so the app can tell you whether the deployment you are
 // talking to is actually the current one.
-var SCRIPT_VERSION = 'owned-merge-2';
+var SCRIPT_VERSION = 'brown-1';
 
 var STATE_SHEET = 'state';
 var PICKS_SHEET = 'picks';
@@ -141,8 +141,18 @@ function mergeState_(stored, incoming, owner) {
     w.picks = mergeOwned_(a.picks, b.picks, owner, true);
     w.lms = mergeOwned_(a.lms, b.lms, owner, false);
     w.dupPrefs = mergeOwned_(a.dupPrefs, b.dupPrefs, owner, false);
+    // Brown of the week is one player per person, so it is per-player data and
+    // gets the same protection: only the saver's own entry may be replaced.
+    w.brown = mergeOwned_(a.brown, b.brown, owner, false);
+    // The box score belongs to the table, not to anyone. Keep whichever
+    // document has lines rather than letting a blank one erase them.
+    w.brownStats = Object.keys(b.brownStats || {}).length ? b.brownStats : (a.brownStats || {});
     out.weeks[wk] = w;
   }
+
+  // The roster is table data too, and a device that has not loaded it must not
+  // clear it for everyone.
+  if (!(out.brownsRoster || []).length && (stored.brownsRoster || []).length) out.brownsRoster = stored.brownsRoster;
 
   // Values that belong to the table rather than to a player -- the Browns'
   // actual record, the adjustments -- cannot be merged key by key, and a blank
@@ -168,6 +178,7 @@ function hasPlayerData_(doc) {
     for (pid in (w.picks || {})) if (w.picks[pid] && Object.keys(w.picks[pid]).length) return true;
     for (pid in (w.lms || {})) if (w.lms[pid]) return true;
     for (pid in (w.dupPrefs || {})) if ((w.dupPrefs[pid] || []).length) return true;
+    for (pid in (w.brown || {})) if (w.brown[pid]) return true;
   }
   var preds = ((doc && doc.sideBet) || {}).predictions || {};
   for (var p in preds) if (preds[p]) return true;
@@ -221,8 +232,8 @@ function recoverPicksFromLog() {
       writeState_(season, board, board.updatedAt);
       writePicks_(board);
       appendLog_(season, board, board.updatedAt);
-      Logger.log('Season %s: restored %s pick(s), %s LMS pick(s), %s dup ranking(s), %s Browns guess(es).',
-                 season, added.picks, added.lms, added.dupPrefs, added.predictions);
+      Logger.log('Season %s: restored %s pick(s), %s LMS pick(s), %s dup ranking(s), %s Browns guess(es), %s brown-of-week pick(s).',
+                 season, added.picks, added.lms, added.dupPrefs, added.predictions, added.brown || 0);
       Logger.log('Board now holds: %s', census_(board));
     }
   } finally {
@@ -249,6 +260,9 @@ function absorb_(board, past, added) {
       }
     }
     for (pid in (from.lms || {})) if (into.lms[pid] == null && from.lms[pid]) { into.lms[pid] = from.lms[pid]; added.lms++; }
+    into.brown = into.brown || {};
+    for (pid in (from.brown || {})) if (into.brown[pid] == null && from.brown[pid]) { into.brown[pid] = from.brown[pid]; added.brown = (added.brown || 0) + 1; }
+    if (!Object.keys(into.brownStats || {}).length && Object.keys(from.brownStats || {}).length) into.brownStats = from.brownStats;
     for (pid in (from.dupPrefs || {})) {
       if ((into.dupPrefs[pid] || []).length === 0 && (from.dupPrefs[pid] || []).length) {
         into.dupPrefs[pid] = from.dupPrefs[pid]; added.dupPrefs++;
