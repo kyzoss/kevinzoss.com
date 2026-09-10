@@ -59,12 +59,25 @@ case "$out" in *"MOVED"*"stayed put"*) line "origin move only if verified" "PASS
   *) line "origin move only if verified" "FAIL — $out"; fails=$((fails+1)) ;; esac
 
 out=$(timeout 115 node $SP/brown.mjs 2>&1)
-if echo "$out" | grep -q "KZ Nick Chubb 23 points" \
+if echo "$out" | grep -q "KZ Quinshon Judkins 23 points" \
   && echo "$out" | grep -q "picker groups: QB RB WR TE K" \
-  && echo "$out" | grep -q "Chubb     GREYED + disabled" \
+  && echo "$out" | grep -q "Q. Judkins GREYED + disabled" \
   && echo "$out" | grep -q "page errors: none"; then
   line "brown of the week, end to end" "PASS"
 else line "brown of the week, end to end" "FAIL — $(echo "$out" | tail -3 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
+out=$(timeout 115 node $SP/converge.mjs 2>&1)
+if echo "$out" | grep -q "converged both ways, and an unpick still sticks"; then
+  line "three devices converge" "PASS"
+else line "three devices converge" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
+out=$(timeout 115 node $SP/brown-live.mjs 2>&1)
+if echo "$out" | grep -q "live badge: shown" \
+  && echo "$out" | grep -q "after the TD     : 7 points · live | 18 points · live" \
+  && echo "$out" | grep -q "saves added: 0 (want 0)" \
+  && echo "$out" | grep -q "page errors: none"; then
+  line "brown points live in-game" "PASS"
+else line "brown points live in-game" "FAIL — $(echo "$out" | tail -3 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
 out=$(timeout 115 node $SP/coldstart.mjs 2>&1)
 if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"' \

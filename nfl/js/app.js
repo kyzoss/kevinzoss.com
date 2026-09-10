@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=66e91e2a";
-import * as SC from "./scoring.js?v=66e91e2a";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=66e91e2a";
-import { fetchWeek } from "./espn.js?v=66e91e2a";
+import * as S from "./store.js?v=a1cd6907";
+import * as SC from "./scoring.js?v=a1cd6907";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=a1cd6907";
+import { fetchWeek } from "./espn.js?v=a1cd6907";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=66e91e2a";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=66e91e2a";
+import { fetchSpreads } from "./odds.js?v=a1cd6907";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=a1cd6907";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -46,6 +46,13 @@ function avatar(id, size = "") {
   if (!p) return "";
   return `<span class="avatar ${size}" style="--c:${esc(p.color)}">${esc(p.short || p.name.slice(0, 2))}</span>`;
 }
+/** "Harold Fannin Jr." -> "Fannin". Suffixes are not part of the surname. */
+function surname(full) {
+  const parts = String(full).trim().split(/\s+/)
+    .filter((w) => !/^(jr\.?|sr\.?|ii|iii|iv|v)$/i.test(w));
+  return parts[parts.length - 1] || String(full);
+}
+
 /** "TB", "TB and IND", "TB, IND and SF" -- never "TB and IND and SF". */
 function listOf(items) {
   if (items.length < 3) return items.join(" and ");
@@ -75,6 +82,11 @@ async function pullSlate(week, { lines = true, forceLines = false, quiet = false
   const locked = SC.linesLocked(S.getState(), week, cfg);
   S.update((d) => {
     const wk = S.ensureWeek(d, week);
+    // What the slate looked like before, so a poll that changed nothing can
+    // save nothing. This used to stamp wk.lastPull unconditionally -- a value
+    // nothing ever read -- which meant every score refresh wrote the whole
+    // board to the Sheet. Once a minute, from every open phone, during games.
+    const before = JSON.stringify(wk.games);
     for (const f of fetched) {
       const id = S.gameId(f);
       let g = wk.games.find((x) => x.id === id) || wk.games.find((x) => x.espnId === f.espnId);
@@ -94,8 +106,11 @@ async function pullSlate(week, { lines = true, forceLines = false, quiet = false
       else if (g.spread == null && f.spread != null) { g.spread = f.spread; g.book = "ESPN"; lined++; }
     }
     wk.games.sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff));
-    wk.lastPull = Date.now();
+    const changed = JSON.stringify(wk.games) !== before;
+    // lastLinesPull is read, to throttle the hourly lines pull, so it is worth
+    // a save. Nothing else here is.
     if (lines) wk.lastLinesPull = Date.now();
+    else if (!changed) return false;
   });
   ui.busy = false; render();
   if (quiet) return;
@@ -123,7 +138,32 @@ function autoPull(week) {
 }
 
 async function refreshScores(week, quiet = true) {
-  return pullSlate(week, { lines: false, quiet });
+  const out = await pullSlate(week, { lines: false, quiet });
+  // Brown of the week rides along: while the Browns are playing, their box score
+  // is as live as the scoreboard, so the points tick over with everything else.
+  refreshBrownStats(week).catch(() => {});
+  return out;
+}
+
+/**
+ * Pull the box score while the Browns' game is in progress, so brown-of-week
+ * points are live rather than waiting on the commissioner afterwards.
+ *
+ * Only writes when a number actually moved. Every open device polls, and each
+ * write goes to the shared board -- storing an identical payload every minute
+ * would be a save a minute per phone for nothing.
+ */
+async function refreshBrownStats(week) {
+  if (!cfg.brownOfWeek) return;
+  const state = S.getState();
+  const game = BR.brownsGame(state, week, cfg.sideBet?.team || "CLE");
+  if (!game?.espnId) return;
+  if (game.status !== "in" && !SC.isFinal(game)) return;      // nothing to read yet
+  const lines = await BR.fetchGameStats(game.espnId, cfg.sideBet?.team || "CLE");
+  if (!Object.keys(lines).length) return;
+  const before = JSON.stringify(state.weeks?.[week]?.brownStats || {});
+  if (before === JSON.stringify(lines)) return;               // nothing moved
+  S.update((d) => { const wk = S.ensureWeek(d, week); wk.brownStats = lines; });
 }
 
 let pollTimer = null;
@@ -595,6 +635,7 @@ function renderBrown(state, week) {
   const picks = wk.brown || {};
   const stats = wk.brownStats || {};
   const locked = Boolean(game && SC.hasStarted(game));
+  const live = Boolean(game && game.status === "in");
   const { round, start, end } = SC.brownRound(week, cfg);
   const bow = SC.brownOfWeek(state, cfg);
   const row = bow.rows[week];
@@ -611,18 +652,21 @@ function renderBrown(state, week) {
     return `<div class="lmsrow" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
       <button class="lmsrow__pick" data-action="brown-open" ${canEdit ? "" : "disabled"}>
         <div><div class="lmsrow__team">${who ? esc(nameOfPlayer(who)) : esc(p.name)}</div>
-        <div class="lmsrow__sub">${who ? (pts != null ? `${fmtPts(pts)} points` : locked ? "playing" : "locked in") : (canEdit ? "Tap to choose" : "No pick")}</div></div>
+        <div class="lmsrow__sub">${who
+          ? (pts != null ? `${fmtPts(pts)} point${pts === 1 ? "" : "s"}${live ? " · live" : ""}` : locked ? "playing" : "locked in")
+          : (canEdit ? "Tap to choose" : "No pick")}</div></div>
       </button>
       <div style="display:grid;gap:4px;justify-items:end">${won ? `<span class="badge badge--money">${SC.money(won)}</span>` : row?.winners?.includes(p.id) ? `<span class="badge badge--win">Best</span>` : ""}</div>
     </div>`;
   }).join("");
 
   const when = !game ? "No Browns game this week."
+    : live ? `Live${game.clock ? ` — ${esc(game.clock)}` : ""}; points update as they play.`
     : locked ? "Locked — they have kicked off."
     : `Locks at ${esc(fmtKick(game.kickoff))}.`;
 
-  return `<section class="section">
-    <div class="section__head"><h2 class="section__title">Brown of the week · ${SC.money(SC.brownWeekly(state, cfg))}</h2>
+  return `<section class="section${live ? " section--live" : ""}">
+    <div class="section__head"><h2 class="section__title">Brown of the week · ${SC.money(SC.brownWeekly(state, cfg))}${live ? ` <span class="badge badge--live">Live</span>` : ""}</h2>
       <span class="section__sub">One ${esc(teamName(team))} player, best score takes the pot; a tie splits it. Round ${round} · weeks ${start}–${end}: a player you have used is spent until it resets. ${when}</span></div>
     <div class="lms">${rows}</div>
   </section>`;
@@ -878,15 +922,24 @@ function renderBrownHistory(state) {
   const bow = SC.brownOfWeek(state, cfg);
   const P = state.players;
   const roster = state.brownsRoster || [];
-  const nameFor = (id) => roster.find((r) => r.id === id)?.short || roster.find((r) => r.id === id)?.name || id;
+  // Surname only. The table is table-layout:fixed, so anything wider than the
+  // column spills over its neighbour rather than widening it -- "H. Fannin Jr."
+  // ran into the next name on a phone. Four columns of surnames fit.
+  const nameFor = (id) => {
+    const r = roster.find((x) => x.id === id);
+    if (!r) return id;
+    return surname(r.name || r.short || id);
+  };
   const weeks = Object.values(bow.rows);
 
+  // Winnings only. The buy-in is the same for everyone every week, so a net
+  // figure just shows the same number counting down until somebody wins, which
+  // reads as a loss rather than as "nothing yet".
   const money = P.map((p) => {
     const t = bow.totals[p.id];
-    const net = t.won - t.paid;
     return `<div class="pred" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
-      <div class="pred__big">${SC.money(net)}<small>${esc(p.name)} · ${t.weeks} week${t.weeks === 1 ? "" : "s"} won · ${fmtPts(t.points)} pts</small></div>
-      <div style="display:grid;justify-items:end">${t.won ? `<span class="badge badge--money">${SC.money(t.won)} in</span>` : ""}</div></div>`;
+      <div class="pred__big">${SC.money(t.won)}<small>${esc(p.name)} · ${t.weeks} week${t.weeks === 1 ? "" : "s"} won · ${fmtPts(t.points)} pts</small></div>
+      <div style="display:grid;justify-items:end">${t.weeks ? `<span class="badge badge--win">${t.weeks}×</span>` : ""}</div></div>`;
   }).join("");
 
   const body = weeks.length ? weeks.map((r) => {
@@ -906,7 +959,7 @@ function renderBrownHistory(state) {
     <div class="section__head"><h2 class="section__title">Brown of the week</h2>
       <span class="section__sub">${SC.money(cfg.brownOfWeek.perPlayer)} each a week, best score takes it, a tie splits it. Picked on the Week tab.</span></div>
     <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">${money}</div>
-    <div class="grid" style="margin-top:8px"><table class="sheet sheet--lms">
+    <div class="grid" style="margin-top:8px"><table class="sheet sheet--lms sheet--brown">
       <thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}</tr></thead>
       <tbody>${body}</tbody></table></div>
     ${commish() ? `<div class="commish" style="margin-top:8px">
