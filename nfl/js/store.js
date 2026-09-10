@@ -187,6 +187,7 @@ export function gameId(game) {
 let backend = null;      // { name, read(), write(state), watch?(onRemote) }
 let pollTimer = null;
 let readOk = false;      // has this device seen the shared board yet?
+let scriptVersion = "";  // reported by the Apps Script, so a stale deploy shows up
 
 export async function initSync() {
   backend = pickBackend();
@@ -315,13 +316,16 @@ export async function testSync() {
     await chosen.open?.();
     const remote = await chosen.read();
     const at = Number(remote?.updatedAt || remote?.state?.updatedAt || 0);
+    const guard = scriptVersion
+      ? `Script ${scriptVersion} — the merge guard is live.`
+      : "Script has no version, so it predates the merge guard. Re-deploy sheet/Code.gs.";
     return {
       ok: true,
       via: chosen.name,
       empty: !remote?.state,
-      detail: remote?.state
-        ? `Read the board, last saved ${at ? new Date(at).toLocaleString() : "at an unknown time"}.`
-        : "Connected. The board is empty, so the first save will seed it.",
+      detail: (remote?.state
+        ? `Read the board, last saved ${at ? new Date(at).toLocaleString() : "at an unknown time"}. `
+        : "Connected. The board is empty, so the first save will seed it. ") + guard,
     };
   } catch (e) {
     return { ok: false, via: chosen.name, detail: e.message || String(e) };
@@ -356,6 +360,7 @@ function sheetBackend(conf) {
       if (!res.ok) throw new Error(`Sheet read failed (${res.status})`);
       const body = await res.json();
       if (body.error) throw new Error(body.error);
+      scriptVersion = body.version || "";
       return body.state ? { state: body.state, updatedAt: body.updatedAt } : null;
     },
     async write(next) {

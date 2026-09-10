@@ -17,6 +17,10 @@
  * pool, which is the same trust model as a shared spreadsheet link.
  */
 
+// Bumped whenever this file changes, and reported back by doGet, so the app can
+// tell you whether the deployment you are talking to is actually the current one.
+var SCRIPT_VERSION = 'merge-1';
+
 var STATE_SHEET = 'state';
 var PICKS_SHEET = 'picks';
 var LOG_SHEET = 'log';
@@ -26,10 +30,10 @@ function doGet(e) {
   try {
     var season = String((e && e.parameter && e.parameter.season) || '');
     var row = findSeasonRow_(season);
-    if (!row) return json_({ state: null });
-    return json_({ state: JSON.parse(row.json), updatedAt: Number(row.updatedAt) || 0 });
+    if (!row) return json_({ state: null, version: SCRIPT_VERSION });
+    return json_({ state: JSON.parse(row.json), updatedAt: Number(row.updatedAt) || 0, version: SCRIPT_VERSION });
   } catch (err) {
-    return json_({ error: String(err && err.message || err) });
+    return json_({ error: String(err && err.message || err), version: SCRIPT_VERSION });
   }
 }
 
@@ -61,7 +65,7 @@ function doPost(e) {
     writeState_(season, merged, incoming);
     writePicks_(merged);
     appendLog_(season, merged, incoming);
-    return json_({ ok: true, updatedAt: incoming, merged: Boolean(existing) });
+    return json_({ ok: true, updatedAt: incoming, merged: Boolean(existing), version: SCRIPT_VERSION });
   } catch (err) {
     return json_({ error: String(err && err.message || err) });
   } finally {
