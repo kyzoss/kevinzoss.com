@@ -104,6 +104,44 @@ export function replaceState(next) {
   emit();
 }
 
+/**
+ * Fold a document into the current one instead of replacing it: per-player
+ * entries are unioned, so restoring a backup can only ever add back what is
+ * missing. Mirrors the merge the Apps Script does server-side.
+ */
+export function mergeIn(incoming) {
+  const before = countPicks(state);
+  update((d) => {
+    const src = migrate(incoming);
+    for (const [wk, w] of Object.entries(src.weeks || {})) {
+      const mine = ensureWeek(d, wk);
+      // keep whichever slate is fuller; a backup may predate a re-pull
+      if ((w.games || []).length > (mine.games || []).length) mine.games = w.games;
+      for (const [pid, by] of Object.entries(w.picks || {})) {
+        mine.picks[pid] = { ...(by || {}), ...(mine.picks[pid] || {}) };
+      }
+      for (const [pid, team] of Object.entries(w.lms || {})) mine.lms[pid] ??= team;
+      mine.dupPrefs ||= {};
+      for (const [pid, list] of Object.entries(w.dupPrefs || {})) mine.dupPrefs[pid] ??= list;
+    }
+    d.sideBet ||= { predictions: {}, actual: null };
+    for (const [pid, pr] of Object.entries(src.sideBet?.predictions || {})) {
+      d.sideBet.predictions[pid] ??= pr;
+    }
+    if (d.sideBet.actual == null && src.sideBet?.actual != null) d.sideBet.actual = src.sideBet.actual;
+    if (!(d.adjustments || []).length && (src.adjustments || []).length) d.adjustments = src.adjustments;
+  });
+  return { before, after: countPicks(state) };
+}
+
+function countPicks(s) {
+  let n = 0;
+  for (const w of Object.values(s.weeks || {})) {
+    for (const by of Object.values(w.picks || {})) n += Object.keys(by || {}).length;
+  }
+  return n;
+}
+
 export function resetState() {
   state = defaultState();
   state.updatedAt = Date.now();
