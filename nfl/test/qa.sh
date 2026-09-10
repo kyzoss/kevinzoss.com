@@ -58,6 +58,12 @@ out=$(timeout 115 node $SP/redirect.mjs 2>&1 | tail -4 | tr '\n' ' ')
 case "$out" in *"MOVED"*"stayed put"*) line "origin move only if verified" "PASS" ;;
   *) line "origin move only if verified" "FAIL — $out"; fails=$((fails+1)) ;; esac
 
+out=$(timeout 115 node $SP/coldstart.mjs 2>&1)
+if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"' \
+  && echo "$out" | grep -q 'sheet unreachable .*Can.t reach the shared board'; then
+  line "cold start / Home Screen case" "PASS"
+else line "cold start / Home Screen case" "FAIL — $(echo "$out" | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/dupranks.mjs 2>&1)
 case "$out" in *"1* -> Howard: SF — their #1 dup"*) line "dup rank in own column" "PASS" ;;
   *) line "dup rank in own column" "FAIL"; fails=$((fails+1)) ;; esac

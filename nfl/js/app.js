@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=61032476";
-import * as SC from "./scoring.js?v=61032476";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=61032476";
-import { fetchWeek } from "./espn.js?v=61032476";
-import { fetchSpreads } from "./odds.js?v=61032476";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=61032476";
+import * as S from "./store.js?v=e7d6ddf2";
+import * as SC from "./scoring.js?v=e7d6ddf2";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=e7d6ddf2";
+import { fetchWeek } from "./espn.js?v=e7d6ddf2";
+import { fetchSpreads } from "./odds.js?v=e7d6ddf2";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=e7d6ddf2";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -318,13 +318,16 @@ function renderWeek(state) {
       : `Tie at ${fmtPts(best)} between ${wrow.winners.map(nameOf).join(", ")}. Pot rolls to week ${week + 1}.`;
   } else if (anyPicks && finals) {
     const leaders = state.players.filter((p) => tally[p.id].points === best && tally[p.id].picks);
-    weeklyTxt = leaders.length === 1 ? `<b>${esc(leaders[0].name)}</b> leads with ${fmtPts(best)}. ${games.length - finals} to play.` : `${leaders.map((p) => esc(p.name)).join(" & ")} tied at ${fmtPts(best)}. ${games.length - finals} to play.`;
+    const shortOf = (p) => esc(p.short || p.name.slice(0, 2).toUpperCase());
+    weeklyTxt = leaders.length === 1
+      ? `<b>${shortOf(leaders[0])}</b> leads with ${fmtPts(best)}. ${games.length - finals} to play.`
+      : `${leaders.map(shortOf).join(" & ")} tied at ${fmtPts(best)}. ${games.length - finals} to play.`;
   } else weeklyTxt = `Most wins takes it. Ties roll over${week === cfg.weeks ? "" : " to next week"}.`;
 
   const lmsAlive = lrow ? lrow.aliveEntering : state.players.map((p) => p.id);
   const lmsTxt = lrow
     ? (lrow.complete && lrow.ended
-      ? `Round ${lrow.round} paid: ${Object.entries(lrow.payouts).map(([id, amt]) => `<b>${esc(nameOf(id))}</b> ${SC.money(amt)}`).join(", ")}.`
+      ? `Round ${lrow.round} paid: ${Object.entries(lrow.payouts).map(([id, amt]) => `<b>${esc(player(id)?.short || nameOf(id))}</b> ${SC.money(amt)}`).join(", ")}.`
       : `Round ${lrow.round} · weeks ${lrow.roundStart}–${lrow.roundEnd} · <b>${lmsAlive.length}</b> still standing${lrow.complete ? ` · ${lrow.eliminated.length} out this week` : ""}.`)
     : `Pick a team to lose. ${SC.money(cfg.lmsPerPlayer ?? 1)} each every week, in or out.`;
 
@@ -349,14 +352,11 @@ function renderWeek(state) {
 
   <div class="toolbar">
     <button class="btn btn--px" data-action="refresh" ${ui.busy ? "disabled" : ""}>${icon("refresh", ui.busy ? "spin" : "")}${games.length ? "Refresh scores" : "Pull slate"}</button>
-    ${commish() ? `
-      <button class="btn btn--px" data-action="lock-lines" title="${linesFrozen ? "Reopen the lines for this week" : `Freeze them now — otherwise they lock ${esc(lockLabel)}`}">${icon("lock")}${linesFrozen ? "Reopen lines" : "Lock lines now"}</button>
-` : ""}
   </div>
 
 
   <section class="section">
-    <div class="section__head"><h2 class="section__title">The slate</h2><span class="section__sub">${games.length ? `Tap the team you think wins. ${SC.pickLocked({}, week, cfg) ? "Picks are closed for this week." : `All picks lock ${esc(cutoffLabel(week))}, or at kickoff for anything earlier.`}` : ""}</span></div>
+    <div class="section__head"><h2 class="section__title">The slate</h2><span class="section__sub">${games.length && SC.pickLocked({}, week, cfg) ? "Picks are closed for this week." : ""}</span></div>
     ${games.length ? renderDupBar(state, week, dups, tally) + renderSlate(state, week, games, tally, dups) : renderEmptySlate()}
   </section>
 
@@ -376,6 +376,22 @@ function cutoffLabel(week) {
 function fmtPts(n) { return Number.isInteger(n) ? String(n) : n.toFixed(1); }
 
 function renderEmptySlate() {
+  // An empty board and a failed sync look identical, and on a Home Screen app
+  // -- which starts with its own empty storage and has to fetch everything --
+  // that is the difference between "nobody has pulled week 3 yet" and "this
+  // device cannot reach the pool". Say which.
+  const sync = S.getSync();
+  if (sync.enabled && sync.state !== "live") {
+    const bad = sync.state === "error";
+    return `<div class="empty"><h3>${bad ? "Can't reach the shared board" : "Getting the board…"}</h3>
+      <p>${bad
+        ? `This device has its own storage, so everything comes from the pool's board — and that read failed. Nothing is lost; it is all still on the board.${sync.detail ? ` <br><span class="mute" style="font-size:12px">${esc(sync.detail)}</span>` : ""}`
+        : "Reading everyone's picks. This is a fresh install, so it starts with nothing until that lands."}</p>
+      <div class="toolbar" style="justify-content:center">
+        <button class="btn btn--primary btn--px" data-action="resync">${icon("refresh", bad ? "" : "spin")}Try again</button>
+        <button class="btn btn--px" data-action="tab" data-tab="settings">Setup</button>
+      </div></div>`;
+  }
   return `<div class="empty"><h3>No games loaded</h3><p>Pull this week's schedule and lines. ESPN provides the games and scores; the book provides the spreads that set the dup dogs.</p>
     <button class="btn btn--primary btn--px" data-action="refresh" ${ui.busy ? "disabled" : ""}>${icon("refresh", ui.busy ? "spin" : "")}Pull week ${ui.week}</button></div>`;
 }
@@ -417,19 +433,11 @@ function renderDupBar(state, week, dups, tally) {
     return `<span class="${cls}" style="--c:${esc(player(id)?.color)}" title="${esc(tip)}">
       ${avatar(id)}<b>${team ? esc(team) : "—"}</b>${pending.length ? `<u title="Provisional">?</u>` : ""}</span>`;
   }).join("");
-  let note;
-  if (!pid) note = "";
-  else if (!dups.candidates.length) note = "No lines yet, so no dups to rank.";
-  else if (locked) note = `Draft closed ${esc(cutoffLabel(week))}. ${mine ? `You have <b>${esc(mine)}</b>.` : "You didn't rank one."}`;
-  else {
-    // Only teams somebody else actually took. A team you merely ranked below the
-    // one you got has not "gone above you" -- it is still there, unclaimed.
-    const lost = (dups.prefs[pid] || []).filter((t) => dups.byOwner?.[t] && dups.byOwner[t] !== pid);
-    const waiting = dups.order.slice(0, pos - 1).filter((id) => !(dups.prefs[id] || []).length).map(nameOf);
-    note = `You pick <b>${ordinal(pos)}</b> this week &mdash; rank ${pos === 1 ? "one" : `up to ${pos}`} underdog${pos > 1 ? "s" : ""} in the Dup column, best first.${mine ? ` Currently <b>${esc(mine)}</b>.` : ""}`;
-    if (lost.length) note += ` ${listOf(lost.map(esc))} went to someone picking above you, so ${lost.length > 1 ? "those games sit" : "that game sits"} on the favorite unless you pick it yourself.`;
-    if (mine && waiting.length) note += ` Not settled yet: ${listOf(waiting.map(esc))} ${waiting.length > 1 ? "have" : "has"} not ranked, and could take <b>${esc(mine)}</b>.`;
-  }
+  // Your seat in this week's draft, and nothing else. The row of chips below
+  // already says who holds what, the Dup column says how you ranked it, and a
+  // secured dup is marked D on the slate -- the paragraph was restating all of
+  // it every week.
+  const note = !pid || !dups.candidates.length ? "" : `Dup #${pos}`;
   return `<div class="dupbar">
     <div class="dupbar__note">${note}</div>
     <div class="dupbar__held">${held}</div>
@@ -821,7 +829,8 @@ function renderSettings(state) {
   return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Setup</h2></div>
     <div class="cards">
       <div class="card"><h4>You</h4><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">${avatar(me(), "avatar--lg")}<b>${esc(nameOf(me()))}</b>${commish() ? `<span class="badge badge--accent">Commish</span>` : ""}</div>
-        <div class="toolbar" style="margin:0"><button class="btn btn--sm btn--px" data-action="whoami">Switch player</button>${commish() ? `<button class="btn btn--sm btn--px" data-action="pick-as">Pick as…</button>` : ""}</div></div>
+        <div class="toolbar" style="margin:0"><button class="btn btn--sm btn--px" data-action="whoami">Switch player</button>${commish() ? `<button class="btn btn--sm btn--px" data-action="pick-as">Pick as…</button>
+          <button class="btn btn--sm btn--px" data-action="lock-lines" title="${SC.linesLocked(state, ui.week, cfg) ? `Reopen week ${ui.week} so the lines can move again` : `Freeze week ${ui.week} now — otherwise the lines lock at noon that Tuesday`}">${icon("lock")}${SC.linesLocked(state, ui.week, cfg) ? `Reopen week ${ui.week} lines` : `Lock week ${ui.week} lines`}</button>` : ""}</div></div>
       <div class="card"><h4>Sync</h4>
         <p style="margin:0 0 10px;font-size:13px;color:var(--ink-soft)">${sync.enabled ? `Shared board via ${sync.via === "sheet" ? "a Google Sheet" : "Supabase"} · <b>${esc(sync.state)}</b>${sync.detail ? ` · ${esc(sync.detail)}` : ""}` : "This device only. Everyone's picks live here, like the sheet did. To put all four phones on one board, fill in the Supabase block in config.js (see README)."}</p>
         <div class="toolbar" style="margin:0">${sync.enabled ? `<button class="btn btn--sm btn--px" data-action="test-sync">Test the connection</button>` : ""}<button class="btn btn--sm btn--px btn--primary" data-action="restore">Restore picks from backup</button><button class="btn btn--sm btn--px" data-action="export">Export JSON</button><button class="btn btn--sm btn--px" data-action="import">Import JSON</button>${commish() ? `<button class="btn btn--sm btn--px btn--danger" data-action="reset">Reset season</button>` : ""}</div></div>
@@ -986,6 +995,7 @@ document.addEventListener("click", (e) => {
     case "bet-actual-clear": S.update((d) => { d.sideBet.actual = null; }); closeModal(); break;
     case "adj-add": adjModal(); break;
     case "adj-del": S.update((d) => { d.adjustments = d.adjustments.filter((x) => x.id !== el.dataset.id); }); break;
+    case "resync": S.initSync().then(() => { S.refresh(); toast("Re-reading the board…"); }); break;
     case "test-sync": testSync(); break;
     case "restore": restoreBackup(); break;
     case "export": exportJson(); break;
