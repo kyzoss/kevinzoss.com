@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=cfd5cdc7";
-import * as SC from "./scoring.js?v=cfd5cdc7";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=cfd5cdc7";
-import { fetchWeek } from "./espn.js?v=cfd5cdc7";
-import { fetchSpreads } from "./odds.js?v=cfd5cdc7";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=cfd5cdc7";
+import * as S from "./store.js?v=e4ae4d88";
+import * as SC from "./scoring.js?v=e4ae4d88";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=e4ae4d88";
+import { fetchWeek } from "./espn.js?v=e4ae4d88";
+import { fetchSpreads } from "./odds.js?v=e4ae4d88";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=e4ae4d88";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -519,14 +519,19 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
     const src = t.sources[g.id];
     const isDup = src === "dup";
     const auto = t.auto[g.id];
+    // Where a pick IS somebody's dup, their column shows which choice it was
+    // rather than the team: the team is already in the Dog column two cells
+    // over, and the number is the thing you cannot read anywhere else.
+    const rank = isDup ? (dups.prefs[p.id] || []).indexOf(dogAbbr) + 1 : 0;
     const cls = ["cell", "cell--pick", grade ? `is-${grade}` : "", isDup ? "cell--isdup" : "",
-                 auto ? "cell--auto" : "", p.id === pid ? "cell--self" : ""].join(" ");
-    const why = isDup ? " (dup)"
+                 rank ? "cell--rank" : "", auto ? "cell--auto" : "", p.id === pid ? "cell--self" : ""].join(" ");
+    const why = isDup ? ` — their ${rank ? `#${rank} ` : ""}dup`
       : src === "locked" ? ` — on the favorite: ${esc(auto)} is a dup, so it is off limits`
       : src === "default" ? ` — the favorite by default, they ranked ${esc(auto)} and nobody got it`
       : "";
     const title = `${esc(p.name)}${side ? `: ${esc(abbrOf(g, side))}${why}` : " — no pick"}`;
-    return `<span class="${cls}" style="--c:${esc(p.color)}" title="${title}">${side ? esc(abbrOf(g, side)) : "·"}</span>`;
+    const face = !side ? "·" : rank ? String(rank) : esc(abbrOf(g, side));
+    return `<span class="${cls}" style="--c:${esc(p.color)}" title="${title}">${face}</span>`;
   }).join("");
 
   // The dup picker lives in the row. Only the week's eligible underdogs get one.
@@ -543,23 +548,18 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
         `<option value="${n}"${n === rank ? " selected" : ""}>${n}</option>`))
       .join("");
     const heldByOther = owner && owner !== pid;
-    // Who has ranked this dog and where in their list. Until everyone above you
-    // has ranked, an assignment is only provisional, and this is what says so:
-    // read the digits and you can see the draft as it actually stands.
+    // This column is yours: it holds your ranking of this dog and nothing else.
+    // Everyone else's choices now read across the row, as a number in their own
+    // column, so there is nothing to duplicate here.
     const ranked = state.players
       .map((p) => ({ p, n: (dups.prefs[p.id] || []).indexOf(dogAbbr) + 1 }))
       .filter((r) => r.n > 0)
       .sort((a, b) => dups.order.indexOf(a.p.id) - dups.order.indexOf(b.p.id));
-    const strip = ranked.length
-      ? `<span class="dupranks">${ranked.map(({ p, n }) => `<i style="--c:${esc(p.color)}"
-          title="${esc(p.name)} ranked ${esc(dogAbbr)} #${n}${owner === p.id ? " — and has it" : ""}">${n}</i>`).join("")}</span>`
-      : "";
-    dup = `<span class="cell cell--dup ${rank ? "cell--dup-on" : ""} ${owner ? "cell--dup-taken" : ""} ${strip ? "cell--dup-ranked" : ""}"
+    dup = `<span class="cell cell--dup ${rank ? "cell--dup-on" : ""} ${owner ? "cell--dup-taken" : ""}"
       style="--c:${owner ? esc(player(owner)?.color) : "var(--accent-lift)"}"
       title="${esc(dogAbbr)} +${fmtPts(cand.points)} dup${owner ? ` — ${esc(nameOf(owner))} has it` : ""}${ranked.length ? ` · ranked by ${ranked.map((r) => `${r.p.short || r.p.name} #${r.n}`).join(", ")}` : ""}">
       ${heldByOther && !rank ? `<span class="cell__owner">${esc(player(owner)?.short || nameOf(owner).slice(0, 2))}</span>` : ""}
       <select data-action="dup-rank" data-team="${esc(dogAbbr)}" ${disabled ? "disabled" : ""} aria-label="Dup priority for ${esc(dogAbbr)}">${opts}</select>
-      ${strip}
     </span>`;
   }
 

@@ -355,15 +355,10 @@ button.cell--mid:hover { border-color: var(--line-2); }
 .cell--dup-on { background: color-mix(in srgb, var(--c) 16%, var(--bg-2)); }
 .cell--dup-on select { color: #fff; font-weight: 700; }
 .cell--dup-taken { border-color: var(--c); }
-/* Everyone's ranking of this dog, one digit each in their own colour, oldest
-   drafter first. Smallest type in the app on purpose: it is reference, not a
-   control, and the select above it stays the thing you touch. */
-.dupranks {
-  position: absolute; left: 0; right: 0; bottom: 1px; display: flex;
-  justify-content: center; gap: 3px; pointer-events: none; line-height: 1;
-}
-.dupranks i { font-size: 9px; font-weight: 700; font-style: normal; color: var(--c); }
-.cell--dup-ranked select { padding-bottom: 10px; }
+/* A pick that is that player's dup shows which choice it was. Bigger and in
+   their colour, because a bare digit next to team codes has to read as a
+   different kind of thing, not as a score. */
+.cell--pick.cell--rank { font-size: 15px; font-weight: 800; color: var(--c); }
 
 .cell--menu { padding: 0; justify-content: center; background: transparent; border-color: transparent; color: var(--ink-dim); }
 .cell--menu:hover { color: var(--ink); background: var(--surface); }
