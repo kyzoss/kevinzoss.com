@@ -33,7 +33,7 @@
 // which would only send everyone off to redeploy for nothing. Reported back by
 // doGet and doPost, so the app can tell you whether the deployment you are
 // talking to is actually the current one.
-var SCRIPT_VERSION = 'merge-1';
+var SCRIPT_VERSION = 'straight-up-1';
 
 var STATE_SHEET = 'state';
 var PICKS_SHEET = 'picks';
@@ -219,7 +219,7 @@ function writePicks_(state) {
       }
       var final = game.status === 'post' && game.homeScore != null && game.awayScore != null;
       row.push(final ? game.awayScore + '-' + game.homeScore : (game.status === 'in' ? 'live' : ''));
-      row.push(final ? coveredBy_(game) : '');
+      row.push(final ? wonBy_(game) : '');
       rows.push(row);
     }
     // one blank row between weeks, so the grid stays skimmable
@@ -256,11 +256,11 @@ function lineText_(game) {
   return fav + ' -' + Math.abs(game.spread);
 }
 
-function coveredBy_(game) {
-  if (game.spread == null) return '';
-  var margin = game.homeScore - game.awayScore + game.spread;
-  if (margin === 0) return 'push';
-  return margin > 0 ? game.home : game.away;
+/** Straight up: who won. The spread is not part of grading. A tie is nobody. */
+function wonBy_(game) {
+  if (game.homeScore == null || game.awayScore == null) return '';
+  if (game.homeScore === game.awayScore) return 'tie';
+  return game.homeScore > game.awayScore ? game.home : game.away;
 }
 
 /** Mirrors the app's ranked-choice dup draft closely enough for the grid. */

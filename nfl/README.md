@@ -1,7 +1,7 @@
 # Pick'em
 
-The pool that used to live in a spreadsheet: four players, eighteen weeks, picks
-against the spread, dups, a weekly pot, last man standing and the Browns bet.
+The pool that used to live in a spreadsheet: four players, eighteen weeks,
+straight-up picks, dups, a weekly pot, last man standing and the Browns bet.
 
 Static app, no build step. Open `index.html` over any web server and it runs.
 
@@ -96,8 +96,11 @@ API keys.
 ## How it plays
 
 - **Picks.** One row per game, laid out like the sheet: **Fav | Spr | Dog**, then
-  every player's pick, then the dup picker. Tap either side to take it. A cover
-  is 1 point, a push is ½. Picks lock at kickoff. The line freezes for everyone
+  every player's pick, then the dup picker. Tap the team you think **wins** —
+  picks are graded straight up and the spread has nothing to do with it. A win
+  is 1 point, and nothing else scores: a tie counts as a loss. Picks lock at
+  kickoff. The spread still decides which dogs go up for the dup draft, so it is
+  still pulled and still shown, and it freezes for everyone
   once anyone picks the game, at kickoff, or automatically at noon on that
   week's Tuesday (`lineLockHour`) — pull the fresh numbers Tuesday morning and
   from then on everyone plays the same line. The commissioner can lock earlier
@@ -111,10 +114,11 @@ API keys.
   single week. You rank your choices in the Dup column of the slate
   itself — no separate screen. Position 1 ranks one team,
   position 2 ranks two, and so on; each player gets their highest-ranked team
-  still available. Your dup is your pick in that game: +1.5 on a cover, 0 if not.
+  still available. Your dup is your pick in that game and it has to win
+  outright: +1.5 if it does, 0 if it doesn't.
   **If a team you ranked goes to someone above you, that game reconciles to the
-  favorite** — ranking a dog as a dup isn't the same as taking it against the
-  number, and it stops a game sitting unpicked while you wait on the draft. Tap
+  favorite** — ranking a dog as a dup isn't the same as picking it, and it stops
+  a game sitting unpicked while you wait on the draft. Tap
   the dog yourself and your own pick stands instead. The draft locks at the first
   kickoff among those games.
 - **Weekly pot.** $4 a week. Best score takes it; a tie rolls the pot; week 18

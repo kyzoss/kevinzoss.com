@@ -303,7 +303,7 @@ img { display: block; }
   color: #fff;
 }
 .cell--lost { opacity: .45; }
-.cell--covered .cell__abbr { color: var(--win); }
+.cell--won .cell__abbr { color: var(--win); }
 
 .cell--mid {
   flex-direction: column; justify-content: center; gap: 1px; padding: 0 2px;
@@ -400,7 +400,7 @@ button.cell--mid:hover { border-color: var(--line-2); }
     font-size: 13px; font-weight: 400; color: var(--ink-mute);
   }
   .cell--mine .cell__name { color: rgba(255,255,255,.7); }
-  .cell--lost .cell__name, .cell--covered .cell__name { color: var(--ink-dim); }
+  .cell--lost .cell__name, .cell--won .cell__name { color: var(--ink-dim); }
   .cell--mid b { font-size: 14px; }
   .cell--mid b.mid__line { font-size: 14px; }
   .cell--mid i { font-size: 10px; }
