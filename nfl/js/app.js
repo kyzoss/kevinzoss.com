@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=a7f741cf";
-import * as SC from "./scoring.js?v=a7f741cf";
-import { TEAMS, TEAM_LIST, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=a7f741cf";
-import { fetchWeek } from "./espn.js?v=a7f741cf";
-import { fetchSpreads } from "./odds.js?v=a7f741cf";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toLocalInput, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=a7f741cf";
+import * as S from "./store.js?v=605a1d8c";
+import * as SC from "./scoring.js?v=605a1d8c";
+import { TEAMS, TEAM_LIST, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=605a1d8c";
+import { fetchWeek } from "./espn.js?v=605a1d8c";
+import { fetchSpreads } from "./odds.js?v=605a1d8c";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toLocalInput, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=605a1d8c";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -575,7 +575,7 @@ function renderStandings(state) {
     }).join("");
     return `<div class="row ${i === 0 && t.won > 0 ? "row--lead" : ""}" style="--c:${esc(p.color)}">
       <div class="row__rank">${i + 1}</div>${avatar(p.id, "avatar--lg")}
-      <div class="row__name">${esc(p.name)}<small>${r.w}-${r.l}${r.p ? `-${r.p}` : ""} ATS · ${pct}%</small></div>
+      <div class="row__name">${esc(p.name)}<small>${r.w}-${r.l} ATS${r.p ? ` · ${r.p} push${r.p === 1 ? "" : "es"}` : ""} · ${pct}%</small></div>
       <div class="stat stat--money"><div class="stat__v money">${SC.money(t.won)}</div><div class="stat__k">Won</div></div>
       <div class="stat"><div class="stat__v">${fmtPts(r.points)}</div><div class="stat__k">Points</div></div>
       <div class="stat stat--wide"><div class="stat__v">${t.weeklyWins}</div><div class="stat__k">Weeks</div></div>
@@ -854,11 +854,23 @@ function addGameModal() {
 }
 function betModal(pid) {
   const pr = S.getState().sideBet?.predictions?.[pid] || {};
+  const n = seasonGames();
   openModal(`${modalHead(`${nameOf(pid)} · ${cfg.sideBet.label}`)}<form data-form="bet" data-id="${esc(pid)}">
-    <div class="fields"><label class="field-row"><span>Wins</span><input class="input" name="wins" type="number" min="0" max="17" inputmode="numeric" value="${pr.wins ?? ""}" required></label>
-    <label class="field-row"><span>Losses</span><input class="input" name="losses" type="number" min="0" max="17" inputmode="numeric" value="${pr.losses ?? ""}"></label>
+    <div class="fields"><label class="field-row"><span>Wins</span><input class="input" name="wins" type="number" min="0" max="${n}" inputmode="numeric" value="${pr.wins ?? ""}" required></label>
+    <div class="field-row"><span>Losses</span><div class="input input--derived" data-losses>${lossesLabel(pr.wins)}</div></div>
     <label class="field-row"><span>Points scored</span><input class="input" name="points" type="number" min="0" inputmode="numeric" value="${pr.points ?? ""}" placeholder="tiebreaker"></label></div>
+    <p class="mute" style="margin:12px 0 0;font-size:12px">${n}-game season, so the losses follow from the wins. Points scored only matters as a tiebreaker.</p>
     <div class="form__actions"><button type="button" class="btn" data-action="modal-close">Cancel</button><button class="btn btn--primary" type="submit">Lock it in</button></div></form>`);
+}
+
+/** Games in a season, so the 17 is not sprinkled through the file. */
+function seasonGames() { return Number(cfg.sideBet?.gamesInSeason) || 17; }
+
+/** What the derived losses box shows for a given win total. */
+function lossesLabel(wins) {
+  const n = seasonGames();
+  const w = wins === "" || wins == null ? null : Number(wins);
+  return w == null || !Number.isFinite(w) || w < 0 || w > n ? "—" : String(n - w);
 }
 function betActualModal() {
   const a = S.getState().sideBet?.actual || {};
@@ -954,9 +966,10 @@ document.addEventListener("submit", (e) => {
       break;
     }
     case "bet": {
-      const wins = num("wins");
+      const n = seasonGames();
+      const wins = num("wins") == null ? null : Math.min(n, Math.max(0, num("wins")));
       if (wins == null) return;
-      S.update((d) => { d.sideBet.predictions[form.dataset.id] = { wins, losses: num("losses") ?? 17 - wins, points: num("points"), at: Date.now() }; });
+      S.update((d) => { d.sideBet.predictions[form.dataset.id] = { wins, losses: n - wins, points: num("points"), at: Date.now() }; });
       toast("Locked in");
       break;
     }
@@ -975,6 +988,14 @@ document.addEventListener("submit", (e) => {
     }
   }
   closeModal();
+});
+
+// Losses are not a question on a fixed-length season: fill them in as wins is typed.
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if (!el || el.name !== "wins") return;
+  const out = el.closest('[data-form="bet"]')?.querySelector("[data-losses]");
+  if (out) out.textContent = lossesLabel(el.value);
 });
 
 document.addEventListener("change", (e) => {
