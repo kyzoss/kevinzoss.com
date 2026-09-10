@@ -514,6 +514,21 @@ table.sheet { border-collapse: collapse; width: 100%; font-size: 13px; font-vari
   text-decoration: none; display: inline-block;
 }
 .sheet--lms tr.round td { white-space: normal; line-height: 1.5; padding: 8px 10px; }
+/* Player names, not three-letter team codes. Fixed layout keeps the columns
+   even, so the cell has to clip rather than spill into its neighbour, and the
+   score goes on its own line instead of trailing the name. */
+/* While the Browns are playing, the points in this block are moving. */
+.badge--live {
+  background: color-mix(in srgb, var(--live) 20%, transparent); color: var(--live);
+  border-color: color-mix(in srgb, var(--live) 45%, transparent);
+  animation: livepulse 2.4s ease-in-out infinite;
+}
+@keyframes livepulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .badge--live { animation: none; } }
+
+.sheet--brown td.lmst { overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.sheet--brown td.lmst i { display: block; margin: 2px 0 0; }
+
 .lmst--safe { color: var(--win) !important; }
 .lmst--knocked {
   color: var(--ink-dim) !important; text-decoration: line-through;

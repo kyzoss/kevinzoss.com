@@ -47,6 +47,15 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     view, the scores and payout, the depth-chart picker, a
                     player spent in the round greyed out, and the history and
                     money on the Browns page
+    converge        three devices and one board, reproducing the failure where
+                    the website showed every pick, one phone was missing Jim's
+                    and Andrew's own picks were gone. Asserts all three agree
+                    with the board -- against a server that returns its merge
+                    AND one that does not -- and that a deliberate unpick still
+                    sticks
+    brown-live      while the Browns play, brown-of-week points move on their
+                    own -- and a poll that changed nothing saves nothing, since
+                    every open phone polls once a minute
     dupranks        a dup shows as its rank in that player's own column
     recover         recoverPicksFromLog rebuilds a narrowed board from the log
 

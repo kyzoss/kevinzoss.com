@@ -85,6 +85,7 @@ export function update(fn, { silent = false } = {}) {
   if (r === false) return;
   next.updatedAt = Date.now();
   state = next;
+  if (!applyingRemote) touched = true;
   persist();
   if (!silent) emit();
 }
@@ -195,10 +196,16 @@ let pollTimer = null;
 let readOk = false;      // has this device seen the shared board yet?
 let scriptVersion = "";  // reported by the Apps Script, so a stale deploy shows up
 let actorId = "";        // who is entering picks on this device, sent with every save
+// Has anyone actually changed anything on THIS device since it loaded? A device
+// that has not been touched has no business overwriting its own player's
+// entries on the board -- and a thin local copy pushing over a fuller board is
+// how a player's own picks vanished. Only a real edit makes this device
+// authoritative about itself.
+let touched = false;
 // What sheet/Code.gs says in this checkout. If the deployment reports anything
 // else it is running older code, which last time meant the pool's picks were
 // one blank device away from being wiped.
-const EXPECTED_SCRIPT_VERSION = "brown-1";
+const EXPECTED_SCRIPT_VERSION = "merge-back-1";
 
 export async function initSync() {
   backend = pickBackend();
@@ -226,7 +233,18 @@ async function connect(tries) {
         const theirs = Number(remote.updatedAt || incoming.updatedAt || 0);
         const mine = Number(state.updatedAt || 0);
         if (theirs > mine || !mine) applyRemote(incoming);
-        else if (mine > theirs) await pushRemote();
+        // A newer local timestamp is not the same as a better local copy. Until
+        // someone actually edits something here, the board wins outright --
+        // including for our own player. Pushing first is how a stale device
+        // erased its own picks: the server, correctly, lets a player speak for
+        // themselves, so a thin copy of yourself is read as an unpick.
+        else if (mine > theirs) { if (touched) await pushRemote(); else applyRemote(incoming); }
+        // Equal timestamps used to mean "nothing to do", which is how a device
+        // that had pushed a thin copy stayed thin forever. Judge by content as
+        // well: if the board knows more about the OTHER players than we do,
+        // take theirs for them. Our own entries are never overwritten this way,
+        // so an unpick made here still stands and still gets pushed.
+        else if (foreignDepth(incoming) > foreignDepth(state)) adopt(incoming);
       } else {
         await pushRemote();
       }
@@ -277,14 +295,63 @@ function startPolling() {
 /** Read the shared board right now, rather than waiting out the poll interval. */
 export function refresh() { return pull(); }
 
+/**
+ * How much this document knows about players OTHER than whoever is using this
+ * device. Comparing totals would let a device that has just unpicked something
+ * look "behind" and pull its own removal back.
+ */
+function foreignDepth(doc) {
+  let n = 0;
+  const mine = actorId || getMe();
+  for (const w of Object.values(doc.weeks || {})) {
+    for (const [pid, by] of Object.entries(w.picks || {})) if (pid !== mine) n += Object.keys(by || {}).length;
+    for (const [pid, v] of Object.entries(w.lms || {})) if (pid !== mine && v) n++;
+    for (const [pid, v] of Object.entries(w.brown || {})) if (pid !== mine && v) n++;
+    for (const [pid, v] of Object.entries(w.dupPrefs || {})) if (pid !== mine && (v || []).length) n++;
+  }
+  for (const [pid, v] of Object.entries(doc.sideBet?.predictions || {})) if (pid !== mine && v) n++;
+  return n;
+}
+
+/**
+ * Take everyone else's entries from `incoming`, keep our own from local. The
+ * mirror of the server rule: nobody speaks for another player's picks, and this
+ * device is the authority on its own.
+ */
+function adopt(incoming) {
+  const mine = actorId || getMe();
+  const next = JSON.parse(JSON.stringify(incoming));
+  for (const [wk, w] of Object.entries(state.weeks || {})) {
+    const into = next.weeks?.[wk];
+    if (!into) { next.weeks = next.weeks || {}; next.weeks[wk] = w; continue; }
+    if (mine) {
+      if (w.picks?.[mine]) { into.picks = into.picks || {}; into.picks[mine] = w.picks[mine]; }
+      if (w.lms?.[mine]) { into.lms = into.lms || {}; into.lms[mine] = w.lms[mine]; }
+      if (w.brown?.[mine]) { into.brown = into.brown || {}; into.brown[mine] = w.brown[mine]; }
+      if (w.dupPrefs?.[mine]) { into.dupPrefs = into.dupPrefs || {}; into.dupPrefs[mine] = w.dupPrefs[mine]; }
+    }
+    if ((w.games || []).length > (into.games || []).length) into.games = w.games;
+  }
+  if (mine && state.sideBet?.predictions?.[mine]) {
+    next.sideBet = next.sideBet || { predictions: {}, actual: null };
+    next.sideBet.predictions = next.sideBet.predictions || {};
+    next.sideBet.predictions[mine] = state.sideBet.predictions[mine];
+  }
+  applyRemote(next);
+}
+
 async function pull() {
   if (!backend) return;
   try {
     const remote = await backend.read();
     readOk = true;
     if (!remote?.state) return;
-    const theirs = Number(remote.updatedAt || remote.state.updatedAt || 0);
-    if (theirs > Number(state.updatedAt || 0)) applyRemote(migrate(remote.state));
+    const incoming = migrate(remote.state);
+    const theirs = Number(remote.updatedAt || incoming.updatedAt || 0);
+    if (theirs > Number(state.updatedAt || 0)) applyRemote(incoming);
+    // Same blind spot as the first connect: equal timestamps are not the same
+    // as equal content, and this poll is what runs every 15 seconds.
+    else if (foreignDepth(incoming) > foreignDepth(state)) adopt(incoming);
     if (syncStatus.state === "error") { syncStatus = { ...syncStatus, state: "live", detail: "" }; emit(); }
   } catch (e) {
     syncStatus = { ...syncStatus, state: "error", detail: e.message || String(e) };
@@ -314,6 +381,11 @@ async function pushRemote() {
     const reply = await backend.write(state);
     if (reply?.stale && reply.state && Number(reply.updatedAt || 0) > Number(state.updatedAt || 0)) {
       applyRemote(migrate(reply.state));
+    } else if (reply?.state) {
+      // The board merged our save into something fuller. Take it, or this
+      // device sits on its own partial copy: the timestamps now match, so no
+      // later read would ever adopt it.
+      adopt(migrate(reply.state));
     }
     if (syncStatus.state === "error") { syncStatus = { ...syncStatus, state: "live", detail: "" }; emit(); }
   } catch (e) {

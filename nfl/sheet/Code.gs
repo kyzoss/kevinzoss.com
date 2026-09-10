@@ -33,7 +33,7 @@
 // which would only send everyone off to redeploy for nothing. Reported back by
 // doGet and doPost, so the app can tell you whether the deployment you are
 // talking to is actually the current one.
-var SCRIPT_VERSION = 'brown-1';
+var SCRIPT_VERSION = 'merge-back-1';
 
 var STATE_SHEET = 'state';
 var PICKS_SHEET = 'picks';
@@ -81,7 +81,14 @@ function doPost(e) {
     writeState_(season, merged, incoming);
     writePicks_(merged);
     appendLog_(season, merged, incoming);
-    return json_({ ok: true, updatedAt: incoming, merged: Boolean(existing), version: SCRIPT_VERSION });
+    // Hand the merged document back. The merge is add-only for everyone but the
+    // saver, so what is stored is normally FULLER than what arrived -- and it is
+    // stored under the sender's own timestamp. Without returning it, the sender
+    // keeps its thinner copy, a later read sees an equal timestamp and adopts
+    // nothing, and that device shows a partial board indefinitely. That is why
+    // three phones could disagree while the board itself was correct.
+    return json_({ ok: true, updatedAt: incoming, merged: Boolean(existing),
+                   state: merged, version: SCRIPT_VERSION });
   } catch (err) {
     return json_({ error: String(err && err.message || err) });
   } finally {

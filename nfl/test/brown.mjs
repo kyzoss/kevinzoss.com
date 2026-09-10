@@ -3,18 +3,18 @@ import fs from 'node:fs'; import path from 'node:path';
 const root='/home/user/kevinzoss.com/nfl';
 const T={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml'};
 const g=(a,h,sp,k,st='pre')=>({id:`${a}@${h}`,away:a,home:h,spread:sp,status:st,awayScore:null,homeScore:null,kickoff:k,espnId:'401'});
-const roster=[{id:'1',name:'Deshaun Watson',short:'Watson',pos:'QB',number:'4'},
-  {id:'2',name:'Nick Chubb',short:'Chubb',pos:'RB',number:'24'},
-  {id:'3',name:'Amari Cooper',short:'Cooper',pos:'WR',number:'2'},
-  {id:'4',name:'David Njoku',short:'Njoku',pos:'TE',number:'85'},
-  {id:'5',name:'Dustin Hopkins',short:'Hopkins',pos:'K',number:'7'}];
+const roster=[{id:'1',name:'Deshaun Watson',short:'D. Watson',pos:'QB',number:'4'},
+  {id:'2',name:'Quinshon Judkins',short:'Q. Judkins',pos:'RB',number:'10'},
+  {id:'3',name:'KC Concepcion',short:'K. Concepcion',pos:'WR',number:'1'},
+  {id:'4',name:'Harold Fannin Jr.',short:'H. Fannin Jr.',pos:'TE',number:'44'},
+  {id:'5',name:'Andre Szmyt',short:'A. Szmyt',pos:'K',number:'25'}];
 const seed={v:1,season:2026,
   players:[{id:'az',name:'Andrew',short:'AZ',color:'#4CC9F0'},{id:'kz',name:'Kevin',short:'KZ',color:'#FF9F1C'},
            {id:'jv',name:'Jim',short:'JV',color:'#B388FF'},{id:'hz',name:'Howard',short:'HZ',color:'#A3E635'}],
   brownsRoster: roster,
   weeks:{1:{games:[g('CLE','JAX',-6,'2026-09-13T17:00Z'),g('NO','TB',-7,'2026-09-13T17:00Z')],
     picks:{},lms:{},dupPrefs:{},
-    brown:{kz:'2',az:'3'}, brownStats:{'2':{rushYards:87,rushTD:1},'3':{recYards:50,receptions:4}}},
+    brown:{kz:'2',az:'3',jv:'4',hz:'5'}, brownStats:{'2':{rushYards:87,rushTD:1},'3':{recYards:50,receptions:4},'4':{recYards:31,receptions:3},'5':{pat:2,fg:1}}},
     2:{games:[g('CLE','PIT',-3,'2026-09-20T17:00Z'),g('NO','TB',-7,'2026-09-20T17:00Z')],
        picks:{},lms:{},dupPrefs:{},brown:{},brownStats:{}}},
   sideBet:{predictions:{},actual:null},adjustments:[],updatedAt:1};
@@ -45,8 +45,17 @@ console.log('selected     :', (await p.locator('.teamtile--on b').allInnerTexts(
 await p.keyboard.press('Escape'); await p.waitForTimeout(200);
 await p.getByRole('button',{name:'Browns'}).last().click(); await p.waitForTimeout(500);
 const hist = p.locator('.section', { hasText: 'Brown of the week' }).last();
-console.log('\nBrowns page money row:', (await hist.locator('.pred__big').first().innerText()).replace(/\s+/g,' '));
-console.log('history table       :', (await hist.locator('tbody tr').first().innerText()).replace(/\s+/g,' '));
+console.log('\nBrowns page money rows:');
+for (const m of await hist.locator('.pred__big').all())
+  console.log('   ', (await m.innerText()).replace(/\s+/g,' '));
+console.log('history row:', (await hist.locator('tbody tr').first().innerText()).replace(/\s+/g,' '));
+// no cell may render wider than its column, or it spills over the next name
+const spill = await hist.locator('tbody td.lmst').evaluateAll(els => els
+  .map(e => ({ txt: e.innerText.split('\n')[0], over: e.scrollWidth - e.clientWidth }))
+  .filter(x => x.over > 1));
+console.log('cells overflowing their column:', spill.length ? JSON.stringify(spill) : 'none');
+const minus = (await hist.innerText()).match(/-\$\d/g);
+console.log('negative dollar figures       :', minus ? minus.join(' ') : 'none');
 console.log('\npage errors:', errs.length ? errs[0] : 'none');
 
 // week 2, same round: Chubb was used and scored in week 1, so he must be spent
