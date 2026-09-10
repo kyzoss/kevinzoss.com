@@ -1,0 +1,23 @@
+{
+  "comment": "Vercel only reads vercel.json at the PROJECT ROOT. If a project's Root Directory is this repo root rather than nfl/, then nfl/vercel.json is ignored entirely -- which means no cache headers, and a phone can sit on an old index.html indefinitely, serving old ?v= stamps and therefore old JS. This file covers that case. It is harmless when the project root really is nfl/, because then Vercel reads that one instead. Deliberately no cleanUrls here: the personal site's pages are linked as .html and rewriting them would break those links.",
+  "headers": [
+    {
+      "comment": "Assets carry a build stamp, so revalidating costs nothing and no device can be stranded on an old build.",
+      "source": "/(.*)\\.(html|js|css|json|webmanifest)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+    },
+    {
+      "source": "/",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+    },
+    {
+      "comment": "The pool is private. Only that path -- the rest of the site is meant to be indexed.",
+      "source": "/nfl/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/nfl",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    }
+  ]
+}
