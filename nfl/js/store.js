@@ -126,7 +126,12 @@ export function mergeIn(incoming) {
       for (const [pid, who] of Object.entries(w.brown || {})) mine.brown[pid] ??= who;
       if (w.brownStats && !mine.brownStats) mine.brownStats = w.brownStats;
       mine.dupPrefs ||= {};
-      for (const [pid, list] of Object.entries(w.dupPrefs || {})) mine.dupPrefs[pid] ??= list;
+      // An empty list counts as missing, not as a deliberate "nothing". Clearing
+      // a ranking deletes the key, but a stored [] would otherwise block the
+      // restore -- and the Sheet's own recovery already treats it this way.
+      for (const [pid, list] of Object.entries(w.dupPrefs || {})) {
+        if (!(mine.dupPrefs[pid] || []).length && (list || []).length) mine.dupPrefs[pid] = list;
+      }
     }
     d.sideBet ||= { predictions: {}, actual: null };
     for (const [pid, pr] of Object.entries(src.sideBet?.predictions || {})) {
