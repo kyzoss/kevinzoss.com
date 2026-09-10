@@ -248,15 +248,13 @@ export function resolveDups(state, cfg, week) {
   const byOwner = {};   // dup team -> the player who holds it
   for (const [pid, team] of Object.entries(assigned)) byOwner[team] = pid;
 
-  // Secured or still provisional? A dup can only move if somebody drafting
-  // ahead of its owner has not ranked yet -- they might take it. Once the draft
-  // closes, or once everyone above has ranked, it is theirs.
-  const closed = lockAt != null && Date.now() >= lockAt;
-  const secured = {};
-  for (const [pid, team] of Object.entries(assigned)) {
-    const ahead = order.slice(0, order.indexOf(pid));
-    secured[team] = closed || ahead.every((other) => (prefs[other] || []).length > 0);
-  }
+  // A dup counts as locked in the moment the draft hands it to you. It used to
+  // stay provisional until everyone picking ahead had ranked, which meant one
+  // person not getting round to it left the rest of the table looking unsettled
+  // for days. It can still move if somebody above you ranks that dog later --
+  // that is the draft working -- but until they do, it is yours and it reads
+  // that way.
+  const secured = Object.fromEntries(Object.values(assigned).map((team) => [team, true]));
   return { order, candidates, assigned, byTeam, byOwner, prefs, lockAt, secured };
 }
 

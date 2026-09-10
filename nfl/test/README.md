@@ -59,7 +59,8 @@ pool. It exits non-zero on any failure, so it can gate a push.
     brown-live      while the Browns play, brown-of-week points move on their
                     own -- and a poll that changed nothing saves nothing, since
                     every open phone polls once a minute
-    dupranks        a dup shows as its rank in that player's own column
+    dupranks        every dup the draft has handed over reads as the team,
+                    marked D and in its own colour
     recover         recoverPicksFromLog rebuilds a narrowed board from the log
 
 Chromium comes from `/opt/pw-browsers/chromium`; the tests fake every external

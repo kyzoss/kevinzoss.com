@@ -91,8 +91,14 @@ if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"'
 else line "cold start / Home Screen case" "FAIL — $(echo "$out" | tr '\n' ' ')"; fails=$((fails+1)); fi
 
 out=$(timeout 115 node $SP/dupranks.mjs 2>&1)
-case "$out" in *"1* -> Howard: SF — their #1 dup"*) line "dup rank in own column" "PASS" ;;
-  *) line "dup rank in own column" "FAIL"; fails=$((fails+1)) ;; esac
+# Every assigned dup reads as the team with a D, in its own colour -- including
+# Howard's, which the old provisional rule left as a bare number because Jim
+# had not ranked.
+if echo "$out" | grep -q 'SF\[D\]' \
+  && echo "$out" | grep -q 'SF secured: ::after="D"' \
+  && ! echo "$out" | grep -q 'provisional'; then
+  line "every dup marked D, in colour" "PASS"
+else line "every dup marked D, in colour" "FAIL — $(echo "$out" | sed -n '3,8p' | tr '\n' ' ')"; fails=$((fails+1)); fi
 
 echo
 if [ $fails -eq 0 ]; then echo "ALL GREEN — safe for Jim"; else echo "$fails FAILURE(S)"; fi

@@ -27,14 +27,20 @@ for (const [label, opts] of [['mobile', devices['iPhone 13']], ['desktop', {view
   for (const id of ['TB@CIN','IND@MIA','SF@LAR','NYJ@TEN']) {
     const row = p.locator(`[data-row="${id}"]`);
     const cells = await row.locator('.cell--pick').evaluateAll(els => els.map(e => ({
-      face: e.innerText.trim(), rank: e.className.includes('cell--rank'), title: e.title })));
+      face: e.innerText.trim(),
+      rank: e.className.includes('cell--rank'),
+      set: e.className.includes('cell--dupset'),
+      d: getComputedStyle(e, '::after').content,
+      border: getComputedStyle(e).borderColor,
+      title: e.title })));
     const dupCell = await row.locator('.cell--dup').innerText().catch(()=> '');
-    console.log(`  ${id.padEnd(8)} AZ/KZ/JV/HZ = [${cells.map(c=>c.face+(c.rank?'*':'')).join(' ')}]   DUP col: "${dupCell.trim()}"`);
-    for (const c of cells.filter(c=>c.rank)) console.log(`             ${c.face}* -> ${c.title}`);
+    console.log(`  ${id.padEnd(8)} = [${cells.map(c=>c.face+(c.rank?'#':'')+(c.set?'[D]':'')).join(' ')}]`);
+    for (const c of cells.filter(c=>c.set)) console.log(`             ${c.face} secured: ::after=${c.d} border=${c.border}`);
+    for (const c of cells.filter(c=>c.rank)) console.log(`             ${c.face} provisional -> ${c.title}`);
   }
-  const chips = await p.locator('.dupchip').evaluateAll(els => els.map(e => ({
-    txt: e.innerText.replace(/\s+/g,' ').trim(), pending: e.className.includes('pending') })));
-  console.log('  dup bar:', chips.map(c => `${c.txt}${c.pending?' [provisional]':' [settled]'}`).join('  '));
+  const chips = await p.locator('.dupchip').evaluateAll(els => els.map(e =>
+    e.innerText.replace(/\s+/g,' ').trim()));
+  console.log('  dup bar:', chips.join('  '));
   const h = await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   console.log('  horizontal scroll:', h);
   await p.locator('.slate').scrollIntoViewIfNeeded();

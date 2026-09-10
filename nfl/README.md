@@ -115,7 +115,11 @@ API keys.
   itself — no separate screen. Position 1 ranks one team,
   position 2 ranks two, and so on; each player gets their highest-ranked team
   still available. Your dup is your pick in that game and it has to win
-  outright: +1.5 if it does, 0 if it doesn't.
+  outright: +1.5 if it does, 0 if it doesn't. A dup is **locked in as soon as
+  the draft hands it to you** -- marked `D` on the slate, in its own colour. It
+  can still move if somebody picking above you ranks that dog later, which is
+  the draft working; it does not sit looking unsettled in the meantime just
+  because one person has not got round to ranking.
   **If a team you ranked goes to someone above you, that game reconciles to the
   favorite** — ranking a dog as a dup isn't the same as picking it, and it stops
   a game sitting unpicked while you wait on the draft. Tap

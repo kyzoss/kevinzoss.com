@@ -355,10 +355,6 @@ button.cell--mid:hover { border-color: var(--line-2); }
 .cell--dup-on { background: color-mix(in srgb, var(--c) 16%, var(--bg-2)); }
 .cell--dup-on select { color: #fff; font-weight: 700; }
 .cell--dup-taken { border-color: var(--c); }
-/* A pick that is that player's dup shows which choice it was. Bigger and in
-   their colour, because a bare digit next to team codes has to read as a
-   different kind of thing, not as a score. */
-.cell--pick.cell--rank { font-size: 15px; font-weight: 800; color: var(--c); }
 /* A dup that is secured. It reads as the team like any other pick, so the
    border and the D are what separate it: a pick nobody else could have taken. */
 .cell--pick.cell--dupset {
@@ -624,15 +620,6 @@ textarea.input { font-size: 12px; min-height: 130px; font-family: ui-monospace, 
 .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
 .form__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap; }
 .form__actions .btn--danger { margin-right: auto; }
-
-/* A dup that can still change, because somebody picking earlier has not
-   ranked yet. Dashed rather than solid, so settled and provisional never look
-   the same. */
-.dupchip--pending { border-style: dashed; }
-.dupchip--pending u {
-  text-decoration: none; font-size: 9px; font-weight: 700; color: var(--ink-mute);
-  margin-left: 2px; vertical-align: super;
-}
 
 /* The depth chart in the Brown-of-the-week picker: one block per position. */
 .depths { display: grid; gap: 12px; max-height: 58vh; overflow-y: auto; }
