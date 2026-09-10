@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=7c6be0ca";
-import * as SC from "./scoring.js?v=7c6be0ca";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=7c6be0ca";
-import { fetchWeek } from "./espn.js?v=7c6be0ca";
-import { fetchSpreads } from "./odds.js?v=7c6be0ca";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=7c6be0ca";
+import * as S from "./store.js?v=543019b0";
+import * as SC from "./scoring.js?v=543019b0";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=543019b0";
+import { fetchWeek } from "./espn.js?v=543019b0";
+import { fetchSpreads } from "./odds.js?v=543019b0";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=543019b0";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -35,8 +35,9 @@ const me = () => S.getMe();
 const commish = () => S.isCommish();
 /** Who a pick action applies to. */
 function actor() {
-  if (commish() && ui.pickingAs) return ui.pickingAs;
-  return me();
+  const id = commish() && ui.pickingAs ? ui.pickingAs : me();
+  S.setActor(id);
+  return id;
 }
 function nameOf(id) { return player(id)?.name || id; }
 function avatar(id, size = "") {
@@ -777,7 +778,9 @@ function renderSettings(state) {
       <div class="card"><h4>Sync</h4>
         <p style="margin:0 0 10px;font-size:13px;color:var(--ink-soft)">${sync.enabled ? `Shared board via ${sync.via === "sheet" ? "a Google Sheet" : "Supabase"} · <b>${esc(sync.state)}</b>${sync.detail ? ` · ${esc(sync.detail)}` : ""}` : "This device only. Everyone's picks live here, like the sheet did. To put all four phones on one board, fill in the Supabase block in config.js (see README)."}</p>
         <div class="toolbar" style="margin:0">${sync.enabled ? `<button class="btn btn--sm btn--px" data-action="test-sync">Test the connection</button>` : ""}<button class="btn btn--sm btn--px btn--primary" data-action="restore">Restore picks from backup</button><button class="btn btn--sm btn--px" data-action="export">Export JSON</button><button class="btn btn--sm btn--px" data-action="import">Import JSON</button>${commish() ? `<button class="btn btn--sm btn--px btn--danger" data-action="reset">Reset season</button>` : ""}</div></div>
-      <div class="card"><h4>Sources</h4><dl class="kv"><dt>Schedule & scores</dt><dd>ESPN</dd><dt>Lines</dt><dd>${cfg.oddsApiKey ? esc((cfg.oddsBooks || [])[0] || "the book") : "ESPN"}</dd><dt>Season</dt><dd>${cfg.season}</dd><dt>Week 1</dt><dd>${esc(cfg.week1Tuesday)}</dd></dl></div>
+      <div class="card"><h4>Sources</h4><dl class="kv"><dt>Schedule & scores</dt><dd>ESPN</dd><dt>Lines</dt><dd>${cfg.oddsApiKey ? esc((cfg.oddsBooks || [])[0] || "the book") : "ESPN"}</dd><dt>Season</dt><dd>${cfg.season}</dd><dt>Week 1</dt><dd>${esc(cfg.week1Tuesday)}</dd>
+      <dt>Picks close</dt><dd>${esc(cutoffLabel(ui.week))} Sun</dd>
+      <dt>Build</dt><dd>${esc(BUILD)}</dd></dl></div>
     </div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">House rules</h2></div><div class="rules">
     <p><b>Picks.</b> Every game, straight up: pick the team you think wins. A win is 1 point and nothing else scores — a tie counts as a loss. The spread is not part of it — it only sets which dogs go up for the dup draft. Everything locks at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, and any game that kicks off before then locks at its own kickoff instead.</p>
@@ -1051,7 +1054,15 @@ async function checkBuild() {
     const res = await fetch(`./version.json?t=${Date.now()}`, { cache: "no-store" });
     if (!res.ok) return;
     const { v } = await res.json();
-    if (v && v !== BUILD) location.reload();
+    if (!v || v === BUILD) return;
+    // Reload once per target build. During a deploy the HTML and version.json
+    // can disagree for a moment; without this the app would reload on every
+    // resume until that settled.
+    try {
+      if (sessionStorage.getItem("pickem:reloadedFor") === v) return;
+      sessionStorage.setItem("pickem:reloadedFor", v);
+    } catch { /* private mode: one reload attempt is still better than none */ }
+    location.reload();
   } catch { /* offline: keep running what we have */ }
 }
 
