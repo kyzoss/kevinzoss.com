@@ -42,7 +42,8 @@ window.POOL_CONFIG = {
   // is what the survivors are playing for.
   lmsPerPlayer: 1,
   lmsRoundWeeks: 4,  // rounds are fixed 4-week blocks; survivors split the pot at the end of each
-  sideBet: { team: "CLE", label: "Browns Record", pot: 10 },
+  // Everyone puts in this much on the Browns' final record; one guess each.
+  sideBet: { team: "CLE", label: "Browns Record", perPlayer: 10 },
 
   // Lines come from The Odds API (the-odds-api.com). Schedule and scores come from ESPN.
   oddsApiKey: "155e00cf4d5fdc04569fc597c57a8e48",

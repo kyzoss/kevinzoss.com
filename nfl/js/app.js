@@ -1,9 +1,9 @@
-import * as S from "./store.js";
-import * as SC from "./scoring.js";
-import { TEAMS, TEAM_LIST, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js";
-import { fetchWeek } from "./espn.js";
-import { fetchSpreads } from "./odds.js";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toLocalInput, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js";
+import * as S from "./store.js?v=f4adc5f9";
+import * as SC from "./scoring.js?v=f4adc5f9";
+import { TEAMS, TEAM_LIST, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=f4adc5f9";
+import { fetchWeek } from "./espn.js?v=f4adc5f9";
+import { fetchSpreads } from "./odds.js?v=f4adc5f9";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toLocalInput, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=f4adc5f9";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -130,6 +130,15 @@ function schedulePolling() {
 }
 
 // ---- mutations ----------------------------------------------------------------
+/** Optimistic paint: move the selected style before any state work happens. */
+function paintPick(el) {
+  const row = el.closest(".grow");
+  if (!row || el.disabled) return;
+  const already = el.classList.contains("cell--mine");
+  for (const cell of row.querySelectorAll(".cell--team")) cell.classList.remove("cell--mine");
+  if (!already) el.classList.add("cell--mine");   // tapping your own pick clears it
+}
+
 function setPick(gameId, side) {
   const pid = actor();
   flashSaved();
@@ -430,10 +439,13 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
   const margin = final && g.spread != null ? g.homeScore - g.awayScore + g.spread : null;
   const coveredSide = margin == null || margin === 0 ? null : margin > 0 ? "home" : "away";
 
-  const myDupTeam = dups.assigned[pid];
-  const myDupHere = myDupTeam && (g.home === myDupTeam || g.away === myDupTeam);
   const mySide = pid ? tally[pid]?.sides[g.id] : null;
-  const canPick = pid && (!started || commish()) && !myDupHere;
+  const mySource = pid ? tally[pid]?.sources[g.id] : null;
+  // Nobody may take a team that someone drafted as a dup, so a dupped game is
+  // settled for the whole table: the owner holds the dog, everyone else the
+  // favorite, and there is nothing left to tap.
+  const dupOwner = dups.byOwner[dogAbbr] || null;
+  const canPick = pid && (!started || commish()) && !dupOwner;
 
   const teamCell = (side, abbr, isDog) => {
     const cls = [
@@ -445,7 +457,7 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
     const prefix = isDog ? (side === "home" ? "@" : "vs") : "";
     return `<button class="${cls}" data-action="pick" data-game="${esc(g.id)}" data-side="${side}"
       ${canPick ? "" : "disabled"} aria-pressed="${mySide === side}"
-      title="${esc(teamName(abbr))}${started ? "" : ` · ${esc(fmtKick(g.kickoff))}`}">
+      title="${esc(teamName(abbr))}${dupOwner ? ` · ${esc(dogAbbr)} is ${esc(nameOf(dupOwner))}'s dup, so this game is set` : started ? "" : ` · ${esc(fmtKick(g.kickoff))}`}">
       ${prefix ? `<i>${prefix}</i>` : ""}<span class="cell__abbr">${esc(abbr)}</span>
       <span class="cell__name">${esc(teamName(abbr))}</span>
     </button>`;
@@ -470,11 +482,15 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
     const t = tally[p.id];
     const side = t.sides[g.id];
     const grade = t.grades[g.id];
-    const isDup = t.dup && (g.home === t.dup || g.away === t.dup);
+    const src = t.sources[g.id];
+    const isDup = src === "dup";
     const auto = t.auto[g.id];
     const cls = ["cell", "cell--pick", grade ? `is-${grade}` : "", isDup ? "cell--isdup" : "",
                  auto ? "cell--auto" : "", p.id === pid ? "cell--self" : ""].join(" ");
-    const why = isDup ? " (dup)" : auto ? ` — the favorite by default, ${esc(auto)} went to someone above them in the draft` : "";
+    const why = isDup ? " (dup)"
+      : src === "locked" ? ` — on the favorite: ${esc(auto)} is a dup, so it is off limits`
+      : src === "default" ? ` — the favorite by default, they ranked ${esc(auto)} and nobody got it`
+      : "";
     const title = `${esc(p.name)}${side ? `: ${esc(abbrOf(g, side))}${why}` : " — no pick"}`;
     return `<span class="${cls}" style="--c:${esc(p.color)}" title="${title}">${side ? esc(abbrOf(g, side)) : "·"}</span>`;
   }).join("");
@@ -502,8 +518,9 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
   }
 
   const menu = commish() ? `<button class="cell cell--menu" data-action="row-menu" data-game="${esc(g.id)}" aria-label="Game options">${icon("edit")}</button>` : "";
-  const cls = ["grow", live ? "grow--live" : "", final ? "grow--final" : "", myDupHere ? "grow--mydup" : ""].join(" ");
-  return `<div class="${cls}" style="--me-c:${esc(myColor)}" role="row">
+  const cls = ["grow", live ? "grow--live" : "", final ? "grow--final" : "",
+               mySource === "dup" ? "grow--mydup" : "", dupOwner ? "grow--dupped" : ""].join(" ");
+  return `<div class="${cls}" style="--me-c:${esc(myColor)}" role="row" data-row="${esc(g.id)}">
     ${teamCell(favSide, favAbbr, false)}${spr}${teamCell(dogSide, dogAbbr, true)}${picks}${dup}${menu}
   </div>`;
 }
@@ -698,23 +715,43 @@ function renderSideBet(state) {
   const wk1 = SC.weekGames(state, 1);
   const locked = wk1.length > 0 && wk1.some(SC.hasStarted);
   const pid = actor();
+  const manual = Boolean(state.sideBet?.actual);
+
   const rows = state.players.map((p) => {
     const pr = bet.predictions[p.id];
     const r = bet.ranked.find((x) => x.id === p.id);
     const canEdit = p.id === pid && (!locked || commish());
     const pay = bet.payouts[p.id];
-    return `<div class="pred" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
-      <div class="pred__big">${pr ? `${pr.wins}-${pr.losses ?? (17 - pr.wins)}${pr.points != null ? ` <span class="mute" style="font-size:11px">· ${pr.points} pts</span>` : ""}` : `<span class="mute">No guess</span>`}<small>${esc(p.name)}${r && bet.actual ? ` · off by ${r.winDiff} win${r.winDiff === 1 ? "" : "s"}` : ""}</small></div>
-      <div style="display:grid;gap:4px;justify-items:end">${pay ? `<span class="badge badge--money">${SC.money(pay)}</span>` : bet.winners.includes(p.id) ? `<span class="badge badge--win">Winner</span>` : ""}${canEdit ? `<button class="btn btn--sm btn--px" data-action="bet-edit" data-id="${esc(p.id)}">${pr ? "Edit" : "Guess"}</button>` : ""}</div></div>`;
+    const mine = p.id === pid;
+    return `<div class="pred ${mine ? "pred--me" : ""}" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
+      <div class="pred__big">${pr ? `${pr.wins}-${pr.losses ?? (17 - pr.wins)}${pr.points != null ? ` <span class="mute" style="font-size:11px">· ${pr.points} pts</span>` : ""}` : `<span class="mute">No guess</span>`}<small>${esc(p.name)}${mine ? " · you" : ""}${r && bet.actual ? ` · off by ${r.winDiff} win${r.winDiff === 1 ? "" : "s"}` : ""}</small></div>
+      <div style="display:grid;gap:4px;justify-items:end">${pay ? `<span class="badge badge--money">${SC.money(pay)}</span>` : bet.winners.includes(p.id) ? `<span class="badge badge--win">Winner</span>` : ""}${canEdit ? `<button class="btn btn--sm btn--px ${pr ? "" : "btn--primary"}" data-action="bet-edit" data-id="${esc(p.id)}">${pr ? "Edit my guess" : "Make my guess"}</button>` : ""}</div></div>`;
   }).join("");
+
   const a = bet.actual;
-  return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">${esc(cfg.sideBet.label)} · ${SC.money(cfg.sideBet.pot)}</h2><span class="section__sub">One guess before Week 1 kicks off. Closest record wins; points scored breaks ties.</span></div>
-    <div class="cards">
-      <div class="card" style="display:flex;gap:14px;align-items:center"><img ${logoAttrs(team)} style="width:56px;height:56px"><div><h4 style="margin:0 0 6px">${esc(TEAMS[team]?.city || "")} ${esc(teamName(team))} · actual</h4>
-        <div class="pred__big" style="font-size:20px">${a ? `${a.w}-${a.l}${a.t ? `-${a.t}` : ""}` : "0-0"} <span class="mute" style="font-size:11px">· ${a?.pf ?? 0} pts · ${bet.derived?.played ?? 0} played</span></div>
-        <div class="mute" style="font-size:12px;margin-top:6px">${bet.settled ? "Settled." : locked ? "Guesses locked. Updates as games go final." : "Guesses open until kickoff."}${commish() ? ` <button class="btn btn--ghost btn--sm" data-action="bet-actual">${icon("edit")}Override</button>` : ""}</div></div></div>
+  const status = bet.settled ? "Settled." : locked ? "Guesses locked. This updates as games go final." : "Guesses open until Week 1 kicks off.";
+  return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">${esc(cfg.sideBet.label)} · ${SC.money(SC.sideBetPot(state, cfg))}</h2><span class="section__sub">${SC.money(cfg.sideBet.perPlayer ?? 0)} each, one guess before Week 1 kicks off. Closest record wins; points scored breaks ties.</span></div>
+
+    <div class="card actual">
+      <span class="actual__mark">${esc(team)}</span>
+      <div>
+        <h4>${esc(TEAMS[team]?.city || "")} ${esc(teamName(team))} &middot; actual record</h4>
+        <div class="actual__rec">${a ? `${a.w}-${a.l}${a.t ? `-${a.t}` : ""}` : "0-0"} <span class="mute">&middot; ${a?.pf ?? 0} pts &middot; ${bet.derived?.played ?? 0} played</span></div>
+        <div class="actual__note">${esc(status)}${manual ? ` <b>Entered by hand.</b>` : ""}</div>
+      </div>
     </div>
-    <div class="cards" style="margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">${rows}</div></section>`;
+
+    <div class="cards" style="margin-top:8px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">${rows}</div>
+
+    ${commish() ? `<div class="commish">
+      <span class="commish__k">Commissioner</span>
+      <p>This is the <b>Browns' real record</b>, not a guess — leave it alone and it fills in from results as games go final. To enter your own prediction use <b>Make my guess</b> above.</p>
+      <div class="toolbar" style="margin:0">
+        <button class="btn btn--sm btn--px" data-action="bet-actual">${icon("edit")}Set the final record by hand</button>
+        ${manual ? `<button class="btn btn--sm btn--px btn--danger" data-action="bet-actual-clear">Clear it, use live results</button>` : ""}
+      </div>
+    </div>` : ""}
+  </section>`;
 }
 
 // ---- settings -----------------------------------------------------------------
@@ -734,7 +771,7 @@ function renderSettings(state) {
     <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game: +${cfg.dup.win} if it covers, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft locks at the first kickoff among those games.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
     <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and the field re-enters &mdash; a forfeit never shares. And if nobody picked at all, nothing is settled: the pot rolls into next week. The week-by-week tracker is on the Standings tab.</p>
-    <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.pot)}. One guess at the ${esc(teamName(cfg.sideBet.team))}' final record before Week 1. Closest wins, points scored breaks ties.</p>
+    <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.perPlayer ?? 0)} from everyone, so ${SC.money(SC.sideBetPot(state, cfg))} on the table. One guess each at the ${esc(teamName(cfg.sideBet.team))}' final record before Week 1. Closest wins, points scored breaks ties.</p>
   </div></section>`;
 }
 
@@ -857,7 +894,13 @@ document.addEventListener("click", (e) => {
     case "whoami": whoModal(); break;
     case "pick-as": pickAsModal(); break;
     case "pick-as-set": ui.pickingAs = el.dataset.id === me() ? null : el.dataset.id; closeModal(); render(); break;
-    case "pick": setPick(el.dataset.game, el.dataset.side); break;
+    case "pick": {
+      // Colour the tapped side now. The re-render that follows produces the same
+      // result, so there is nothing left to flash in.
+      paintPick(el);
+      requestAnimationFrame(() => setPick(el.dataset.game, el.dataset.side));
+      break;
+    }
     case "row-menu": rowMenu(el.dataset.game); break;
     case "lms-open": lmsModal(); break;
     case "lms-pick": setLms(el.dataset.team || null); break;

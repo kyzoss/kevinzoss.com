@@ -51,15 +51,88 @@ function doPost(e) {
       return json_({ state: JSON.parse(existing.json), updatedAt: Number(existing.updatedAt), stale: true });
     }
 
-    writeState_(season, state, incoming);
-    writePicks_(state);
-    appendLog_(season, state, incoming);
-    return json_({ ok: true, updatedAt: incoming });
+    // Merge rather than replace. A phone with empty storage that pulls the
+    // slate has a newer timestamp but no picks, and a straight replace lets it
+    // wipe everyone -- which is exactly what happened once. A player only ever
+    // edits their own entries, so keeping the stored entry for any player the
+    // incoming document does not mention is always safe, while a real unpick
+    // still arrives inside that player's own map and is honoured.
+    var merged = existing ? mergeState_(JSON.parse(existing.json), state) : state;
+    writeState_(season, merged, incoming);
+    writePicks_(merged);
+    appendLog_(season, merged, incoming);
+    return json_({ ok: true, updatedAt: incoming, merged: Boolean(existing) });
   } catch (err) {
     return json_({ error: String(err && err.message || err) });
   } finally {
     try { lock.releaseLock(); } catch (ignored) {}
   }
+}
+
+// ---- merging ---------------------------------------------------------------
+
+/** Keep the stored value for any key the incoming object does not mention. */
+function mergeByPlayer_(stored, incoming) {
+  var out = {};
+  var k;
+  for (k in (stored || {})) out[k] = stored[k];
+  for (k in (incoming || {})) out[k] = incoming[k];
+  return out;
+}
+
+function mergeState_(stored, incoming) {
+  var out = {};
+  var k;
+  for (k in stored) out[k] = stored[k];
+  for (k in incoming) out[k] = incoming[k];
+
+  out.weeks = {};
+  var weeks = {};
+  for (k in (stored.weeks || {})) weeks[k] = true;
+  for (k in (incoming.weeks || {})) weeks[k] = true;
+  for (var wk in weeks) {
+    var a = (stored.weeks || {})[wk] || {};
+    var b = (incoming.weeks || {})[wk] || {};
+    var w = {};
+    for (k in a) w[k] = a[k];
+    for (k in b) w[k] = b[k];
+    // the slate: whoever has more games has pulled more recently
+    var ga = a.games || [], gb = b.games || [];
+    w.games = gb.length >= ga.length ? gb : ga;
+    w.picks = mergeByPlayer_(a.picks, b.picks);
+    w.lms = mergeByPlayer_(a.lms, b.lms);
+    w.dupPrefs = mergeByPlayer_(a.dupPrefs, b.dupPrefs);
+    out.weeks[wk] = w;
+  }
+
+  // Values that belong to the table rather than to a player -- the Browns'
+  // actual record, the adjustments -- cannot be merged key by key, and a blank
+  // document's nulls are indistinguishable from a deliberate clear. So they are
+  // only honoured from a document that carries some player data, which a device
+  // with empty storage never does.
+  var sa = stored.sideBet || {}, sb = incoming.sideBet || {};
+  var live = hasPlayerData_(incoming);
+  out.sideBet = {
+    predictions: mergeByPlayer_(sa.predictions, sb.predictions),
+    actual: live ? (sb.actual !== undefined ? sb.actual : sa.actual) : sa.actual,
+  };
+  out.adjustments = live ? (incoming.adjustments || []) : (stored.adjustments || []);
+  return out;
+}
+
+/** Does this document contain anything a player actually entered? */
+function hasPlayerData_(doc) {
+  var weeks = (doc && doc.weeks) || {};
+  for (var wk in weeks) {
+    var w = weeks[wk] || {};
+    var pid;
+    for (pid in (w.picks || {})) if (w.picks[pid] && Object.keys(w.picks[pid]).length) return true;
+    for (pid in (w.lms || {})) if (w.lms[pid]) return true;
+    for (pid in (w.dupPrefs || {})) if ((w.dupPrefs[pid] || []).length) return true;
+  }
+  var preds = ((doc && doc.sideBet) || {}).predictions || {};
+  for (var p in preds) if (preds[p]) return true;
+  return false;
 }
 
 // ---- storage ---------------------------------------------------------------
