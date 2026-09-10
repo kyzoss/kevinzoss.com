@@ -54,6 +54,24 @@ export function pointsFor(grade) {
   return grade === "win" ? WIN : 0;
 }
 
+/**
+ * The earliest game this team plays, across the whole season. The side bet
+ * closes when they first take the field, which is not the same as when the
+ * season starts: a team with a Sunday opener should still be guessable on the
+ * Thursday night the season kicks off.
+ */
+export function firstGameFor(state, abbr) {
+  let best = null;
+  for (const wk of Object.values(state.weeks || {})) {
+    for (const g of wk.games || []) {
+      if (g.home !== abbr && g.away !== abbr) continue;
+      const at = g.kickoff ? new Date(g.kickoff).getTime() : Infinity;
+      if (!best || at < (best.kickoff ? new Date(best.kickoff).getTime() : Infinity)) best = g;
+    }
+  }
+  return best;
+}
+
 /** Straight-up winner abbreviation, 'tie', or null when not final. */
 export function straightUpWinner(game) {
   if (!isFinal(game)) return null;
@@ -205,7 +223,7 @@ export function dupOrder(state, cfg, week) {
   return [...base.slice(shift), ...base.slice(0, shift)];
 }
 
-/** Resolve the dup draft: { order, candidates, assigned: {pid: team}, byTeam, prefs, lockAt } */
+/** Resolve the dup draft: { order, candidates, assigned, byTeam, byOwner, prefs, lockAt, secured } */
 export function resolveDups(state, cfg, week) {
   const wk = state.weeks?.[week] || {};
   const games = wk.games || [];
@@ -229,7 +247,17 @@ export function resolveDups(state, cfg, week) {
   const lockAt = candidates.length ? pickCutoffAt(week, cfg) : null;
   const byOwner = {};   // dup team -> the player who holds it
   for (const [pid, team] of Object.entries(assigned)) byOwner[team] = pid;
-  return { order, candidates, assigned, byTeam, byOwner, prefs, lockAt };
+
+  // Secured or still provisional? A dup can only move if somebody drafting
+  // ahead of its owner has not ranked yet -- they might take it. Once the draft
+  // closes, or once everyone above has ranked, it is theirs.
+  const closed = lockAt != null && Date.now() >= lockAt;
+  const secured = {};
+  for (const [pid, team] of Object.entries(assigned)) {
+    const ahead = order.slice(0, order.indexOf(pid));
+    secured[team] = closed || ahead.every((other) => (prefs[other] || []).length > 0);
+  }
+  return { order, candidates, assigned, byTeam, byOwner, prefs, lockAt, secured };
 }
 
 /** The side a player is effectively on for a game (dup overrides the stored pick). */

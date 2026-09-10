@@ -359,6 +359,19 @@ button.cell--mid:hover { border-color: var(--line-2); }
    their colour, because a bare digit next to team codes has to read as a
    different kind of thing, not as a score. */
 .cell--pick.cell--rank { font-size: 15px; font-weight: 800; color: var(--c); }
+/* A dup that is secured. It reads as the team like any other pick, so the
+   border and the D are what separate it: a pick nobody else could have taken. */
+.cell--pick.cell--dupset {
+  border-color: var(--accent-lift);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-lift) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-lift) 10%, var(--bg-2));
+}
+.cell--pick.cell--dupset::after {
+  content: "D"; position: absolute; top: 0; right: 2px;
+  font-size: 8px; font-weight: 800; line-height: 1.2;
+  color: var(--accent-lift); background: none; border-radius: 0;
+  width: auto; height: auto;
+}
 
 .cell--menu { padding: 0; justify-content: center; background: transparent; border-color: transparent; color: var(--ink-dim); }
 .cell--menu:hover { color: var(--ink); background: var(--surface); }

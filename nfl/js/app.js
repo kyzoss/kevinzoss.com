@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=ce2262f9";
-import * as SC from "./scoring.js?v=ce2262f9";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=ce2262f9";
-import { fetchWeek } from "./espn.js?v=ce2262f9";
-import { fetchSpreads } from "./odds.js?v=ce2262f9";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=ce2262f9";
+import * as S from "./store.js?v=61032476";
+import * as SC from "./scoring.js?v=61032476";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=61032476";
+import { fetchWeek } from "./espn.js?v=61032476";
+import { fetchSpreads } from "./odds.js?v=61032476";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=61032476";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -519,18 +519,22 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
     const src = t.sources[g.id];
     const isDup = src === "dup";
     const auto = t.auto[g.id];
-    // Where a pick IS somebody's dup, their column shows which choice it was
-    // rather than the team: the team is already in the Dog column two cells
-    // over, and the number is the thing you cannot read anywhere else.
+    // A dup that is still provisional shows which choice it was -- the number is
+    // the thing you cannot read anywhere else while the draft is unsettled.
+    // Once it is secured it reads as the team, marked D: it is a pick now, not
+    // a preference, and the number stops mattering.
     const rank = isDup ? (dups.prefs[p.id] || []).indexOf(dogAbbr) + 1 : 0;
+    const held = isDup && dups.secured?.[dogAbbr];
     const cls = ["cell", "cell--pick", grade ? `is-${grade}` : "", isDup ? "cell--isdup" : "",
-                 rank ? "cell--rank" : "", auto ? "cell--auto" : "", p.id === pid ? "cell--self" : ""].join(" ");
-    const why = isDup ? ` — their ${rank ? `#${rank} ` : ""}dup`
+                 held ? "cell--dupset" : rank ? "cell--rank" : "",
+                 auto ? "cell--auto" : "", p.id === pid ? "cell--self" : ""].join(" ");
+    const why = isDup
+      ? (held ? ` — their dup${rank ? `, pick #${rank}` : ""}` : ` — their #${rank} dup, not settled yet`)
       : src === "locked" ? ` — on the favorite: ${esc(auto)} is a dup, so it is off limits`
       : src === "default" ? ` — the favorite by default, they ranked ${esc(auto)} and nobody got it`
       : "";
     const title = `${esc(p.name)}${side ? `: ${esc(abbrOf(g, side))}${why}` : " — no pick"}`;
-    const face = !side ? "·" : rank ? String(rank) : esc(abbrOf(g, side));
+    const face = !side ? "·" : (rank && !held) ? String(rank) : esc(abbrOf(g, side));
     return `<span class="${cls}" style="--c:${esc(p.color)}" title="${title}">${face}</span>`;
   }).join("");
 
@@ -763,8 +767,11 @@ function renderLmsTracker(state, led) {
 function renderSideBet(state) {
   const bet = SC.sideBet(state, cfg);
   const team = cfg.sideBet.team;
-  const wk1 = SC.weekGames(state, 1);
-  const locked = wk1.length > 0 && wk1.some(SC.hasStarted);
+  // Guesses close when the Browns themselves first play -- not when any game in
+  // week 1 kicks off, which shut the door on Wednesday night for a team that
+  // does not play until Sunday.
+  const firstGame = SC.firstGameFor(state, team);
+  const locked = Boolean(firstGame && SC.hasStarted(firstGame));
   const pid = actor();
   const manual = Boolean(state.sideBet?.actual);
 
@@ -780,8 +787,11 @@ function renderSideBet(state) {
   }).join("");
 
   const a = bet.actual;
-  const status = bet.settled ? "Settled." : locked ? "Guesses locked. This updates as games go final." : "Guesses open until Week 1 kicks off.";
-  return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">${esc(cfg.sideBet.label)} · ${SC.money(SC.sideBetPot(state, cfg))}</h2><span class="section__sub">${SC.money(cfg.sideBet.perPlayer ?? 0)} each, one guess before Week 1 kicks off. Closest record wins; points scored breaks ties.</span></div>
+  const status = bet.settled ? "Settled."
+    : locked ? "Guesses locked. This updates as games go final."
+    : firstGame ? `Guesses open until ${esc(teamName(team))} kick off — ${esc(fmtKick(firstGame.kickoff))}.`
+    : "Guesses open until their first game.";
+  return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">${esc(cfg.sideBet.label)} · ${SC.money(SC.sideBetPot(state, cfg))}</h2><span class="section__sub">${SC.money(cfg.sideBet.perPlayer ?? 0)} each, one guess before the ${esc(teamName(team))} first play. Closest record wins; points scored breaks ties.</span></div>
 
     <div class="card actual">
       <span class="actual__mark">${esc(team)}</span>
