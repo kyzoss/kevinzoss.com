@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=4dc390b3";
-import * as SC from "./scoring.js?v=4dc390b3";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=4dc390b3";
-import { fetchWeek } from "./espn.js?v=4dc390b3";
+import * as S from "./store.js?v=fa2d7d7b";
+import * as SC from "./scoring.js?v=fa2d7d7b";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=fa2d7d7b";
+import { fetchWeek } from "./espn.js?v=fa2d7d7b";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=4dc390b3";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=4dc390b3";
+import { fetchSpreads } from "./odds.js?v=fa2d7d7b";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=fa2d7d7b";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");

@@ -90,6 +90,11 @@ if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"'
   line "cold start / Home Screen case" "PASS"
 else line "cold start / Home Screen case" "FAIL — $(echo "$out" | tr '\n' ' ')"; fails=$((fails+1)); fi
 
+out=$(timeout 115 node $SP/restore-dups.mjs 2>&1)
+if echo "$out" | grep -q "Andrew TB, Kevin IND, Jim and Howard untouched"; then
+  line "restore fills a wiped ranking" "PASS"
+else line "restore fills a wiped ranking" "FAIL — $(echo "$out" | tail -3 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/dupranks.mjs 2>&1)
 # Every assigned dup reads as the team with a D, in its own colour -- including
 # Howard's, which the old provisional rule left as a bare number because Jim
