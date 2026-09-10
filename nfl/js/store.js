@@ -151,6 +151,8 @@ export function resetState() {
 
 // ---- identity -------------------------------------------------------------
 export function getMe() { return localStorage.getItem(ME_KEY) || ""; }
+/** Tell the store who is picking, so a save says whose entries it may replace. */
+export function setActor(id) { actorId = id || ""; }
 export function setMe(id) { if (id) localStorage.setItem(ME_KEY, id); else localStorage.removeItem(ME_KEY); emit(); }
 export function isCommish(id = getMe()) { return Boolean(id) && id === cfg.commissioner; }
 
@@ -188,10 +190,11 @@ let backend = null;      // { name, read(), write(state), watch?(onRemote) }
 let pollTimer = null;
 let readOk = false;      // has this device seen the shared board yet?
 let scriptVersion = "";  // reported by the Apps Script, so a stale deploy shows up
+let actorId = "";        // who is entering picks on this device, sent with every save
 // What sheet/Code.gs says in this checkout. If the deployment reports anything
 // else it is running older code, which last time meant the pool's picks were
 // one blank device away from being wiped.
-const EXPECTED_SCRIPT_VERSION = "straight-up-1";
+const EXPECTED_SCRIPT_VERSION = "owned-merge-1";
 
 export async function initSync() {
   backend = pickBackend();
@@ -382,7 +385,10 @@ function sheetBackend(conf) {
       const res = await fetch(url, {
         method: "POST", redirect: "follow",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ season, updatedAt: next.updatedAt, state: next }),
+        // Whose save this is. The script replaces only this player's entries and
+        // merely adds to everyone else's, so one device can never delete another
+        // player's picks by not knowing about them.
+        body: JSON.stringify({ season, updatedAt: next.updatedAt, actor: actorId, state: next }),
       });
       if (!res.ok) throw new Error(`Sheet write failed (${res.status})`);
       const body = await res.json().catch(() => ({}));

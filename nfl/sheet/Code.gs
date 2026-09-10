@@ -33,7 +33,7 @@
 // which would only send everyone off to redeploy for nothing. Reported back by
 // doGet and doPost, so the app can tell you whether the deployment you are
 // talking to is actually the current one.
-var SCRIPT_VERSION = 'straight-up-1';
+var SCRIPT_VERSION = 'owned-merge-1';
 
 var STATE_SHEET = 'state';
 var PICKS_SHEET = 'picks';
@@ -75,7 +75,9 @@ function doPost(e) {
     // edits their own entries, so keeping the stored entry for any player the
     // incoming document does not mention is always safe, while a real unpick
     // still arrives inside that player's own map and is honoured.
-    var merged = existing ? mergeState_(JSON.parse(existing.json), state) : state;
+    // Who is saving. Their own entries may be replaced; nobody else's may shrink.
+    var owner = String(body.actor || '');
+    var merged = existing ? mergeState_(JSON.parse(existing.json), state, owner) : state;
     writeState_(season, merged, incoming);
     writePicks_(merged);
     appendLog_(season, merged, incoming);
@@ -89,16 +91,35 @@ function doPost(e) {
 
 // ---- merging ---------------------------------------------------------------
 
-/** Keep the stored value for any key the incoming object does not mention. */
-function mergeByPlayer_(stored, incoming) {
-  var out = {};
-  var k;
+/**
+ * Merge one player-keyed block.
+ *
+ * Only the player who is actually saving may have their entry replaced -- that
+ * is how an unpick, a changed LMS team or a re-ranked dup list gets through.
+ * Everyone else's entry is only ever added to, never narrowed, because a
+ * document can be missing picks for reasons that have nothing to do with anyone
+ * wanting them gone: a device that read the board before they were entered, a
+ * restore from an older backup, a half-finished sync. Replacing another
+ * player's whole entry is how six of Howard's picks turned into one.
+ *
+ * `deep` unions the entry key by key (picks: one key per game). Without it the
+ * entry is a scalar or a list, so it is kept whole.
+ */
+function mergeOwned_(stored, incoming, owner, deep) {
+  var out = {}, k;
   for (k in (stored || {})) out[k] = stored[k];
-  for (k in (incoming || {})) out[k] = incoming[k];
+  for (k in (incoming || {})) {
+    if (k === owner) { out[k] = incoming[k]; continue; }   // the saver speaks for themselves
+    if (!deep) { if (out[k] == null) out[k] = incoming[k]; continue; }
+    var merged = {}, g;
+    for (g in (out[k] || {})) merged[g] = out[k][g];
+    for (g in (incoming[k] || {})) if (merged[g] == null) merged[g] = incoming[k][g];
+    out[k] = merged;
+  }
   return out;
 }
 
-function mergeState_(stored, incoming) {
+function mergeState_(stored, incoming, owner) {
   var out = {};
   var k;
   for (k in stored) out[k] = stored[k];
@@ -117,9 +138,9 @@ function mergeState_(stored, incoming) {
     // the slate: whoever has more games has pulled more recently
     var ga = a.games || [], gb = b.games || [];
     w.games = gb.length >= ga.length ? gb : ga;
-    w.picks = mergeByPlayer_(a.picks, b.picks);
-    w.lms = mergeByPlayer_(a.lms, b.lms);
-    w.dupPrefs = mergeByPlayer_(a.dupPrefs, b.dupPrefs);
+    w.picks = mergeOwned_(a.picks, b.picks, owner, true);
+    w.lms = mergeOwned_(a.lms, b.lms, owner, false);
+    w.dupPrefs = mergeOwned_(a.dupPrefs, b.dupPrefs, owner, false);
     out.weeks[wk] = w;
   }
 
@@ -131,7 +152,7 @@ function mergeState_(stored, incoming) {
   var sa = stored.sideBet || {}, sb = incoming.sideBet || {};
   var live = hasPlayerData_(incoming);
   out.sideBet = {
-    predictions: mergeByPlayer_(sa.predictions, sb.predictions),
+    predictions: mergeOwned_(sa.predictions, sb.predictions, owner, false),
     actual: live ? (sb.actual !== undefined ? sb.actual : sa.actual) : sa.actual,
   };
   out.adjustments = live ? (incoming.adjustments || []) : (stored.adjustments || []);
