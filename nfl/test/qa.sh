@@ -26,7 +26,7 @@ line "all json valid" "PASS"
 
 echo
 echo "── logic"
-for t in suite feeds sync-test owned; do
+for t in suite feeds sync-test owned browns-feed; do
   out=$(timeout 90 node $SP/$t.mjs 2>&1 | grep -E "passed" | tail -1)
   case "$out" in
     *"0 failed"*) line "$t" "PASS — $out" ;;
@@ -57,6 +57,14 @@ case "$out" in *"loads: 1"*"loads: 2"*) line "reloads only on a new build" "PASS
 out=$(timeout 115 node $SP/redirect.mjs 2>&1 | tail -4 | tr '\n' ' ')
 case "$out" in *"MOVED"*"stayed put"*) line "origin move only if verified" "PASS" ;;
   *) line "origin move only if verified" "FAIL — $out"; fails=$((fails+1)) ;; esac
+
+out=$(timeout 115 node $SP/brown.mjs 2>&1)
+if echo "$out" | grep -q "KZ Nick Chubb 23 points" \
+  && echo "$out" | grep -q "picker groups: QB RB WR TE K" \
+  && echo "$out" | grep -q "Chubb     GREYED + disabled" \
+  && echo "$out" | grep -q "page errors: none"; then
+  line "brown of the week, end to end" "PASS"
+else line "brown of the week, end to end" "FAIL — $(echo "$out" | tail -3 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
 out=$(timeout 115 node $SP/coldstart.mjs 2>&1)
 if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"' \

@@ -121,6 +121,9 @@ export function mergeIn(incoming) {
         mine.picks[pid] = { ...(by || {}), ...(mine.picks[pid] || {}) };
       }
       for (const [pid, team] of Object.entries(w.lms || {})) mine.lms[pid] ??= team;
+      mine.brown ||= {};
+      for (const [pid, who] of Object.entries(w.brown || {})) mine.brown[pid] ??= who;
+      if (w.brownStats && !mine.brownStats) mine.brownStats = w.brownStats;
       mine.dupPrefs ||= {};
       for (const [pid, list] of Object.entries(w.dupPrefs || {})) mine.dupPrefs[pid] ??= list;
     }
@@ -158,10 +161,11 @@ export function isCommish(id = getMe()) { return Boolean(id) && id === cfg.commi
 
 // ---- week helpers ----------------------------------------------------------
 export function ensureWeek(draft, week) {
-  draft.weeks[week] ||= { games: [], picks: {}, lms: {} };
+  draft.weeks[week] ||= { games: [], picks: {}, lms: {}, brown: {} };
   draft.weeks[week].games ||= [];
   draft.weeks[week].picks ||= {};
   draft.weeks[week].lms ||= {};
+  draft.weeks[week].brown ||= {};
   return draft.weeks[week];
 }
 
@@ -194,7 +198,7 @@ let actorId = "";        // who is entering picks on this device, sent with ever
 // What sheet/Code.gs says in this checkout. If the deployment reports anything
 // else it is running older code, which last time meant the pool's picks were
 // one blank device away from being wiped.
-const EXPECTED_SCRIPT_VERSION = "owned-merge-2";
+const EXPECTED_SCRIPT_VERSION = "brown-1";
 
 export async function initSync() {
   backend = pickBackend();

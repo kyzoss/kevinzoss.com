@@ -123,6 +123,20 @@ API keys.
   picks do, at 10:00 Pacific on the week's Sunday -- except that a dog whose own
   game has already kicked off can no longer be ranked, which is what stops
   anyone drafting a result they have already watched.
+- **Brown of the week.** $1 each a week. Pick one Cleveland player and score
+  their game against the pool's table: a point per 100 passing yards and per
+  completion, 2 a passing TD; a point per 5 rushing yards, 6 a rushing TD; a
+  point per 10 receiving yards, 3 a reception, 6 a receiving TD; 2 a two-point
+  conversion of any kind; 2 a PAT and 6 a field goal. Per-unit stats count whole
+  units only -- 149 passing yards is one point, not one and a half. Best score
+  takes the pot and a tie splits it, so nothing rolls over. Rounds are the same
+  fixed four-week blocks as LMS: a player you have used is spent until the
+  round resets, and only a week that actually got scored spends them. Picked
+  under Last man standing on the Week tab, from the roster grouped by position;
+  it locks when the Browns kick off. All the money and history is on the Browns
+  page. Scores come from the ESPN box score, pulled by the commissioner once
+  the game is final -- **verify one real game by hand before trusting it**, for
+  the reason in the note at the top of `js/browns.js`.
 - **Weekly pot.** $4 a week. Best score takes it; a tie rolls the pot; week 18
   splits.
 - **Last man standing.** The picker lists every team biggest-underdog-first with

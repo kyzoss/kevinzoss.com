@@ -57,6 +57,32 @@ window.POOL_CONFIG = {
   // enter a record that does not add up.
   sideBet: { team: "CLE", label: "Browns Record", perPlayer: 10, gamesInSeason: 17 },
 
+  // Brown of the week. Pick one Cleveland player each week and score their game.
+  // Rounds work like LMS: fixed 4-week blocks, and a player you have used is
+  // spent for the rest of that block. The pot pays every week, and ties split
+  // it. Locks when the Browns kick off.
+  brownOfWeek: {
+    perPlayer: 1,        // each player puts in this much, every week
+    roundWeeks: 4,       // how long a player stays spent
+    positions: ["QB", "RB", "WR", "TE", "K"],
+    // The scoring table. `per` divides the stat and floors it; `each` multiplies.
+    scoring: {
+      passYards: { per: 100, points: 1 },
+      completions: { each: 1 },
+      passTD: { each: 2 },
+      pass2pt: { each: 2 },
+      rushYards: { per: 5, points: 1 },
+      rushTD: { each: 6 },
+      rush2pt: { each: 2 },
+      recYards: { per: 10, points: 1 },
+      receptions: { each: 3 },
+      recTD: { each: 6 },
+      rec2pt: { each: 2 },
+      pat: { each: 2 },
+      fg: { each: 6 },
+    },
+  },
+
   // Lines come from The Odds API (the-odds-api.com). Schedule and scores come from ESPN.
   oddsApiKey: "155e00cf4d5fdc04569fc597c57a8e48",
   oddsBooks: ["draftkings", "fanduel", "betmgm", "caesars", "bovada"], // first one with a line wins

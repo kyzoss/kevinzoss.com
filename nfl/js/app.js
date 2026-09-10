@@ -1,9 +1,10 @@
-import * as S from "./store.js?v=e7d6ddf2";
-import * as SC from "./scoring.js?v=e7d6ddf2";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=e7d6ddf2";
-import { fetchWeek } from "./espn.js?v=e7d6ddf2";
-import { fetchSpreads } from "./odds.js?v=e7d6ddf2";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=e7d6ddf2";
+import * as S from "./store.js?v=48b3fdb0";
+import * as SC from "./scoring.js?v=48b3fdb0";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=48b3fdb0";
+import { fetchWeek } from "./espn.js?v=48b3fdb0";
+import * as BR from "./browns.js?v=dev";
+import { fetchSpreads } from "./odds.js?v=48b3fdb0";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=48b3fdb0";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -360,7 +361,7 @@ function renderWeek(state) {
     ${games.length ? renderDupBar(state, week, dups, tally) + renderSlate(state, week, games, tally, dups) : renderEmptySlate()}
   </section>
 
-  ${games.length ? renderLms(state, week, lrow, games) : ""}`;
+  ${games.length ? renderLms(state, week, lrow, games) + renderBrown(state, week) : ""}`;
 }
 
 /** The week's pick deadline, in the pool's zone, e.g. "Sun 10:00 AM PDT". */
@@ -581,6 +582,50 @@ function renderRow(state, g, tally, dups, pid, myColor, ctx) {
   return `<div class="${cls}" style="--me-c:${esc(myColor)}" role="row" data-row="${esc(g.id)}">
     ${teamCell(favSide, favAbbr, false)}${spr}${teamCell(dogSide, dogAbbr, true)}${picks}${dup}${menu}
   </div>`;
+}
+
+/** Brown of the week: one Cleveland player, scored on their game. */
+function renderBrown(state, week) {
+  const cfg2 = cfg.brownOfWeek;
+  if (!cfg2) return "";
+  const pid = actor();
+  const team = cfg.sideBet?.team || "CLE";
+  const game = BR.brownsGame(state, week, team);
+  const wk = state.weeks?.[week] || {};
+  const picks = wk.brown || {};
+  const stats = wk.brownStats || {};
+  const locked = Boolean(game && SC.hasStarted(game));
+  const { round, start, end } = SC.brownRound(week, cfg);
+  const bow = SC.brownOfWeek(state, cfg);
+  const row = bow.rows[week];
+
+  const roster = state.brownsRoster || [];
+  const nameOfPlayer = (id) => roster.find((r) => r.id === id)?.name || id;
+
+  const rows = state.players.map((p) => {
+    const who = picks[p.id];
+    const line = who ? stats[who] : null;
+    const pts = line ? SC.scoreBrownLine(line, cfg).total : null;
+    const won = row?.payouts?.[p.id];
+    const canEdit = p.id === pid && (!locked || commish());
+    return `<div class="lmsrow" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
+      <button class="lmsrow__pick" data-action="brown-open" ${canEdit ? "" : "disabled"}>
+        <div><div class="lmsrow__team">${who ? esc(nameOfPlayer(who)) : esc(p.name)}</div>
+        <div class="lmsrow__sub">${who ? (pts != null ? `${fmtPts(pts)} points` : locked ? "playing" : "locked in") : (canEdit ? "Tap to choose" : "No pick")}</div></div>
+      </button>
+      <div style="display:grid;gap:4px;justify-items:end">${won ? `<span class="badge badge--money">${SC.money(won)}</span>` : row?.winners?.includes(p.id) ? `<span class="badge badge--win">Best</span>` : ""}</div>
+    </div>`;
+  }).join("");
+
+  const when = !game ? "No Browns game this week."
+    : locked ? "Locked — they have kicked off."
+    : `Locks at ${esc(fmtKick(game.kickoff))}.`;
+
+  return `<section class="section">
+    <div class="section__head"><h2 class="section__title">Brown of the week · ${SC.money(SC.brownWeekly(state, cfg))}</h2>
+      <span class="section__sub">One ${esc(teamName(team))} player, best score takes the pot; a tie splits it. Round ${round} · weeks ${start}–${end}: a player you have used is spent until it resets. ${when}</span></div>
+    <div class="lms">${rows}</div>
+  </section>`;
 }
 
 function renderLms(state, week, lrow, games) {
@@ -820,6 +865,58 @@ function renderSideBet(state) {
         ${manual ? `<button class="btn btn--sm btn--px btn--danger" data-action="bet-actual-clear">Clear it, use live results</button>` : ""}
       </div>
     </div>` : ""}
+  </section>
+  ${renderBrownHistory(state)}`;
+}
+
+/**
+ * Brown of the week, all of it: the money, and every week's picks and scores.
+ * The picking happens on the week view; this is the record.
+ */
+function renderBrownHistory(state) {
+  if (!cfg.brownOfWeek) return "";
+  const bow = SC.brownOfWeek(state, cfg);
+  const P = state.players;
+  const roster = state.brownsRoster || [];
+  const nameFor = (id) => roster.find((r) => r.id === id)?.short || roster.find((r) => r.id === id)?.name || id;
+  const weeks = Object.values(bow.rows);
+
+  const money = P.map((p) => {
+    const t = bow.totals[p.id];
+    const net = t.won - t.paid;
+    return `<div class="pred" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
+      <div class="pred__big">${SC.money(net)}<small>${esc(p.name)} · ${t.weeks} week${t.weeks === 1 ? "" : "s"} won · ${fmtPts(t.points)} pts</small></div>
+      <div style="display:grid;justify-items:end">${t.won ? `<span class="badge badge--money">${SC.money(t.won)} in</span>` : ""}</div></div>`;
+  }).join("");
+
+  const body = weeks.length ? weeks.map((r) => {
+    const cells = P.map((p) => {
+      const s = r.picks[p.id];
+      const paid = r.payouts[p.id];
+      const win = r.winners.includes(p.id);
+      const cls = ["lmst", win ? "lmst--safe" : s && s.points != null ? "lmst--out" : ""].join(" ");
+      if (!s) return `<td class="${cls}">—</td>`;
+      return `<td class="${cls}" title="${esc(nameFor(s.who))}${s.points != null ? `: ${fmtPts(s.points)} points` : " — not scored yet"}">
+        ${esc(nameFor(s.who))}${s.points != null ? `<i>${fmtPts(s.points)}</i>` : ""}${paid ? `<i>${SC.money(paid)}</i>` : ""}</td>`;
+    }).join("");
+    return `<tr><td>${r.week}${r.settled ? "" : ` <i class="lmst__now">open</i>`}</td>${cells}</tr>`;
+  }).join("") : `<tr><td colspan="${P.length + 1}" class="mute">Nothing picked yet.</td></tr>`;
+
+  return `<section class="section">
+    <div class="section__head"><h2 class="section__title">Brown of the week</h2>
+      <span class="section__sub">${SC.money(cfg.brownOfWeek.perPlayer)} each a week, best score takes it, a tie splits it. Picked on the Week tab.</span></div>
+    <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">${money}</div>
+    <div class="grid" style="margin-top:8px"><table class="sheet sheet--lms">
+      <thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}</tr></thead>
+      <tbody>${body}</tbody></table></div>
+    ${commish() ? `<div class="commish" style="margin-top:8px">
+      <span class="commish__k">Commissioner</span>
+      <p>Scores come from the ESPN box score for that week's Browns game. Pull it once the game is final; every player's line is stored on the board so everyone sees the same numbers.</p>
+      <div class="toolbar" style="margin:0">
+        <button class="btn btn--sm btn--px" data-action="brown-stats">${icon("refresh")}Pull week ${ui.week} box score</button>
+        <button class="btn btn--sm btn--px" data-action="brown-roster">${icon("refresh")}Reload the roster</button>
+      </div>
+    </div>` : ""}
   </section>`;
 }
 
@@ -915,6 +1012,48 @@ function scoreModal(gameId) {
     <p class="mute" style="font-size:12px;margin:10px 0 0">Refreshing from ESPN will overwrite this once the feed catches up.</p>
     <div class="form__actions"><button type="button" class="btn" data-action="modal-close">Cancel</button><button class="btn btn--primary" type="submit">Save</button></div></form>`);
 }
+/** The depth chart, grouped by position, with spent players greyed out. */
+function brownModal() {
+  const state = S.getState();
+  const pid = actor();
+  const week = ui.week;
+  const roster = state.brownsRoster || [];
+  const current = state.weeks?.[week]?.brown?.[pid] || "";
+  const used = Object.fromEntries(SC.brownUsed(state, cfg, week, pid).map((u) => [u.id, u.week]));
+  const { round, start, end } = SC.brownRound(week, cfg);
+
+  if (!roster.length) {
+    return openModal(`${modalHead("Brown of the week")}
+      <p class="mute" style="margin:0 0 14px;font-size:13px">The roster has not loaded yet. It comes from ESPN and is cached on the board once anyone pulls it.</p>
+      <div class="form__actions"><button type="button" class="btn" data-action="modal-close">Cancel</button>
+      <button type="button" class="btn btn--primary" data-action="brown-roster">Load the roster</button></div>`);
+  }
+
+  const spent = Object.keys(used).length
+    ? `<p class="mute" style="margin:0 0 10px;font-size:12px">Spent this round: ${Object.entries(used).map(([id, w]) => `${esc(roster.find((r) => r.id === id)?.short || id)} (wk ${w})`).join(" · ")}</p>`
+    : "";
+
+  const groups = (cfg.brownOfWeek.positions || []).map((pos) => {
+    const men = roster.filter((r) => r.pos === pos);
+    if (!men.length) return "";
+    return `<div class="depth"><h5>${esc(pos)}</h5><div class="teamgrid">${men.map((m) => {
+      const off = Boolean(used[m.id]);
+      return `<button class="teamtile ${current === m.id ? "teamtile--on" : ""} ${off ? "teamtile--spent" : ""}"
+        data-action="brown-pick" data-who="${esc(m.id)}" ${off ? "disabled" : ""}
+        title="${esc(m.name)}${off ? ` — used in week ${used[m.id]}` : ""}">
+        <b>${esc(m.short || m.name)}</b><span class="teamtile__spr">${esc(m.pos)}${m.number ? ` · ${esc(m.number)}` : ""}</span>
+      </button>`;
+    }).join("")}</div></div>`;
+  }).join("");
+
+  openModal(`${modalHead(`Brown of the week · week ${week}`)}
+    <p class="mute" style="margin:0 0 10px;font-size:13px">Round ${round}, weeks ${start}–${end}. One player, and you cannot come back to them until the round resets.</p>
+    ${spent}
+    <div class="depths">${groups}</div>
+    <div class="form__actions">${current ? `<button type="button" class="btn btn--ghost btn--danger btn--sm" data-action="brown-pick" data-who="">Clear</button>` : ""}
+    <button type="button" class="btn" data-action="modal-close">Close</button></div>`);
+}
+
 function betModal(pid) {
   const pr = S.getState().sideBet?.predictions?.[pid] || {};
   const n = seasonGames();
@@ -977,6 +1116,10 @@ document.addEventListener("click", (e) => {
       break;
     }
     case "row-menu": rowMenu(el.dataset.game); break;
+    case "brown-open": brownModal(); break;
+    case "brown-pick": setBrown(el.dataset.who || null); break;
+    case "brown-roster": loadRoster(); break;
+    case "brown-stats": pullBrownStats(ui.week); break;
     case "lms-open": lmsModal(); break;
     case "lms-pick": setLms(el.dataset.team || null); break;
     case "refresh": pullSlate(ui.week, { lines: !SC.weekGames(S.getState(), ui.week).length || ui.week === currentWeek() && SC.weekGames(S.getState(), ui.week).some((g) => g.spread == null && g.status === "pre") }); break;
@@ -1085,6 +1228,62 @@ async function testSync() {
   toast("Checking the shared board…");
   const r = await S.testSync();
   toast(r.ok ? r.detail : `Sync failed: ${r.detail}`, { bad: !r.ok, ms: 6000 });
+}
+
+/**
+ * Take a Brown for the week. Refused once they have kicked off, and refused for
+ * a player already spent in this round -- the same shape as the LMS rule.
+ */
+function setBrown(who) {
+  const pid = actor();
+  if (!pid) return toast("Pick who you are first", { bad: true });
+  const state = S.getState();
+  const game = BR.brownsGame(state, ui.week, cfg.sideBet?.team || "CLE");
+  if (game && SC.hasStarted(game) && !commish()) return toast("They have kicked off. This week is locked.", { bad: true });
+  if (who) {
+    const spent = SC.brownUsed(state, cfg, ui.week, pid).find((u) => u.id === who);
+    if (spent) return toast(`Already used in week ${spent.week} this round.`, { bad: true });
+  }
+  flashSaved();
+  S.update((d) => {
+    const wk = S.ensureWeek(d, ui.week);
+    wk.brown = wk.brown || {};
+    if (who) wk.brown[pid] = who; else delete wk.brown[pid];
+  });
+  closeModal();
+}
+
+/** Fetch the roster once and keep it on the board, so nobody else has to. */
+async function loadRoster() {
+  try {
+    toast("Loading the roster…");
+    const roster = await BR.fetchRoster(cfg.sideBet?.team || "CLE", cfg.brownOfWeek?.positions);
+    if (!roster.length) throw new Error("ESPN returned no players in those positions");
+    S.update((d) => { d.brownsRoster = roster; });
+    toast(`${roster.length} players loaded.`);
+    closeModal();
+    brownModal();
+  } catch (e) {
+    toast(`Roster failed: ${e.message}`, { bad: true, ms: 7000 });
+  }
+}
+
+/** Pull the box score for the Browns' game and store every line for the week. */
+async function pullBrownStats(week) {
+  const state = S.getState();
+  const game = BR.brownsGame(state, week, cfg.sideBet?.team || "CLE");
+  if (!game) return toast("No Browns game that week.", { bad: true });
+  if (!game.espnId) return toast("That game has no ESPN id — pull the slate first.", { bad: true });
+  try {
+    toast("Reading the box score…");
+    const lines = await BR.fetchGameStats(game.espnId, cfg.sideBet?.team || "CLE");
+    const n = Object.keys(lines).length;
+    if (!n) throw new Error("no Browns lines in that box score");
+    S.update((d) => { const wk = S.ensureWeek(d, week); wk.brownStats = lines; });
+    toast(`${n} player lines stored for week ${week}.`);
+  } catch (e) {
+    toast(`Box score failed: ${e.message}`, { bad: true, ms: 7000 });
+  }
 }
 
 function exportJson() {
