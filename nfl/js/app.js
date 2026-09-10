@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=f4adc5f9";
-import * as SC from "./scoring.js?v=f4adc5f9";
-import { TEAMS, TEAM_LIST, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=f4adc5f9";
-import { fetchWeek } from "./espn.js?v=f4adc5f9";
-import { fetchSpreads } from "./odds.js?v=f4adc5f9";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toLocalInput, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=f4adc5f9";
+import * as S from "./store.js?v=ff90dbf4";
+import * as SC from "./scoring.js?v=ff90dbf4";
+import { TEAMS, TEAM_LIST, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=ff90dbf4";
+import { fetchWeek } from "./espn.js?v=ff90dbf4";
+import { fetchSpreads } from "./odds.js?v=ff90dbf4";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toLocalInput, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=ff90dbf4";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -763,7 +763,7 @@ function renderSettings(state) {
         <div class="toolbar" style="margin:0"><button class="btn btn--sm btn--px" data-action="whoami">Switch player</button>${commish() ? `<button class="btn btn--sm btn--px" data-action="pick-as">Pick as…</button>` : ""}</div></div>
       <div class="card"><h4>Sync</h4>
         <p style="margin:0 0 10px;font-size:13px;color:var(--ink-soft)">${sync.enabled ? `Shared board via ${sync.via === "sheet" ? "a Google Sheet" : "Supabase"} · <b>${esc(sync.state)}</b>${sync.detail ? ` · ${esc(sync.detail)}` : ""}` : "This device only. Everyone's picks live here, like the sheet did. To put all four phones on one board, fill in the Supabase block in config.js (see README)."}</p>
-        <div class="toolbar" style="margin:0">${sync.enabled ? `<button class="btn btn--sm btn--px" data-action="test-sync">Test the connection</button>` : ""}<button class="btn btn--sm btn--px" data-action="export">Export JSON</button><button class="btn btn--sm btn--px" data-action="import">Import JSON</button>${commish() ? `<button class="btn btn--sm btn--px btn--danger" data-action="reset">Reset season</button>` : ""}</div></div>
+        <div class="toolbar" style="margin:0">${sync.enabled ? `<button class="btn btn--sm btn--px" data-action="test-sync">Test the connection</button>` : ""}<button class="btn btn--sm btn--px btn--primary" data-action="restore">Restore picks from backup</button><button class="btn btn--sm btn--px" data-action="export">Export JSON</button><button class="btn btn--sm btn--px" data-action="import">Import JSON</button>${commish() ? `<button class="btn btn--sm btn--px btn--danger" data-action="reset">Reset season</button>` : ""}</div></div>
       <div class="card"><h4>Sources</h4><dl class="kv"><dt>Schedule & scores</dt><dd>ESPN</dd><dt>Lines</dt><dd>${cfg.oddsApiKey ? esc((cfg.oddsBooks || [])[0] || "the book") : "ESPN"}</dd><dt>Season</dt><dd>${cfg.season}</dd><dt>Week 1</dt><dd>${esc(cfg.week1Tuesday)}</dd></dl></div>
     </div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">House rules</h2></div><div class="rules">
@@ -922,6 +922,7 @@ document.addEventListener("click", (e) => {
     case "adj-add": adjModal(); break;
     case "adj-del": S.update((d) => { d.adjustments = d.adjustments.filter((x) => x.id !== el.dataset.id); }); break;
     case "test-sync": testSync(); break;
+    case "restore": restoreBackup(); break;
     case "export": exportJson(); break;
     case "import": importModal(); break;
     case "reset": if (confirm("Wipe every pick, line and payout for this season? Export first if you want a copy.")) { S.resetState(); toast("Season reset"); } break;
@@ -983,6 +984,25 @@ document.addEventListener("change", (e) => {
 });
 
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modalOpen()) closeModal(); });
+
+/**
+ * Fold the committed backup back in. It only ever adds what is missing, so it
+ * is safe to press even if some picks have since been re-entered.
+ */
+async function restoreBackup() {
+  try {
+    toast("Fetching the backup…");
+    const res = await fetch(`./recover-week1.json?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`backup not found (${res.status})`);
+    const doc = await res.json();
+    const { before, after } = S.mergeIn(doc);
+    const added = after - before;
+    toast(added > 0 ? `Restored ${added} pick${added === 1 ? "" : "s"} — ${after} on the board.`
+                    : `Nothing missing: ${after} picks already here.`, { ms: 6000 });
+  } catch (e) {
+    toast(`Restore failed: ${e.message}`, { bad: true, ms: 6000 });
+  }
+}
 
 async function testSync() {
   toast("Checking the shared board…");
