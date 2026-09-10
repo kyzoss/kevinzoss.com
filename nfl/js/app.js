@@ -1,9 +1,9 @@
-import * as S from "./store.js?v=ba6af205";
-import * as SC from "./scoring.js?v=ba6af205";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=ba6af205";
-import { fetchWeek } from "./espn.js?v=ba6af205";
-import { fetchSpreads } from "./odds.js?v=ba6af205";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=ba6af205";
+import * as S from "./store.js?v=cfd5cdc7";
+import * as SC from "./scoring.js?v=cfd5cdc7";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=cfd5cdc7";
+import { fetchWeek } from "./espn.js?v=cfd5cdc7";
+import { fetchSpreads } from "./odds.js?v=cfd5cdc7";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=cfd5cdc7";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -579,6 +579,11 @@ function renderLms(state, week, lrow, games) {
     const res = lrow?.results[p.id] || "pending";
     const out = res === "out";
     const g = team ? games.find((x) => x.home === team || x.away === team) : null;
+    // Two different questions now, and the row asks both: `started` decides
+    // whether to show a score or a kickoff time, `shut` whether the pick can
+    // still be changed. Since the cutoff, a game can be shut without having
+    // started.
+    const started = g ? SC.hasStarted(g) : false;
     const shut = g ? SC.pickLocked(g, week, cfg) : SC.pickLocked({}, week, cfg);
     const canEdit = p.id === pid && !out && (!shut || commish());
     const badge = out ? `<span class="badge">Out</span>`
