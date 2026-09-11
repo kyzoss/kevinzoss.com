@@ -90,6 +90,11 @@ if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"'
   line "cold start / Home Screen case" "PASS"
 else line "cold start / Home Screen case" "FAIL — $(echo "$out" | tr '\n' ' ')"; fails=$((fails+1)); fi
 
+out=$(timeout 115 node $SP/linelock.mjs 2>&1)
+if echo "$out" | grep -q "lines are frozen from Wednesday night"; then
+  line "lines frozen Wednesday night" "PASS"
+else line "lines frozen Wednesday night" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/restore-dups.mjs 2>&1)
 if echo "$out" | grep -q "Andrew TB, Kevin IND, Jim and Howard untouched"; then
   line "restore fills a wiped ranking" "PASS"
@@ -101,9 +106,11 @@ out=$(timeout 115 node $SP/dupranks.mjs 2>&1)
 # had not ranked.
 if echo "$out" | grep -q 'SF\[D\]' \
   && echo "$out" | grep -q 'SF secured: ::after="D"' \
+  && echo "$out" | grep -q 'TB dup win -> rgb(255, 197, 61)' \
+  && echo "$out" | grep -q 'TEN     win -> rgb(53, 208, 127)' \
   && ! echo "$out" | grep -q 'provisional'; then
-  line "every dup marked D, in colour" "PASS"
-else line "every dup marked D, in colour" "FAIL — $(echo "$out" | sed -n '3,8p' | tr '\n' ' ')"; fails=$((fails+1)); fi
+  line "dup D + gold, wins green" "PASS"
+else line "dup D + gold, wins green" "FAIL — $(echo "$out" | sed -n '3,8p' | tr '\n' ' ')"; fails=$((fails+1)); fi
 
 echo
 if [ $fails -eq 0 ]; then echo "ALL GREEN — safe for Jim"; else echo "$fails FAILURE(S)"; fi

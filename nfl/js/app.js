@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=fa2d7d7b";
-import * as SC from "./scoring.js?v=fa2d7d7b";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=fa2d7d7b";
-import { fetchWeek } from "./espn.js?v=fa2d7d7b";
+import * as S from "./store.js?v=788299ca";
+import * as SC from "./scoring.js?v=788299ca";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=788299ca";
+import { fetchWeek } from "./espn.js?v=788299ca";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=fa2d7d7b";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=fa2d7d7b";
+import { fetchSpreads } from "./odds.js?v=788299ca";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=788299ca";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -96,10 +96,14 @@ async function pullSlate(week, { lines = true, forceLines = false, quiet = false
         espnId: f.espnId, kickoff: f.kickoff, home: f.home, away: f.away, status: f.status,
         homeScore: f.homeScore, awayScore: f.awayScore, clock: f.clock, homeRecord: f.homeRecord, awayRecord: f.awayRecord, broadcast: f.broadcast,
       });
-      // Lines: the pool plays one number. It freezes once anyone has picked the game,
-      // once the commissioner locks the week, or once the game kicks off.
-      const frozen = locked || g.manualSpread || anyPickOn(wk, g.id) || g.status !== "pre";
-      const canSet = forceLines || !frozen || g.spread == null;
+      // Lines: the pool plays one number, and once the week's lines lock it does
+      // not move at all. That last part used to have a hole -- a game with no
+      // line yet could still be given one afterwards -- and a line appearing
+      // late is how the dup pool changed underneath a draft that had already
+      // happened. A game still without a number by then simply has none, and is
+      // not dup-eligible; the commissioner can reopen the week if that is wrong.
+      const frozenByGame = g.manualSpread || anyPickOn(wk, g.id) || g.status !== "pre";
+      const canSet = forceLines || (!locked && (!frozenByGame || g.spread == null));
       if (!canSet) continue;
       const o = odds?.games.find((x) => x.home === g.home && x.away === g.away && Math.abs(new Date(x.commence) - new Date(g.kickoff)) < 3 * 86400e3);
       if (o && o.spread != null) { if (g.spread !== o.spread) lined++; g.spread = o.spread; g.book = o.book; }
@@ -335,9 +339,7 @@ function renderWeek(state) {
   const best = Math.max(0, ...state.players.map((p) => tally[p.id].points));
   const linesFrozen = SC.linesLocked(state, week, cfg);
   const lockAt = SC.lineLockAt(week, cfg);
-  const lockLabel = lockAt && !linesFrozen
-    ? new Date(lockAt).toLocaleString(undefined, { weekday: "short", hour: "numeric" }).toLowerCase()
-    : "";
+  const lockLabel = lockAt && !linesFrozen ? lockLabelFor(week) : "";
   const anyPicks = state.players.some((p) => tally[p.id].picks);
 
   const tiles = state.players.map((p) => {
@@ -402,6 +404,16 @@ function renderWeek(state) {
   </section>
 
   ${games.length ? renderLms(state, week, lrow, games) + renderBrown(state, week) : ""}`;
+}
+
+/** When this week's lines freeze, in the pool's zone -- not the phone's. */
+function lockLabelFor(week) {
+  const at = SC.lineLockAt(week, cfg);
+  if (at == null) return "";
+  return new Date(at).toLocaleString(undefined, {
+    timeZone: cfg.timeZone || "America/Los_Angeles",
+    weekday: "short", hour: "numeric", minute: "2-digit", timeZoneName: "short",
+  });
 }
 
 /** The week's pick deadline, in the pool's zone, e.g. "Sun 10:00 AM PDT". */
@@ -968,7 +980,7 @@ function renderSettings(state) {
     <div class="cards">
       <div class="card"><h4>You</h4><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">${avatar(me(), "avatar--lg")}<b>${esc(nameOf(me()))}</b>${commish() ? `<span class="badge badge--accent">Commish</span>` : ""}</div>
         <div class="toolbar" style="margin:0"><button class="btn btn--sm btn--px" data-action="whoami">Switch player</button>${commish() ? `<button class="btn btn--sm btn--px" data-action="pick-as">Pick as…</button>
-          <button class="btn btn--sm btn--px" data-action="lock-lines" title="${SC.linesLocked(state, ui.week, cfg) ? `Reopen week ${ui.week} so the lines can move again` : `Freeze week ${ui.week} now — otherwise the lines lock at noon that Tuesday`}">${icon("lock")}${SC.linesLocked(state, ui.week, cfg) ? `Reopen week ${ui.week} lines` : `Lock week ${ui.week} lines`}</button>` : ""}</div></div>
+          <button class="btn btn--sm btn--px" data-action="lock-lines" title="${SC.linesLocked(state, ui.week, cfg) ? `Reopen week ${ui.week} so the lines can move again` : `Freeze week ${ui.week} now — otherwise they lock ${esc(lockLabelFor(ui.week))}`}">${icon("lock")}${SC.linesLocked(state, ui.week, cfg) ? `Reopen week ${ui.week} lines` : `Lock week ${ui.week} lines`}</button>` : ""}</div></div>
       <div class="card"><h4>Sync</h4>
         <p style="margin:0 0 10px;font-size:13px;color:var(--ink-soft)">${sync.enabled ? `Shared board via ${sync.via === "sheet" ? "a Google Sheet" : "Supabase"} · <b>${esc(sync.state)}</b>${sync.detail ? ` · ${esc(sync.detail)}` : ""}` : "This device only. Everyone's picks live here, like the sheet did. To put all four phones on one board, fill in the Supabase block in config.js (see README)."}</p>
         <div class="toolbar" style="margin:0">${sync.enabled ? `<button class="btn btn--sm btn--px" data-action="test-sync">Test the connection</button>` : ""}<button class="btn btn--sm btn--px btn--primary" data-action="restore">Restore picks from backup</button><button class="btn btn--sm btn--px" data-action="export">Export JSON</button><button class="btn btn--sm btn--px" data-action="import">Import JSON</button>${commish() ? `<button class="btn btn--sm btn--px btn--danger" data-action="reset">Reset season</button>` : ""}</div></div>

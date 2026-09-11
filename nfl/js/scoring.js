@@ -80,8 +80,10 @@ export function straightUpWinner(game) {
 }
 
 /**
- * When week N's lines freeze: that week's Tuesday at `lineLockHour` local.
- * Week 1's Tuesday comes from the config and every later week is seven days on.
+ * When week N's lines freeze. Anchored to the week's Tuesday like everything
+ * else, then offset -- the pool locks at the end of Wednesday, because that is
+ * when every game reliably has a number. Locking earlier leaves games unlined,
+ * and an unlined game is not dup-eligible.
  */
 /**
  * How far a zone is from UTC at an instant, in ms. Read off Intl rather than
@@ -126,9 +128,14 @@ function weekDate(week, days, cfg) {
 }
 
 export function lineLockAt(week, cfg) {
-  const date = weekDate(week, 0, cfg);
+  const lock = cfg.lineLock || {};
+  const date = weekDate(week, Number(lock.daysAfterTuesday ?? 0), cfg);
   if (!date) return null;
-  return zonedInstant({ ...date, hour: Number(cfg.lineLockHour ?? 12) }, poolZone(cfg));
+  return zonedInstant({
+    ...date,
+    hour: Number(lock.hour ?? cfg.lineLockHour ?? 12),   // lineLockHour: the old key
+    minute: Number(lock.minute ?? 0),
+  }, poolZone(cfg));
 }
 
 /**
@@ -155,7 +162,7 @@ export function pickLocked(game, week, cfg, now = Date.now()) {
 }
 
 /**
- * Lines are frozen once that Tuesday passes. The commissioner can force it
+ * Lines are frozen once that moment passes. The commissioner can force it
  * either way for a week: `linesLocked` true locks early, false reopens.
  */
 export function linesLocked(state, week, cfg, now = Date.now()) {
@@ -187,7 +194,7 @@ export function underdogOf(game) {
   return game.spread < 0 ? game.away : game.home;
 }
 
-export function dupCandidates(games, cfg, minCount) {
+export function dupCandidates(games, cfg, minCount, keep = null) {
   const excl = new Set((cfg.dup?.exclude || []).map((t) => t.toUpperCase()));
   const dogs = games
     .filter((g) => g.spread != null && g.spread !== 0)
@@ -203,6 +210,15 @@ export function dupCandidates(games, cfg, minCount) {
     // include anything tied with the last one we took, so the cutoff is fair
     const cutoff = extra.length ? extra[extra.length - 1].points : null;
     pool = pool.concat(cutoff == null ? extra : rest.filter((d) => d.points >= cutoff));
+  }
+  // Anything already ranked stays eligible, whatever the lines do afterwards.
+  // The pool is derived from the current spreads, and a dog that only made it
+  // in as padding drops out the moment another game's line reaches the
+  // threshold -- which silently moved a drafted dup to the owner's next choice
+  // AFTER their game had been played and won. What somebody drafted is theirs.
+  if (keep?.size) {
+    const have = new Set(pool.map((d) => d.team));
+    for (const d of dogs) if (keep.has(d.team) && !have.has(d.team)) pool.push(d);
   }
   return pool;
 }
@@ -228,7 +244,8 @@ export function resolveDups(state, cfg, week) {
   const wk = state.weeks?.[week] || {};
   const games = wk.games || [];
   const order = dupOrder(state, cfg, week);
-  const candidates = dupCandidates(games, cfg, state.players.length);
+  const ranked = new Set(Object.values(wk.dupPrefs || {}).flat());
+  const candidates = dupCandidates(games, cfg, state.players.length, ranked);
   const byTeam = Object.fromEntries(candidates.map((c) => [c.team, c]));
   const taken = new Set();
   const assigned = {};

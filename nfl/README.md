@@ -101,9 +101,9 @@ API keys.
   is 1 point, and nothing else scores: a tie counts as a loss. Picks lock at
   kickoff. The spread still decides which dogs go up for the dup draft, so it is
   still pulled and still shown, and it freezes for everyone
-  once anyone picks the game, at kickoff, or automatically at noon on that
-  week's Tuesday (`lineLockHour`) — pull the fresh numbers Tuesday morning and
-  from then on everyone plays the same line. The commissioner can lock earlier
+  once anyone picks the game, at kickoff, or automatically at the end of that
+  week's Wednesday (`lineLock`) — by then every game reliably has a number, and
+  from that moment everyone plays the same line. The commissioner can lock earlier
   or reopen a week. The middle column shows the line before kickoff and the score over
   the line after; each player's column shows the team they took, coloured by
   result, with a dot when a dup forced the pick.
@@ -119,7 +119,17 @@ API keys.
   the draft hands it to you** -- marked `D` on the slate, in its own colour. It
   can still move if somebody picking above you ranks that dog later, which is
   the draft working; it does not sit looking unsettled in the meantime just
-  because one person has not got round to ranking.
+  because one person has not got round to ranking. A dup that comes in is
+  **gold** on the slate, where an ordinary win is green -- it is worth 1.5, not
+  1, so it should not look the same. And **a dog somebody has ranked stays
+  eligible whatever the lines do afterwards**: the pool is derived from the
+  current spreads, so a dog that only made it in as padding would otherwise drop
+  out the moment another game's line reached the threshold, silently moving a
+  drafted dup to that player's next choice -- which happened once, after the
+  game had been played and won. From the end of Wednesday -- by when every game
+  reliably has a number -- the lines do not move at all, including onto a game
+  that still has none: it stays unlined and is not dup-eligible, rather than
+  gaining a line later and reshaping the pool.
   **If a team you ranked goes to someone above you, that game reconciles to the
   favorite** — ranking a dog as a dup isn't the same as picking it, and it stops
   a game sitting unpicked while you wait on the draft. Tap
