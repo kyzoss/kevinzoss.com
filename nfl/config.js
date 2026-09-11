@@ -17,9 +17,12 @@ window.POOL_CONFIG = {
   // The pool's clock. Every deadline below is this zone's wall clock, so a phone
   // in another timezone still locks at the same instant as everyone else.
   timeZone: "America/Los_Angeles",
-  // Lines auto-lock at this hour on that week's Tuesday. Pull the fresh numbers
-  // Tuesday morning; from noon everyone plays the same line.
-  lineLockHour: 12,
+  // Lines freeze at the end of Wednesday -- by then every game reliably has a
+  // number. Offset from the week's Tuesday, same anchor as the pick cutoff.
+  // From this moment nothing moves, not even onto a game that still has no
+  // line: a line appearing late reshapes which dogs are dup-eligible, and it
+  // once did that to a draft that had already happened.
+  lineLock: { daysAfterTuesday: 1, hour: 23, minute: 59 },
   // One deadline for picks and changes: 10:00 Pacific on that week's Sunday,
   // which is five days after the week's Tuesday. A game that kicks off before
   // then (Thursday, Saturday) locks at its own kickoff instead -- whichever

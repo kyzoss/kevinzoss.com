@@ -131,6 +131,31 @@ console.log("- the dup draft closes with the picks, not at the first kickoff");
   eq("and so is the Sunday dog", SC.pickLocked(sun, 1, cfg, after), true);
 }
 
+console.log("- a drafted dog cannot fall out of the pool when the lines move");
+{
+  // Howard drafted SF at +3.5, in only because the pool was padded to four.
+  // Another game's line then reached 4.5, no padding was needed, and SF left
+  // the pool -- moving his dup to his next choice AFTER SF had played and won.
+  const dogs = (extra) => [g("ARI","LAC",-9.5), g("NO","TB",-7), g("WSH","PHI",-5.5),
+    g("SF","LAR",-3.5, 24, 17), g("TB","CIN",-3.5), g("IND","MIA",-3.5),
+    ...(extra ? [g("DAL","NYG",-6)] : [])];
+  const prefs = { az:["TB"], kz:["IND"], jv:["ARI"], hz:["SF","WSH","NO","ARI"] };
+  const st = (games) => { const b = blank(); b.weeks[1] = { games, picks:{}, lms:{}, dupPrefs: prefs }; return b; };
+
+  eq("padding put SF in the pool when he drafted",
+     SC.dupCandidates(dogs(false), cfg, 4).some((d) => d.team === "SF"), true);
+  eq("a fourth qualifying dog removes the need to pad",
+     SC.dupCandidates(dogs(true), cfg, 4).some((d) => d.team === "SF"), false);
+  eq("but a ranked dog is kept anyway",
+     SC.dupCandidates(dogs(true), cfg, 4, new Set(["SF"])).some((d) => d.team === "SF"), true);
+
+  eq("so the dup does not move when the lines do", SC.resolveDups(st(dogs(true)), cfg, 1).assigned.hz, "SF");
+  eq("and it was his before too",                  SC.resolveDups(st(dogs(false)), cfg, 1).assigned.hz, "SF");
+  const t = SC.weekTally(st(dogs(true)), 1, cfg);
+  eq("SF won, so it grades as a dup win", t.hz.dupGrade, "win");
+  eq("worth 1.5, not 1",                  t.hz.points, cfg.dup.win);
+}
+
 console.log("- a dup is locked in the moment the draft hands it over");
 {
   const st = blank();
@@ -356,10 +381,14 @@ console.log("— lines lock on that week's Tuesday");
     hour: +inZone(tue(w), { hour: "numeric", hour12: false }),
     weekday: inZone(tue(w), { weekday: "short" }),
   });
-  eq("week 1 locks at noon Pacific on the configured Tuesday",
-     [parts(1).month, parts(1).day, parts(1).hour], [9, 8, 12]);
-  eq("every lock is a Tuesday", [1, 2, 9, 18].map((w) => parts(w).weekday), ["Tue", "Tue", "Tue", "Tue"]);
-  eq("noon Pacific whatever the season", [1, 9, 18].map((w) => parts(w).hour), [12, 12, 12]);
+  // End of Wednesday, not noon Tuesday: by Wednesday night every game has a
+  // number, and a game still unlined when the lock falls never becomes one.
+  eq("week 1 locks the night of the Wednesday after its Tuesday",
+     [parts(1).month, parts(1).day, parts(1).hour], [9, 9, 23]);
+  eq("every lock is a Wednesday", [1, 2, 9, 18].map((w) => parts(w).weekday), ["Wed", "Wed", "Wed", "Wed"]);
+  eq("11pm Pacific whatever the season", [1, 9, 18].map((w) => parts(w).hour), [23, 23, 23]);
+  eq("and it is the day after the week's Tuesday",
+     (tue(2) - tue(1)) / 86400000, 7);
 
   // and the new pick deadline: 10:00 Pacific each Sunday, kickoff if sooner
   const cut = (w) => SC.pickCutoffAt(w, cfg);
@@ -367,7 +396,9 @@ console.log("— lines lock on that week's Tuesday");
   eq("cutoff is Sunday", [1, 9, 18].map((w) => cutIn(w, { weekday: "short" })), ["Sun", "Sun", "Sun"]);
   eq("cutoff is 10:00 Pacific, DST or not",
      [1, 9, 18].map((w) => +cutIn(w, { hour: "numeric", hour12: false })), [10, 10, 10]);
-  eq("cutoff is five days after the lines lock", (cut(1) - tue(1)) / 3600000, 5 * 24 - 2);
+  // Tuesday 00:00 -> Wednesday 23:59 is 47h59m; the cutoff is the Sunday at 10.
+  eq("the lock is the Wednesday night", (tue(1) - SC.pickCutoffAt(1, cfg)) / 3600000 < 0, true);
+  eq("picks close after the lines do", cut(1) > tue(1), true);
   {
     const snf = g("A", "B", -3, null, null, "2026-09-14T00:20:00Z");
     const thu = g("C", "D", -3, null, null, "2026-09-11T00:15:00Z");

@@ -59,10 +59,14 @@ pool. It exits non-zero on any failure, so it can gate a push.
     brown-live      while the Browns play, brown-of-week points move on their
                     own -- and a poll that changed nothing saves nothing, since
                     every open phone polls once a minute
+    linelock        from the end of Wednesday no line moves, including onto a
+                    game that still has none -- a line appearing late is how the
+                    dup pool changed under a draft that had already happened
     restore-dups    Restore fills a dup ranking that was wiped off the board
                     and leaves alone one somebody already has
     dupranks        every dup the draft has handed over reads as the team,
-                    marked D and in its own colour
+                    marked D; a dup that came in is gold and an ordinary win is
+                    green, so 1.5 and 1 never look the same
     recover         recoverPicksFromLog rebuilds a narrowed board from the log
 
 Chromium comes from `/opt/pw-browsers/chromium`; the tests fake every external

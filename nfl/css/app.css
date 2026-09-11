@@ -27,6 +27,9 @@
   --turf: #0C3D24;
   --win: #35D07F;
   --win-soft: rgba(53,208,127,.12);
+  --dupwin: #FFC53D;            /* a dup that came in: 1.5, not 1 */
+  --dupwin-soft: rgba(255,197,61,.15);
+  --dupwin-line: rgba(255,197,61,.5);
   --loss: #FF7A45;
   --loss-soft: rgba(255,122,69,.12);
   --push: #9A9AA5;
@@ -321,6 +324,12 @@ button.cell--mid:hover { border-color: var(--line-2); }
   background: var(--bg-2); color: var(--c);
 }
 .cell--pick.is-win  { background: var(--win-soft);  border-color: rgba(53,208,127,.42); color: var(--win); }
+/* A dup that came in is worth 1.5, not 1, so it should not look like the
+   others. Gold rather than green, and it keeps the D. */
+.cell--pick.cell--dupset.is-win {
+  background: var(--dupwin-soft); border-color: var(--dupwin-line); color: var(--dupwin);
+}
+.cell--pick.cell--dupset.is-win::after { color: var(--dupwin); }
 .cell--pick.is-loss { background: var(--loss-soft); border-color: rgba(255,122,69,.3);  color: var(--loss); }
 .cell--pick.is-push { background: var(--push-soft); color: var(--push); }
 .cell--pick.cell--self { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 55%, transparent); }
