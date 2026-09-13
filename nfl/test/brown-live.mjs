@@ -66,5 +66,7 @@ stage = 1;
 await p.evaluate(() => window.dispatchEvent(new Event('pageshow')));
 await p.waitForTimeout(1800);
 console.log('after the TD     :', (await readRows()).join(' | '));
+// Mid-game the leader means nothing, so no winner may be declared yet.
+console.log('winner banner    :', await sec().locator('.brownwon').count() ? 'SHOWN MID-GAME' : 'not yet, correct');
 console.log('box score calls  :', boxCalls, '| page errors:', errs.length ? errs[0] : 'none');
 await b.close();

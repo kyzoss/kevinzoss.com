@@ -478,6 +478,17 @@ console.log("— brown of the week");
   eq("a stat the feed omitted is a zero, not a crash", SC.scoreBrownLine({}, cfg).total, 0);
   eq("an unknown stat is ignored", SC.scoreBrownLine({ tackles: 9 }, cfg).total, 0);
 
+  // the same line, in words, for the Browns page
+  eq("a QB line reads in a fixed order",
+     SC.brownStatLine({ passTD: 2, passYards: 249, completions: 22 }), "22 comp · 249 pass yd · 2 pass TD");
+  eq("a receiver's line carries no passing categories",
+     SC.brownStatLine({ recYards: 104, receptions: 7, recTD: 1 }), "7 rec · 104 rec yd · 1 rec TD");
+  eq("the kicker reads made kicks", SC.brownStatLine({ pat: 3, fg: 2 }), "2 FG · 3 PAT");
+  eq("a zero is left out, not printed", SC.brownStatLine({ rushYards: 40, rushTD: 0 }), "40 rush yd");
+  eq("a player who did nothing has no line", SC.brownStatLine({}), "");
+  eq("and neither does a missing one", SC.brownStatLine(null), "");
+  eq("a stat with no word for it is still shown", SC.brownStatLine({ tackles: 9 }), "9 tackles");
+
   // rounds behave like LMS: four weeks, then everyone is available again
   eq("weeks 1-4 are round 1", [1, 4].map((w) => SC.brownRound(w, cfg).round), [1, 1]);
   eq("week 5 starts round 2", SC.brownRound(5, cfg).round, 2);

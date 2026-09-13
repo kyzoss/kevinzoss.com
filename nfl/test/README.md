@@ -58,7 +58,12 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     sticks
     brown-live      while the Browns play, brown-of-week points move on their
                     own -- and a poll that changed nothing saves nothing, since
-                    every open phone polls once a minute
+                    every open phone polls once a minute. No winner is declared
+                    mid-game, where the lead means nothing
+    brown-final     once the game is final the week view names the winner with
+                    their player and points (a tie says Split and names both),
+                    and the Browns page lists every eligible Brown with his line
+                    and score, fitting a phone without sliding
     linelock        from the end of Wednesday no line moves, including onto a
                     game that still has none -- a line appearing late is how the
                     dup pool changed under a draft that had already happened

@@ -557,6 +557,56 @@ table.sheet { border-collapse: collapse; width: 100%; font-size: 13px; font-vari
 .legend { margin: 10px 0 0; font-size: 12px; color: var(--ink-mute); }
 .legend__x { text-decoration: line-through; text-decoration-color: var(--loss); color: var(--ink-soft); }
 
+/* ---------- brown of the week ----------
+   The result banner, once the Browns game is final. Green like a win badge,
+   because that is exactly what it is reporting. */
+.brownwon {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+  margin: 0 0 10px; padding: 10px 12px; border-radius: var(--r);
+  border: 1px solid color-mix(in srgb, var(--win) 35%, transparent);
+  background: color-mix(in srgb, var(--win) 8%, transparent);
+}
+.brownwon__k {
+  font-size: 9px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--win);
+}
+.brownwon__who { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.brownwon__one { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.brownwon__one b { color: var(--ink); font-weight: 600; }
+.brownwon__one em { font-style: normal; color: var(--ink-soft); }
+
+/* Every Brown's line. Forty-odd rows, so the block scrolls inside itself and
+   keeps its header rather than pushing the rest of the page off the screen. */
+.grid--tall { max-height: 62vh; overflow: auto; }
+.sheet--scores { table-layout: auto; }
+/* Four columns on a 390px phone, so the padding comes down and the name column
+   is allowed to be tight rather than pushing the line off the edge. */
+.sheet--scores th, .sheet--scores td { padding: 8px 7px; }
+.sheet--scores th:first-child, .sheet--scores td:first-child { padding-left: 10px; max-width: 116px; }
+.sheet--scores td:first-child b { display: block; overflow: hidden; text-overflow: ellipsis; }
+.sheet--scores thead th { position: sticky; top: 0; z-index: 3; }
+.sheet--scores thead th:first-child { z-index: 4; }
+.sheet--scores td { text-align: left; }
+.sheet--scores td b { color: var(--ink); font-weight: 600; }
+.sheet--scores td i {
+  font-style: normal; display: block; margin-top: 2px;
+  font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-mute);
+}
+.sheet--scores td.line {
+  white-space: normal; font-size: 11.5px; line-height: 1.45; color: var(--ink-soft);
+}
+.sheet--scores td.num { text-align: right; font-weight: 700; color: var(--ink); }
+.sheet--scores td.by { white-space: nowrap; }
+.sheet--scores td.by .avatar { margin-right: 3px; }
+/* The pick that took the pot. */
+.sheet--scores tr.brownsc--won td { background: color-mix(in srgb, var(--win) 9%, transparent); }
+.sheet--scores tr.brownsc--won td:first-child {
+  background: color-mix(in srgb, var(--win) 9%, var(--surface)); box-shadow: inset 2px 0 0 var(--win);
+}
+/* Did not play, or played and did not score: still listed, just quieter. */
+.sheet--scores tr.brownsc--zero td { color: var(--ink-dim); }
+.sheet--scores tr.brownsc--zero td b { color: var(--ink-dim); font-weight: 500; }
+
 /* ---------- money ---------- */
 .moneytiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .mt {
