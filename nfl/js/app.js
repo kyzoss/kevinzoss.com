@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=788299ca";
-import * as SC from "./scoring.js?v=788299ca";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=788299ca";
-import { fetchWeek } from "./espn.js?v=788299ca";
+import * as S from "./store.js?v=7209ee0f";
+import * as SC from "./scoring.js?v=7209ee0f";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=7209ee0f";
+import { fetchWeek } from "./espn.js?v=7209ee0f";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=788299ca";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=788299ca";
+import { fetchSpreads } from "./odds.js?v=7209ee0f";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=7209ee0f";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -636,6 +636,7 @@ function renderBrown(state, week) {
   const stats = wk.brownStats || {};
   const locked = Boolean(game && SC.hasStarted(game));
   const live = Boolean(game && game.status === "in");
+  const done = Boolean(game && SC.isFinal(game));
   const { round, start, end } = SC.brownRound(week, cfg);
   const bow = SC.brownOfWeek(state, cfg);
   const row = bow.rows[week];
@@ -662,12 +663,26 @@ function renderBrown(state, week) {
 
   const when = !game ? "No Browns game this week."
     : live ? `Live${game.clock ? ` — ${esc(game.clock)}` : ""}; points update as they play.`
+    : done ? "Final."
     : locked ? "Locked — they have kicked off."
     : `Locks at ${esc(fmtKick(game.kickoff))}.`;
+
+  // Who took the week, said plainly, once the game is over. The row counts as
+  // "settled" the moment the first stat lands -- which is mid-game, when the
+  // lead means nothing yet -- so this waits for the game itself to be final.
+  const won = done && row?.settled && row.winners.length ? `<div class="brownwon">
+    <span class="brownwon__k">${row.winners.length > 1 ? "Split" : "Winner"}</span>
+    <div class="brownwon__who">${row.winners.map((id) => {
+      const s = row.picks[id];
+      return `<span class="brownwon__one">${avatar(id)}<b>${esc(nameOf(id))}</b>
+        <em>${esc(nameOfPlayer(s.who))} · ${fmtPts(s.points)} pt${s.points === 1 ? "" : "s"}</em>
+        ${row.payouts[id] ? `<span class="badge badge--money">${SC.money(row.payouts[id])}</span>` : ""}</span>`;
+    }).join("")}</div></div>` : "";
 
   return `<section class="section${live ? " section--live" : ""}">
     <div class="section__head"><h2 class="section__title">Brown of the week · ${SC.money(SC.brownWeekly(state, cfg))}${live ? ` <span class="badge badge--live">Live</span>` : ""}</h2>
       <span class="section__sub">One ${esc(teamName(team))} player, best score takes the pot; a tie splits it. Round ${round} · weeks ${start}–${end}: a player you have used is spent until it resets. ${when}</span></div>
+    ${won}
     <div class="lms">${rows}</div>
   </section>`;
 }
@@ -910,7 +925,8 @@ function renderSideBet(state) {
       </div>
     </div>` : ""}
   </section>
-  ${renderBrownHistory(state)}`;
+  ${renderBrownHistory(state)}
+  ${renderBrownScores(state)}`;
 }
 
 /**
@@ -970,6 +986,78 @@ function renderBrownHistory(state) {
         <button class="btn btn--sm btn--px" data-action="brown-roster">${icon("refresh")}Reload the roster</button>
       </div>
     </div>` : ""}
+  </section>`;
+}
+
+/**
+ * Every Brown and what they scored, for the week being looked at. The week view
+ * only shows the four players who were actually picked, and the first question
+ * after losing the pot is always "well what did so-and-so get" -- this is the
+ * answer, and it is also the check on the box-score mapping: a column of zeroes
+ * against a position means the feed changed shape, not that nobody played.
+ */
+function renderBrownScores(state) {
+  if (!cfg.brownOfWeek) return "";
+  const roster = state.brownsRoster || [];
+  const stats0 = (w) => Object.keys(state.weeks?.[w]?.brownStats || {}).length;
+  // The week on the strip if it has a box score, otherwise the last week that
+  // does: opening this page on Tuesday should show Sunday's numbers, not an
+  // empty table for a game that has not been played.
+  const scoredWeeks = Object.keys(state.weeks || {}).map(Number).filter(stats0);
+  const week = stats0(ui.week) ? ui.week : (scoredWeeks.length ? Math.max(...scoredWeeks) : ui.week);
+  const stats = state.weeks?.[week]?.brownStats || {};
+  const picks = state.weeks?.[week]?.brown || {};
+  const row = SC.brownOfWeek(state, cfg).rows[week];
+
+  const pickedBy = {};
+  for (const [pid, who] of Object.entries(picks)) {
+    if (who) (pickedBy[who] = pickedBy[who] || []).push(pid);
+  }
+
+  // Everyone the pool can draft, plus anyone the box score scored who is not on
+  // our cached roster -- a mid-week signing, or a lineman on a tackle-eligible
+  // catch. Showing them as an id is ugly, but silently dropping a scoring line
+  // would be worse.
+  const known = new Set(roster.map((r) => r.id));
+  const extras = Object.keys(stats).filter((id) => !known.has(id))
+    .map((id) => ({ id, name: `#${id}`, short: id, pos: "", number: "" }));
+  const rank = Object.fromEntries((cfg.brownOfWeek.positions || []).map((p, i) => [p, i]));
+  const men = [...roster, ...extras]
+    .map((m) => ({ ...m, points: stats[m.id] ? SC.scoreBrownLine(stats[m.id], cfg).total : null }))
+    .sort((a, b) => (b.points ?? -1) - (a.points ?? -1)
+      || (rank[a.pos] ?? 9) - (rank[b.pos] ?? 9)
+      || (Number(a.number || 999) - Number(b.number || 999))
+      || String(a.name).localeCompare(String(b.name)));
+
+  const head = `<div class="section__head"><h2 class="section__title">Week ${week} · every Brown</h2>
+    <span class="section__sub">Everyone eligible, and what the box score gave them on the pool's table. The row that took the pot is marked — the top score on the day often belongs to nobody.</span></div>`;
+
+  if (!men.length) {
+    return `<section class="section">${head}
+      <p class="mute" style="margin:0;font-size:13px">The roster has not loaded yet — pull it with <b>Reload the roster</b> above.</p></section>`;
+  }
+
+  const best = row?.best ?? null;
+  const body = men.map((m) => {
+    const line = stats[m.id];
+    const by = (pickedBy[m.id] || []).map((id) => avatar(id)).join("");
+    // `best` is the best score among the four picks, not on the roster: the row
+    // that took the pot is the one worth marking, and a huge game from a player
+    // nobody chose is exactly the thing the table exists to show.
+    const top = m.points != null && best != null && m.points === best && by;
+    return `<tr class="${m.points ? "" : "brownsc--zero"}${top ? " brownsc--won" : ""}">
+      <td><b>${esc(m.name)}</b>${m.pos ? `<i>${esc(m.pos)}${m.number ? ` · ${esc(m.number)}` : ""}</i>` : ""}</td>
+      <td class="line">${line ? esc(SC.brownStatLine(line)) || "no counting stats" : "—"}</td>
+      <td class="num${top ? " best" : ""}">${m.points != null ? fmtPts(m.points) : "—"}</td>
+      <td class="by">${by}</td></tr>`;
+  }).join("");
+
+  const none = Object.keys(stats).length === 0;
+  return `<section class="section">${head}
+    ${none ? `<p class="mute" style="margin:0 0 8px;font-size:13px">No box score for week ${week} yet — every line fills in once the game is played.</p>` : ""}
+    <div class="grid grid--tall"><table class="sheet sheet--scores">
+      <thead><tr><th>Player</th><th>Line</th><th>Pts</th><th>Picked</th></tr></thead>
+      <tbody>${body}</tbody></table></div>
   </section>`;
 }
 

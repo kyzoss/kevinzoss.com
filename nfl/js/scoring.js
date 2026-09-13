@@ -624,6 +624,42 @@ export function scoreBrownLine(line, cfg) {
   return { total, parts };
 }
 
+/**
+ * The order a box-score line reads in, and the words for it. Fixed, so two
+ * players' lines are comparable at a glance instead of arriving in whatever
+ * order the feed happened to fill them in.
+ */
+const STAT_WORDS = [
+  ["completions", "comp"], ["passYards", "pass yd"], ["passTD", "pass TD"], ["pass2pt", "pass 2pt"],
+  ["rushYards", "rush yd"], ["rushTD", "rush TD"], ["rush2pt", "rush 2pt"],
+  ["receptions", "rec"], ["recYards", "rec yd"], ["recTD", "rec TD"], ["rec2pt", "rec 2pt"],
+  ["fg", "FG"], ["pat", "PAT"],
+];
+
+/**
+ * One player's raw line in words: "18 comp · 214 pass yd · 2 pass TD".
+ *
+ * A stat the feed did not report is left out rather than printed as a zero --
+ * a receiver's line should not carry nine passing categories. Anything the
+ * table does not have a word for is still shown under its own key, so a stat
+ * added to the scoring table later is never silently invisible here.
+ */
+export function brownStatLine(line) {
+  if (!line) return "";
+  const out = [];
+  const known = new Set(STAT_WORDS.map(([k]) => k));
+  for (const [key, word] of STAT_WORDS) {
+    const n = Number(line[key] || 0);
+    if (n) out.push(`${n} ${word}`);
+  }
+  for (const [key, raw] of Object.entries(line)) {
+    if (known.has(key)) continue;
+    const n = Number(raw || 0);
+    if (n) out.push(`${n} ${key}`);
+  }
+  return out.join(" · ");
+}
+
 /** Which round a week falls in, and its bounds. Mirrors the LMS blocks. */
 export function brownRound(week, cfg) {
   const len = Number(cfg.brownOfWeek?.roundWeeks) || 4;

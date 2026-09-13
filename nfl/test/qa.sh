@@ -80,9 +80,20 @@ out=$(timeout 115 node $SP/brown-live.mjs 2>&1)
 if echo "$out" | grep -q "live badge: shown" \
   && echo "$out" | grep -q "after the TD     : 7 points · live | 18 points · live" \
   && echo "$out" | grep -q "saves added: 0 (want 0)" \
+  && echo "$out" | grep -q "winner banner    : not yet, correct" \
   && echo "$out" | grep -q "page errors: none"; then
   line "brown points live in-game" "PASS"
 else line "brown points live in-game" "FAIL — $(echo "$out" | tail -3 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
+out=$(timeout 115 node $SP/brown-final.mjs 2>&1)
+if echo "$out" | grep -q "winner   : WINNER KZ Kevin Quinshon Judkins · 23 pts \$4" \
+  && echo "$out" | grep -q "tied week: SPLIT AZ Andrew KC Concepcion · 23 pts \$2 KZ Kevin Quinshon Judkins · 23 pts \$2" \
+  && echo "$out" | grep -q "Jerry Jeudy         45" \
+  && echo "$out" | grep -q "rows listed: 7 of 7" \
+  && echo "$out" | grep -q "table h-overflow inside its own scroller: none" \
+  && echo "$out" | grep -q "page errors: none"; then
+  line "winner named, every Brown listed" "PASS"
+else line "winner named, every Brown listed" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
 out=$(timeout 115 node $SP/coldstart.mjs 2>&1)
 if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"' \
