@@ -398,6 +398,13 @@ button.cell--mid:hover { border-color: var(--line-2); }
 }
 .dupchip--me { border-color: color-mix(in srgb, var(--c) 55%, transparent); }
 .dupchip--none b { color: var(--ink-dim); font-weight: 400; }
+/* Never ranked at all -- the seat worth chasing before Sunday, and not the
+   same thing as ranking and missing out. */
+.dupchip--unranked {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--loss) 40%, transparent);
+}
+.dupchip--unranked b { color: var(--loss); font-weight: 600; font-size: 11px; }
 .dupchip--win  { border-color: rgba(53,208,127,.45); }
 .dupchip--win b { color: var(--win); }
 .dupchip--loss b { color: var(--loss); }

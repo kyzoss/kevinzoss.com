@@ -46,10 +46,31 @@ for (const [label, opts] of [['mobile', devices['iPhone 13']], ['desktop', {view
   const chips = await p.locator('.dupchip').evaluateAll(els => els.map(e =>
     e.innerText.replace(/\s+/g,' ').trim()));
   console.log('  dup bar:', chips.join('  '));
+  // In words, not just chips: holding it, losing it to someone ahead of you and
+  // never having ranked all looked identical before, which is why "did not
+  // reflect your dup" could not be answered from this screen.
+  console.log('  says   :', (await p.locator('.dupbar__note').innerText()).replace(/\s+/g,' ').trim());
   const h = await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   console.log('  horizontal scroll:', h);
   await p.locator('.slate').scrollIntoViewIfNeeded();
   await p.locator('.section', { has: p.locator('.slate') }).screenshot({ path: `/home/user/kevinzoss.com/_dup-${label}.png` });
+  await c.close();
+}
+// The same board read by each seat in turn. Holding it, ranking and losing it
+// to someone ahead of you, and never ranking at all now have to read as three
+// different sentences -- that is the whole point of the line.
+const lost = JSON.parse(JSON.stringify(seed));
+lost.weeks[1].dupPrefs.jv = ['TB'];          // Jim ranks a dog Andrew already has
+console.log('\n== what each seat is told');
+for (const [who, board] of [['az', seed], ['kz', seed], ['jv', seed], ['hz', seed], ['jv', lost]]) {
+  const c = await b.newContext({ ...devices['iPhone 13'] });
+  await c.route(/site\.api\.espn\.com|the-odds-api\.com|a\.espncdn\.com|script\.google\.com/, r => r.abort());
+  await c.addInitScript(([s, t, me]) => { localStorage.setItem('pickem:me', me); localStorage.setItem('pickem:2026', s);
+    const R = Date; class D extends R { constructor(...a){ super(...(a.length ? a : [t])); } static now(){ return t; } } window.Date = D;
+  }, [JSON.stringify(board), OPEN, who]);
+  const p = await c.newPage(); await p.goto(base); await p.waitForTimeout(700);
+  const tag = board === lost ? `${who} (ranked a taken dog)` : who;
+  console.log(`  ${tag.padEnd(24)} ${(await p.locator('.dupbar__note').innerText()).replace(/\s+/g,' ').trim()}`);
   await c.close();
 }
 await b.close(); srv.close();

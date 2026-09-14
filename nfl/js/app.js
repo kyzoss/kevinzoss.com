@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=b9c343be";
-import * as SC from "./scoring.js?v=b9c343be";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=b9c343be";
-import { fetchWeek } from "./espn.js?v=b9c343be";
+import * as S from "./store.js?v=eafe72b7";
+import * as SC from "./scoring.js?v=eafe72b7";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=eafe72b7";
+import { fetchWeek } from "./espn.js?v=eafe72b7";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=b9c343be";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=b9c343be";
+import { fetchSpreads } from "./odds.js?v=eafe72b7";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=eafe72b7";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -518,18 +518,40 @@ function renderDupBar(state, week, dups, tally) {
   const held = dups.order.map((id) => {
     const team = dups.assigned[id];
     const grade = team ? tally[id]?.dupGrade : null;
-    const cls = ["dupchip", team ? "" : "dupchip--none", grade ? `dupchip--${grade}` : "",
-                 id === pid ? "dupchip--me" : ""].join(" ");
+    // Nothing ranked and ranked-but-missed-out are not the same thing, and an
+    // em dash said both. A blank seat is the one worth chasing before Sunday.
+    const none = !(dups.prefs[id] || []).length;
+    const cls = ["dupchip", team ? "" : "dupchip--none", none ? "dupchip--unranked" : "",
+                 grade ? `dupchip--${grade}` : "", id === pid ? "dupchip--me" : ""].join(" ");
     const ordered = (dups.prefs[id] || []).map((t, i) => `${i + 1}. ${t}`).join(" · ");
     const tip = `${nameOf(id)}${ordered ? ` — ranked ${ordered}` : " — nothing ranked"}`;
     return `<span class="${cls}" style="--c:${esc(player(id)?.color)}" title="${esc(tip)}">
-      ${avatar(id)}<b>${team ? esc(team) : "—"}</b></span>`;
+      ${avatar(id)}<b>${team ? esc(team) : none ? "none" : "—"}</b></span>`;
   }).join("");
-  // Your seat in this week's draft, and nothing else. The row of chips below
-  // already says who holds what, the Dup column says how you ranked it, and a
-  // secured dup is marked D on the slate -- the paragraph was restating all of
-  // it every week.
-  const note = !pid || !dups.candidates.length ? "" : `Dup #${pos}`;
+  // Your seat, and then in plain words where your dup actually stands. The row
+  // of chips says who holds what, but only if you know how to read it -- and
+  // "did not reflect your dup" turned out to be unanswerable from this screen:
+  // holding it, losing it to someone ahead of you, and never having ranked at
+  // all were three different things that all looked the same.
+  let note = "";
+  if (pid && dups.candidates.length) {
+    const ranked = dups.prefs[pid] || [];
+    let said;
+    if (mine) {
+      said = `<b>${esc(mine)}</b> is yours.`;
+    } else if (ranked.length) {
+      // you ranked, but everything you ranked went to someone picking earlier
+      const held = (t) => nameOf(dups.byOwner[t]) || "nobody";
+      said = ranked.length === 1
+        ? `You ranked ${esc(ranked[0])}, but ${esc(held(ranked[0]))} has it. No dup this week.`
+        : `You ranked ${esc(listOf(ranked))}, all taken (${esc(ranked.map((t) => `${t} to ${held(t)}`).join(", "))}). No dup this week.`;
+    } else if (locked) {
+      said = "You didn't rank a dup this week.";
+    } else {
+      said = "You haven't ranked a dup yet — tap a number in the Dup column.";
+    }
+    note = `Dup #${pos} · ${said}`;
+  }
   return `<div class="dupbar">
     <div class="dupbar__note">${note}</div>
     <div class="dupbar__held">${held}</div>
