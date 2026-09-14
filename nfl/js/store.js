@@ -215,6 +215,9 @@ let touched = false;
 // else it is running older code, which last time meant the pool's picks were
 // one blank device away from being wiped.
 const EXPECTED_SCRIPT_VERSION = "empty-is-missing-1";
+/** What this app expects the deployment to report. Exported so the banner can
+ *  name it even before a read has landed. */
+export const EXPECTED_SCRIPT = EXPECTED_SCRIPT_VERSION;
 
 export async function initSync() {
   backend = pickBackend();
@@ -465,9 +468,16 @@ function sheetBackend(conf) {
       // deploy is visible to the whole table instead of only to whoever thinks
       // to tap "Test the connection". An old script does not merge, and a board
       // that does not merge quietly eats people's picks.
-      if ((body.version || "") !== scriptVersion) {
-        scriptVersion = body.version || "";
-        syncStatus = { ...syncStatus, script: scriptVersion, expect: EXPECTED_SCRIPT_VERSION };
+      //
+      // Set on the first read, not only when it changes: a deployment old
+      // enough to report no version at all reads as "" -- which is what
+      // scriptVersion already was -- so the banner came up with an empty chip
+      // where the expected version should be. The one case that matters most is
+      // the one that said least.
+      const seen = body.version || "";
+      if (seen !== scriptVersion || !syncStatus.expect) {
+        scriptVersion = seen;
+        syncStatus = { ...syncStatus, script: seen, expect: EXPECTED_SCRIPT_VERSION };
         emit();
       }
       return body.state ? { state: body.state, updatedAt: body.updatedAt } : null;

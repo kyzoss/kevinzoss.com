@@ -25,8 +25,13 @@ async function cold(label, sheet) {
   await c.route('**script.google.com**', async route => {
     if (sheet === 'down') return route.abort();
     if (sheet === 'error') return route.fulfill({status:500, body:'boom'});
-    return route.fulfill({status:200, contentType:'application/json',
-      body: JSON.stringify({state:board, updatedAt:board.updatedAt, version:'owned-merge-2'})});
+    // 'noversion' is a deployment old enough to report nothing at all -- which
+    // reads as "", the same as the value the app starts with. That equality is
+    // what left the banner naming no expected version, in the one case where
+    // the board is oldest and the warning matters most.
+    const body = { state: board, updatedAt: board.updatedAt };
+    if (sheet !== 'noversion') body.version = 'owned-merge-2';
+    return route.fulfill({status:200, contentType:'application/json', body: JSON.stringify(body)});
   });
   // NOTHING in storage: no player chosen, no board. Exactly a new install.
   const p=await c.newPage();
@@ -43,11 +48,12 @@ async function cold(label, sheet) {
   // The mocked sheet reports owned-merge-2, which this app no longer expects.
   // An old script replaces instead of merging, so the whole table has to be
   // told -- not just whoever thinks to tap "Test the connection".
-  const alarm = (await p.locator('.alarm b').first().innerText().catch(()=> '')).trim();
+  const alarm = (await p.locator('.alarm').first().innerText().catch(()=> '')).replace(/\s+/g,' ').trim().slice(0, 118);
   console.log(`${label.padEnd(22)} rows:${String(rows).padEnd(3)} my picks:${String(mine).padEnd(3)} sync:"${sync}"  empty says:"${empty}"  old-script alarm:"${alarm || 'none'}"  errors:${errs.length||'none'}`);
   await c.close();
 }
 await cold('sheet reachable', 'ok');
 await cold('sheet unreachable', 'down');
 await cold('sheet 500s', 'error');
+await cold('sheet, no version', 'noversion');
 await b.close();
