@@ -45,6 +45,15 @@ for (const [label, opts] of [['mobile', devices['iPhone 13']], ['desktop', {view
   }
   const chips = await p.locator('.dupchip').evaluateAll(els => els.map(e =>
     e.innerText.replace(/\s+/g,' ').trim()));
+  // The badge beside each score is the week's standing. It used to be the dup
+  // draft seat with nothing but a tooltip to say so, which put "4th" next to
+  // the highest score on the board.
+  const tiles = await p.locator('.tile').evaluateAll(els => els.map(e => ({
+    who: e.querySelector('.tile__name span')?.innerText,
+    place: e.querySelector('.tile__pos')?.innerText || '-',
+    pts: e.querySelector('.tile__big')?.firstChild?.textContent?.trim(),
+    sub: e.querySelector('.tile__sub')?.innerText.replace(/\s+/g,' ') })));
+  for (const t of tiles) console.log(`  tile: ${String(t.who).padEnd(8)} ${String(t.pts).padStart(5)}  ${String(t.place).padEnd(4)} ${t.sub}`);
   console.log('  dup bar:', chips.join('  '));
   // In words, not just chips: holding it, losing it to someone ahead of you and
   // never having ranked all looked identical before, which is why "did not

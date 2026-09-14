@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=eafe72b7";
-import * as SC from "./scoring.js?v=eafe72b7";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=eafe72b7";
-import { fetchWeek } from "./espn.js?v=eafe72b7";
+import * as S from "./store.js?v=4136243c";
+import * as SC from "./scoring.js?v=4136243c";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=4136243c";
+import { fetchWeek } from "./espn.js?v=4136243c";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=eafe72b7";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=eafe72b7";
+import { fetchSpreads } from "./odds.js?v=4136243c";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=4136243c";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -314,7 +314,7 @@ function staleScript() {
   const sync = S.getSync();
   return `<div class="alarm">
     <b>The shared board is running old code.</b>
-    <span>It reports <code>${esc(sync.script || "no version")}</code>; this app expects <code>${esc(sync.expect || "")}</code>.
+    <span>It reports <code>${esc(sync.script || "no version at all")}</code>; this app expects <code>${esc(sync.expect || S.EXPECTED_SCRIPT)}</code>.
     Until it is re-deployed, one device can overwrite what somebody else entered.
     ${commish() ? "Apps Script → Deploy → Manage deployments → pencil → New version." : "Tell Kevin."}</span>
   </div>`;
@@ -389,14 +389,29 @@ function renderWeek(state) {
   const lockLabel = lockAt && !linesFrozen ? lockLabelFor(week) : "";
   const anyPicks = state.players.some((p) => tally[p.id].picks);
 
+  // Where each player stands this week. Standard competition ranking, so a tie
+  // shares a place and the next one down skips: 1, 2, 2, 4.
+  const byPoints = [...state.players].sort((a2, b2) => tally[b2.id].points - tally[a2.id].points);
+  const place = {};
+  byPoints.forEach((p, i) => {
+    const prev = byPoints[i - 1];
+    place[p.id] = prev && tally[prev.id].points === tally[p.id].points ? place[prev.id] : i + 1;
+  });
+
   const tiles = state.players.map((p) => {
     const t = tally[p.id];
     const pos = dups.order.indexOf(p.id) + 1;
     const lead = anyPicks && t.points === best && t.picks > 0 && state.players.filter((q) => tally[q.id].points === best).length === 1;
+    // This badge used to be the dup draft seat, labelled nowhere but a tooltip.
+    // Next to a big score a bare ordinal reads as the standings, so Howard led
+    // the week on 13.5 and his card said "4th". It is the standings now, and
+    // the draft seat has moved down to the dup line where it belongs.
     return `<div class="tile ${lead ? "tile--lead" : ""}" style="--c:${esc(p.color)}">
-      <div class="tile__name">${avatar(p.id)}<span>${esc(p.name)}</span><span class="tile__pos" title="Draft position">${ordinal(pos)}</span></div>
+      <div class="tile__name">${avatar(p.id)}<span>${esc(p.name)}</span>${finals && t.picks
+        ? `<span class="tile__pos" title="${esc(p.name)} is ${ordinal(place[p.id])} this week">${ordinal(place[p.id])}</span>` : ""}</div>
       <div class="tile__big">${t.picks ? fmtPts(t.points) : "—"}<small>${t.w}-${t.l}</small></div>
-      <div class="tile__sub"><span>${t.picks}/${games.length} picked</span>${t.dup ? `<span>Dup <b>${esc(t.dup)}</b></span>` : ""}</div>
+      <div class="tile__sub"><span>${t.picks}/${games.length} picked</span>${dups.candidates.length
+        ? `<span title="Dup draft seat ${pos} this week">Dup #${pos}${t.dup ? ` · <b>${esc(t.dup)}</b>` : ""}</span>` : ""}</div>
     </div>`;
   }).join("");
 

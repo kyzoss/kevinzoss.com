@@ -1,6 +1,6 @@
 // Point spreads from The Odds API (the-odds-api.com). One request per pull, so the
 // commissioner's free quota (500/month) lasts the season with room to spare.
-import { abbrFromFull } from "./teams.js?v=eafe72b7";
+import { abbrFromFull } from "./teams.js?v=4136243c";
 
 const BASE = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds";
 

@@ -107,7 +107,8 @@ else line "box score read after the game" "FAIL — $(echo "$out" | tail -4 | tr
 
 out=$(timeout 115 node $SP/coldstart.mjs 2>&1)
 if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"' \
-  && echo "$out" | grep -q 'sheet reachable .*old-script alarm:"The shared board is running old code."' \
+  && echo "$out" | grep -q 'sheet reachable .*reports owned-merge-2; this app expects empty-is-missing-1' \
+  && echo "$out" | grep -q 'sheet, no version .*reports no version at all; this app expects empty-is-missing-1' \
   && echo "$out" | grep -q 'sheet unreachable .*Can.t reach the shared board' \
   && echo "$out" | grep -q 'sheet unreachable .*old-script alarm:"none"'; then
   line "cold start / Home Screen case" "PASS"
@@ -131,6 +132,9 @@ if echo "$out" | grep -q 'SF\[D\]' \
   && echo "$out" | grep -q 'SF secured: ::after="D"' \
   && echo "$out" | grep -q 'TB dup win -> rgb(255, 197, 61)' \
   && echo "$out" | grep -q 'TEN     win -> rgb(53, 208, 127)' \
+  && echo "$out" | grep -q 'tile: HZ  *1  2nd  4/4 picked Dup #4 · SF' \
+  && echo "$out" | grep -q 'tile: KZ  *0  3rd' \
+  && echo "$out" | grep -q 'tile: JV  *0  3rd' \
   && echo "$out" | grep -q 'dup bar: AZ TB  KZ IND  JV none  HZ SF' \
   && echo "$out" | grep -q "kz  *Dup #2 · IND is yours." \
   && echo "$out" | grep -q "jv  *Dup #3 · You haven't ranked a dup yet" \
