@@ -60,6 +60,12 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     own -- and a poll that changed nothing saves nothing, since
                     every open phone polls once a minute. No winner is declared
                     mid-game, where the lead means nothing
+    brown-after     Monday morning, every game final and nothing on the board:
+                    opening the app has to read the box score, because score
+                    polling stopped when the last game ended. Runs a payload in
+                    ESPN's REAL shape (machine names in keys, display strings in
+                    labels), does not re-read a settled game, and says what the
+                    feed sent when it cannot read it
     brown-final     once the game is final the week view names the winner with
                     their player and points (a tie says Split and names both),
                     and the Browns page lists every eligible Brown with his line

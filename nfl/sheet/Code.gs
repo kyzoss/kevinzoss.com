@@ -33,7 +33,7 @@
 // which would only send everyone off to redeploy for nothing. Reported back by
 // doGet and doPost, so the app can tell you whether the deployment you are
 // talking to is actually the current one.
-var SCRIPT_VERSION = 'merge-back-1';
+var SCRIPT_VERSION = 'empty-is-missing-1';
 
 var STATE_SHEET = 'state';
 var PICKS_SHEET = 'picks';
@@ -112,12 +112,23 @@ function doPost(e) {
  * `deep` unions the entry key by key (picks: one key per game). Without it the
  * entry is a scalar or a list, so it is kept whole.
  */
+function blank_(v) {
+  if (v == null || v === '') return true;
+  if (Object.prototype.toString.call(v) === '[object Array]') return v.length === 0;
+  if (typeof v === 'object') { for (var k in v) return false; return true; }
+  return false;
+}
+
 function mergeOwned_(stored, incoming, owner, deep) {
   var out = {}, k;
   for (k in (stored || {})) out[k] = stored[k];
   for (k in (incoming || {})) {
     if (k === owner) { out[k] = incoming[k]; continue; }   // the saver speaks for themselves
-    if (!deep) { if (out[k] == null) out[k] = incoming[k]; continue; }
+    // An empty entry is missing, not a deliberate "nothing". Clearing a ranking
+    // deletes the key, so a stored [] only ever comes from a device that never
+    // had it -- and treating it as present is how a real ranking on one phone
+    // could never reach the rest of the table.
+    if (!deep) { if (blank_(out[k])) out[k] = incoming[k]; continue; }
     var merged = {}, g;
     for (g in (out[k] || {})) merged[g] = out[k][g];
     for (g in (incoming[k] || {})) if (merged[g] == null) merged[g] = incoming[k][g];

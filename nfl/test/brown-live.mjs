@@ -45,7 +45,14 @@ await c.route('**script.google.com**', async route => {
   if (route.request().method() === 'POST') { saves++; return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,version:'brown-1'})}); }
   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({state:seed,updatedAt:1,version:'brown-1'})});
 });
-await c.addInitScript(([s])=>{ localStorage.setItem('pickem:me','kz'); localStorage.setItem('pickem:2026',s); },[JSON.stringify(seed)]);
+// An advanceable clock. A box score is not re-read on every render -- renders
+// are far more frequent than anything ESPN has to say -- so the test has to let
+// time pass between polls instead of firing three resumes inside two seconds.
+await c.addInitScript(([s])=>{ localStorage.setItem('pickem:me','kz'); localStorage.setItem('pickem:2026',s);
+  let skew = 0; const R = Date;
+  class D extends R { constructor(...a){ super(...(a.length ? a : [R.now() + skew])); } static now(){ return R.now() + skew; } }
+  window.Date = D; window.__advance = (ms) => { skew += ms; };
+},[JSON.stringify(seed)]);
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.goto('https://kevinzoss.com/nfl/'); await p.waitForTimeout(1800);
 
@@ -57,12 +64,14 @@ console.log('after first pull :', (await readRows()).join(' | '));
 const savesAfterFirst = saves;
 
 // poll again with nothing changed: must not save
+await p.evaluate(() => window.__advance(30_000));
 await p.evaluate(() => window.dispatchEvent(new Event('pageshow')));
 await p.waitForTimeout(1500);
 console.log('unchanged poll   :', (await readRows()).join(' | '), `| saves added: ${saves - savesAfterFirst} (want 0)`);
 
 // now the touchdown lands
 stage = 1;
+await p.evaluate(() => window.__advance(30_000));
 await p.evaluate(() => window.dispatchEvent(new Event('pageshow')));
 await p.waitForTimeout(1800);
 console.log('after the TD     :', (await readRows()).join(' | '));

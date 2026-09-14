@@ -557,6 +557,20 @@ table.sheet { border-collapse: collapse; width: 100%; font-size: 13px; font-vari
 .legend { margin: 10px 0 0; font-size: 12px; color: var(--ink-mute); }
 .legend__x { text-decoration: line-through; text-decoration-color: var(--loss); color: var(--ink-soft); }
 
+/* The board is running old code: everyone sees this, on every tab, because the
+   symptom without it is picks quietly disappearing. */
+.alarm {
+  display: grid; gap: 4px; margin: 0 0 12px; padding: 11px 13px; border-radius: var(--r);
+  border: 1px solid color-mix(in srgb, var(--loss) 45%, transparent);
+  background: color-mix(in srgb, var(--loss) 10%, transparent);
+  font-size: 12.5px; line-height: 1.5; color: var(--ink-soft);
+}
+.alarm b { color: var(--ink); font-size: 13px; }
+.alarm code {
+  font-size: 11px; padding: 1px 5px; border-radius: 5px;
+  background: rgba(255,255,255,.07); color: var(--ink);
+}
+
 /* ---------- brown of the week ----------
    The result banner, once the Browns game is final. Green like a win badge,
    because that is exactly what it is reporting. */

@@ -40,6 +40,19 @@ eq("your own LMS change goes through", merge(s2, wk({}, { kz:'NYJ' }, {}), 'kz')
 eq("someone else's LMS is not cleared", merge(s2, wk({}, {}, {}), 'kz').weeks[1].lms.hz, 'CLE');
 eq("someone else's dup ranking survives", merge(s2, wk({}, {}, { kz:['TB'] }), 'kz').weeks[1].dupPrefs.hz, ['TB','IND']);
 eq("your own dup ranking is replaced", merge(s2, wk({}, {}, { kz:['TB'] }), 'kz').weeks[1].dupPrefs.kz, ['TB']);
+// A stored empty entry is a device that never had it, not a deliberate blank.
+// Clearing a ranking deletes the key, so [] can only mean "missing" -- and
+// holding it as present is how one phone's real ranking never reached the rest
+// of the table, and the dup went to the next person down the order.
+const sEmpty = wk({}, { hz:'' }, { hz:[], kz:['IND'] });
+eq("an empty dup list is filled from another device",
+   merge(sEmpty, wk({}, {}, { hz:['SF'] }), 'kz').weeks[1].dupPrefs.hz, ['SF']);
+eq("an empty LMS entry is filled too",
+   merge(sEmpty, wk({}, { hz:'DEN' }, {}), 'kz').weeks[1].lms.hz, 'DEN');
+eq("a real entry is still never narrowed",
+   merge(sEmpty, wk({}, {}, { kz:[] }), 'hz').weeks[1].dupPrefs.kz, ['IND']);
+eq("and the saver may still clear their own",
+   merge(sEmpty, wk({}, {}, { kz:[] }), 'kz').weeks[1].dupPrefs.kz, []);
 // brown of the week is per-player data and gets the same protection
 const s4 = wk({}, {}, {});
 s4.weeks[1].brown = { hz: 'chubb', kz: 'flacco' };
