@@ -131,6 +131,10 @@ if echo "$out" | grep -q 'SF\[D\]' \
   && echo "$out" | grep -q 'SF secured: ::after="D"' \
   && echo "$out" | grep -q 'TB dup win -> rgb(255, 197, 61)' \
   && echo "$out" | grep -q 'TEN     win -> rgb(53, 208, 127)' \
+  && echo "$out" | grep -q 'dup bar: AZ TB  KZ IND  JV none  HZ SF' \
+  && echo "$out" | grep -q "kz  *Dup #2 · IND is yours." \
+  && echo "$out" | grep -q "jv  *Dup #3 · You haven't ranked a dup yet" \
+  && echo "$out" | grep -q "ranked a taken dog)  *Dup #3 · You ranked TB, but Andrew has it" \
   && ! echo "$out" | grep -q 'provisional'; then
   line "dup D + gold, wins green" "PASS"
 else line "dup D + gold, wins green" "FAIL — $(echo "$out" | sed -n '3,8p' | tr '\n' ' ')"; fails=$((fails+1)); fi
