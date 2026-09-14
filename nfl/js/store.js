@@ -75,6 +75,10 @@ function restableGameIds(weeks) {
 
 export function getState() { return state; }
 export function getSync() { return syncStatus; }
+/** True when the shared board is running code older than this app expects. */
+export function scriptStale() {
+  return Boolean(syncStatus.enabled && readOk && scriptVersion !== EXPECTED_SCRIPT_VERSION);
+}
 export function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 function emit() { for (const fn of listeners) fn(state); }
 
@@ -210,7 +214,7 @@ let touched = false;
 // What sheet/Code.gs says in this checkout. If the deployment reports anything
 // else it is running older code, which last time meant the pool's picks were
 // one blank device away from being wiped.
-const EXPECTED_SCRIPT_VERSION = "merge-back-1";
+const EXPECTED_SCRIPT_VERSION = "empty-is-missing-1";
 
 export async function initSync() {
   backend = pickBackend();
@@ -457,7 +461,15 @@ function sheetBackend(conf) {
       if (!res.ok) throw new Error(`Sheet read failed (${res.status})`);
       const body = await res.json();
       if (body.error) throw new Error(body.error);
-      scriptVersion = body.version || "";
+      // The deployed script's version, carried on the sync status so a stale
+      // deploy is visible to the whole table instead of only to whoever thinks
+      // to tap "Test the connection". An old script does not merge, and a board
+      // that does not merge quietly eats people's picks.
+      if ((body.version || "") !== scriptVersion) {
+        scriptVersion = body.version || "";
+        syncStatus = { ...syncStatus, script: scriptVersion, expect: EXPECTED_SCRIPT_VERSION };
+        emit();
+      }
       return body.state ? { state: body.state, updatedAt: body.updatedAt } : null;
     },
     async write(next) {

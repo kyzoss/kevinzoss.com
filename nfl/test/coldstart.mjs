@@ -40,7 +40,11 @@ async function cold(label, sheet) {
   const mine = await p.evaluate(()=>Object.keys(JSON.parse(localStorage.getItem('pickem:2026')||'{}')?.weeks?.[1]?.picks?.kz||{}).length);
   const empty = (await p.evaluate(()=>document.querySelector('.empty h3')?.innerText || '')).trim();
   const sync = (await p.locator('.sync').first().innerText().catch(()=> '?')).trim();
-  console.log(`${label.padEnd(22)} rows:${String(rows).padEnd(3)} my picks:${String(mine).padEnd(3)} sync:"${sync}"  empty says:"${empty}"  errors:${errs.length||'none'}`);
+  // The mocked sheet reports owned-merge-2, which this app no longer expects.
+  // An old script replaces instead of merging, so the whole table has to be
+  // told -- not just whoever thinks to tap "Test the connection".
+  const alarm = (await p.locator('.alarm b').first().innerText().catch(()=> '')).trim();
+  console.log(`${label.padEnd(22)} rows:${String(rows).padEnd(3)} my picks:${String(mine).padEnd(3)} sync:"${sync}"  empty says:"${empty}"  old-script alarm:"${alarm || 'none'}"  errors:${errs.length||'none'}`);
   await c.close();
 }
 await cold('sheet reachable', 'ok');

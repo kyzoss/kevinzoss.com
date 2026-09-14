@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=7209ee0f";
-import * as SC from "./scoring.js?v=7209ee0f";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=7209ee0f";
-import { fetchWeek } from "./espn.js?v=7209ee0f";
+import * as S from "./store.js?v=b9c343be";
+import * as SC from "./scoring.js?v=b9c343be";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=b9c343be";
+import { fetchWeek } from "./espn.js?v=b9c343be";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=7209ee0f";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=7209ee0f";
+import { fetchSpreads } from "./odds.js?v=b9c343be";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=b9c343be";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -139,6 +139,12 @@ function autoPull(week) {
   const needSchedule = !games.length;
   const needLines = week === currentWeek() && !SC.linesLocked(state, week, cfg) && (needSchedule || games.some((g) => g.spread == null && g.status === "pre")) && Date.now() - (wk?.lastLinesPull || 0) > 3600e3;
   if (needSchedule || needLines) pullSlate(week, { lines: needLines, quiet: true });
+  // The box score cannot ride on the score poll alone. Polling stops the moment
+  // every game is final, so opening the app on Monday -- which is when people
+  // actually look -- pulled no box score at all, and Brown of the week sat
+  // blank for the whole week with nothing saying why. Try it on the way in;
+  // refreshBrownStats decides for itself whether there is anything to fetch.
+  refreshBrownStats(week).catch(() => {});
 }
 
 async function refreshScores(week, quiet = true) {
@@ -157,14 +163,35 @@ async function refreshScores(week, quiet = true) {
  * write goes to the shared board -- storing an identical payload every minute
  * would be a save a minute per phone for nothing.
  */
+// When we last read a box score, and what the feed looked like if it gave us
+// nothing. Both are per session and deliberately off the board: a diagnosis is
+// not pool data, and it must not sync round the table as though it were.
+const brownPulled = new Map();
+const brownShape = new Map();
+// Renders happen far more often than polls, so a read needs a floor. It has to
+// sit well under the 60s score poll, though, or an arriving poll lands inside
+// the window and the live points skip a minute.
+const BROWN_LIVE_MS = 20_000;
+const BROWN_IDLE_MS = 60_000;
+
 async function refreshBrownStats(week) {
   if (!cfg.brownOfWeek) return;
   const state = S.getState();
   const game = BR.brownsGame(state, week, cfg.sideBet?.team || "CLE");
   if (!game?.espnId) return;
-  if (game.status !== "in" && !SC.isFinal(game)) return;      // nothing to read yet
-  const lines = await BR.fetchGameStats(game.espnId, cfg.sideBet?.team || "CLE");
-  if (!Object.keys(lines).length) return;
+  const live = game.status === "in";
+  if (!live && !SC.isFinal(game)) return;                     // nothing to read yet
+  const have = Object.keys(state.weeks?.[week]?.brownStats || {}).length;
+  const last = brownPulled.get(week) || 0;
+  // A finished game is read once and then left alone -- there is no further
+  // number coming -- unless it has given us nothing, which is worth retrying.
+  // A live one is read on the same minute the scores are.
+  if (!live && have && last) return;
+  if (Date.now() - last < (live ? BROWN_LIVE_MS : BROWN_IDLE_MS)) return;
+  brownPulled.set(week, Date.now());
+  const { lines, shape } = await BR.fetchGameLines(game.espnId, cfg.sideBet?.team || "CLE");
+  if (!Object.keys(lines).length) { brownShape.set(week, shape); render(); return; }
+  brownShape.delete(week);
   const before = JSON.stringify(state.weeks?.[week]?.brownStats || {});
   if (before === JSON.stringify(lines)) return;               // nothing moved
   S.update((d) => { const wk = S.ensureWeek(d, week); wk.brownStats = lines; });
@@ -269,8 +296,28 @@ function render() {
   else if (ui.tab === "money") body = renderMoney(state);
   else if (ui.tab === "browns") body = renderSideBet(state);
   else body = renderSettings(state);
-  app.innerHTML = `${renderTopbar(state)}<main class="page">${body}</main>${renderBottomNav()}`;
+  app.innerHTML = `${renderTopbar(state)}<main class="page">${staleScript()}${body}</main>${renderBottomNav()}`;
   schedulePolling();
+}
+
+/**
+ * The shared board running older code than this app expects.
+ *
+ * This mattered enough to put on every tab: an old script does not merge, it
+ * replaces -- so one device with a thin copy of the board wipes what everyone
+ * else entered, which is how six of Howard's picks became one. It used to be
+ * visible only behind the commissioner's "Test the connection" button, which
+ * is no use at all when the symptom is picks quietly going missing.
+ */
+function staleScript() {
+  if (!S.scriptStale()) return "";
+  const sync = S.getSync();
+  return `<div class="alarm">
+    <b>The shared board is running old code.</b>
+    <span>It reports <code>${esc(sync.script || "no version")}</code>; this app expects <code>${esc(sync.expect || "")}</code>.
+    Until it is re-deployed, one device can overwrite what somebody else entered.
+    ${commish() ? "Apps Script → Deploy → Manage deployments → pencil → New version." : "Tell Kevin."}</span>
+  </div>`;
 }
 
 const TABS = [
@@ -661,7 +708,9 @@ function renderBrown(state, week) {
     </div>`;
   }).join("");
 
+  const dry = (live || done) && !Object.keys(stats).length;
   const when = !game ? "No Browns game this week."
+    : dry ? `${done ? "Final" : "Live"} — no box score yet. It is read from ESPN every time this opens; if it stays empty tell Kevin.`
     : live ? `Live${game.clock ? ` — ${esc(game.clock)}` : ""}; points update as they play.`
     : done ? "Final."
     : locked ? "Locked — they have kicked off."
@@ -682,6 +731,9 @@ function renderBrown(state, week) {
   return `<section class="section${live ? " section--live" : ""}">
     <div class="section__head"><h2 class="section__title">Brown of the week · ${SC.money(SC.brownWeekly(state, cfg))}${live ? ` <span class="badge badge--live">Live</span>` : ""}</h2>
       <span class="section__sub">One ${esc(teamName(team))} player, best score takes the pot; a tie splits it. Round ${round} · weeks ${start}–${end}: a player you have used is spent until it resets. ${when}</span></div>
+    ${dry && commish() && brownShape.get(week) ? `<div class="commish" style="margin:0 0 10px">
+      <span class="commish__k">Commissioner</span>
+      <p>ESPN answered, but nothing in it scored. It sent: <code>${esc(brownShape.get(week))}</code></p></div>` : ""}
     ${won}
     <div class="lms">${rows}</div>
   </section>`;
@@ -1054,7 +1106,7 @@ function renderBrownScores(state) {
 
   const none = Object.keys(stats).length === 0;
   return `<section class="section">${head}
-    ${none ? `<p class="mute" style="margin:0 0 8px;font-size:13px">No box score for week ${week} yet — every line fills in once the game is played.</p>` : ""}
+    ${none ? `<p class="mute" style="margin:0 0 8px;font-size:13px">No box score for week ${week} yet — every line fills in once the game is played.${brownShape.get(week) ? ` ESPN answered but nothing in it scored: <code>${esc(brownShape.get(week))}</code>` : ""}</p>` : ""}
     <div class="grid grid--tall"><table class="sheet sheet--scores">
       <thead><tr><th>Player</th><th>Line</th><th>Pts</th><th>Picked</th></tr></thead>
       <tbody>${body}</tbody></table></div>
@@ -1421,9 +1473,14 @@ async function pullBrownStats(week) {
   if (!game.espnId) return toast("That game has no ESPN id — pull the slate first.", { bad: true });
   try {
     toast("Reading the box score…");
-    const lines = await BR.fetchGameStats(game.espnId, cfg.sideBet?.team || "CLE");
+    const { lines, shape } = await BR.fetchGameLines(game.espnId, cfg.sideBet?.team || "CLE");
     const n = Object.keys(lines).length;
-    if (!n) throw new Error("no Browns lines in that box score");
+    // What ESPN sent, not just that it came to nothing: the first time this
+    // failed it failed silently, and there was no way to tell a quiet Sunday
+    // from a feed we had stopped being able to read.
+    if (!n) { brownShape.set(week, shape); render(); throw new Error(`no ${cfg.sideBet?.team || "CLE"} lines — feed sent ${shape}`); }
+    brownShape.delete(week);
+    brownPulled.set(week, Date.now());
     S.update((d) => { const wk = S.ensureWeek(d, week); wk.brownStats = lines; });
     toast(`${n} player lines stored for week ${week}.`);
   } catch (e) {

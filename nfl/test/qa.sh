@@ -95,9 +95,21 @@ if echo "$out" | grep -q "winner   : WINNER KZ Kevin Quinshon Judkins · 23 pts 
   line "winner named, every Brown listed" "PASS"
 else line "winner named, every Brown listed" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
+out=$(timeout 115 node $SP/brown-after.mjs 2>&1)
+if echo "$out" | grep -q "summary pulled on open : yes" \
+  && echo "$out" | grep -q "rows                   : 17 points | 23 points | 12 points | 10 points" \
+  && echo "$out" | grep -q "winner                 : WINNER KZ Kevin Quinshon Judkins · 23 pts \$4" \
+  && echo "$out" | grep -q "re-reads a settled game: 0 (want 0)" \
+  && echo "$out" | grep -q "what it tells the commish: passing\[1\]{somethingNew,alsoNew}" \
+  && echo "$out" | grep -q "page errors: none"; then
+  line "box score read after the game" "PASS"
+else line "box score read after the game" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/coldstart.mjs 2>&1)
 if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"' \
-  && echo "$out" | grep -q 'sheet unreachable .*Can.t reach the shared board'; then
+  && echo "$out" | grep -q 'sheet reachable .*old-script alarm:"The shared board is running old code."' \
+  && echo "$out" | grep -q 'sheet unreachable .*Can.t reach the shared board' \
+  && echo "$out" | grep -q 'sheet unreachable .*old-script alarm:"none"'; then
   line "cold start / Home Screen case" "PASS"
 else line "cold start / Home Screen case" "FAIL — $(echo "$out" | tr '\n' ' ')"; fails=$((fails+1)); fi
 
