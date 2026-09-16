@@ -143,7 +143,9 @@ API keys.
   build is live it reloads itself, unless a modal is open -- it will not yank the
   page away mid-choice. Assume the pool will not clear a cache on request,
   because they will not.
-- **Brown of the week.** $1 each a week. Pick one Cleveland player and score
+- **Brown of the week.** $1 each a week. Pick one Cleveland player -- a back,
+  receiver, tight end or kicker; **no quarterbacks**, because one man throws
+  for the whole team, so he is not a choice between Browns -- and score
   their game against the pool's table: a point per 100 passing yards and per
   completion, 2 a passing TD; a point per 5 rushing yards, 6 a rushing TD; a
   point per 10 receiving yards, 3 a reception, 6 a receiving TD; 2 a two-point
@@ -152,7 +154,10 @@ API keys.
   takes the pot and a tie splits it, so nothing rolls over. Rounds are the same
   fixed four-week blocks as LMS: a player you have used is spent until the
   round resets, and only a week that actually got scored spends them. Picked
-  under Last man standing on the Week tab, from the roster grouped by position;
+  under Last man standing on the Week tab, from the roster grouped by position
+  (`brownOfWeek.positions` in config.js is what you may draft; `rosterPositions`
+  is the wider list the roster loads, so a quarterback's box-score line still
+  has a name on it in the every-Brown table);
   it locks when the Browns kick off. All the money and history is on the Browns
   page. Scores come from the ESPN box score, pulled by the commissioner once
   the game is final -- **verify one real game by hand before trusting it**, for

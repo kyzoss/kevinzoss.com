@@ -3,6 +3,8 @@
 // Howard's were not.
 import { chromium, devices } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import fs from 'node:fs'; import path from 'node:path';
+import { pin, WEEK1_MORNING, WEEK1_AFTERNOON } from './clock.mjs';
+
 const root='/home/user/kevinzoss.com/nfl';
 const T={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml'};
 const bk=JSON.parse(fs.readFileSync(root+'/recover-week1.json','utf8'));
@@ -19,6 +21,7 @@ await c.route('**kevinzoss.com/nfl/**', async route=>{
 });
 await c.route('**nfl.kevinzoss.com**',r=>r.abort());
 await c.route(/site\.api\.espn\.com|the-odds-api\.com|a\.espncdn\.com|script\.google\.com|fonts\.g/,r=>r.abort());
+await pin(c);
 await c.addInitScript(([s])=>{ localStorage.setItem('pickem:me','kz'); localStorage.setItem('pickem:2026',s); },[JSON.stringify(seed)]);
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.goto('https://kevinzoss.com/nfl/'); await p.waitForTimeout(1000);

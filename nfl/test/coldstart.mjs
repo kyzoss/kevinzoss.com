@@ -2,6 +2,8 @@
 // Does the board arrive, and if the read fails does the screen say so?
 import { chromium, devices } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import fs from 'node:fs'; import path from 'node:path';
+import { pin, WEEK1_MORNING, WEEK1_AFTERNOON } from './clock.mjs';
+
 const root='/home/user/kevinzoss.com/nfl';
 const T={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml'};
 const g=(a,h,sp,k)=>({id:`${a}@${h}`,away:a,home:h,spread:sp,status:'pre',awayScore:null,homeScore:null,kickoff:k});
@@ -33,6 +35,7 @@ async function cold(label, sheet) {
     if (sheet !== 'noversion') body.version = 'owned-merge-2';
     return route.fulfill({status:200, contentType:'application/json', body: JSON.stringify(body)});
   });
+  await pin(c);   // week 1, or the app opens on an empty week and every row reads zero
   // NOTHING in storage: no player chosen, no board. Exactly a new install.
   const p=await c.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));

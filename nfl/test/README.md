@@ -80,5 +80,12 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     green, so 1.5 and 1 never look the same
     recover         recoverPicksFromLog rebuilds a narrowed board from the log
 
+`clock.mjs` pins a browser test's clock inside week 1. Use it in anything that
+seeds a week and asserts on what rendered: currentWeek() comes from today's
+date, so without it the suite only passes during the real week 1 -- when the
+calendar moved on, four suites went red at once and none of them because
+anything was broken. Do NOT pin a test that measures elapsed time (selfupdate,
+resume): freezing the clock stops the thing they test from happening.
+
 Chromium comes from `/opt/pw-browsers/chromium`; the tests fake every external
 host, so the suite is offline and touches nobody's real board.

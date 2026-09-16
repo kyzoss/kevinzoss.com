@@ -72,7 +72,14 @@ window.POOL_CONFIG = {
   brownOfWeek: {
     perPlayer: 1,        // each player puts in this much, every week
     roundWeeks: 4,       // how long a player stays spent
-    positions: ["QB", "RB", "WR", "TE", "K"],
+    // What you may draft. No quarterback: one man throws for the whole team, so
+    // the QB is not a choice between Browns, he is the choice, every week.
+    positions: ["RB", "WR", "TE", "K"],
+    // What the roster loads. Wider than the draft on purpose -- the box score
+    // reports a quarterback whether he is drafted or not, and the Browns page
+    // lists what every Brown scored. Without him in the roster his line would
+    // still turn up there, under a bare ESPN id with no name on it.
+    rosterPositions: ["QB", "RB", "WR", "TE", "K"],
     // The scoring table. `per` divides the stat and floors it; `each` multiplies.
     scoring: {
       passYards: { per: 100, points: 1 },

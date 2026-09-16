@@ -50,12 +50,17 @@ const tbl = p.locator('.sheet--scores');
 console.log('\nevery Brown:', await tbl.count() ? 'table present' : 'MISSING');
 const rows = await tbl.locator('tbody tr').evaluateAll(els => els.map(e => {
   const td = e.querySelectorAll('td');
-  return { who: td[0]?.innerText.split('\n')[0], line: td[1]?.innerText, pts: td[2]?.innerText,
+  return { who: td[0]?.innerText.split('\n')[0], pos: (td[0]?.innerText.split('\n')[1] || '').trim(),
+           line: td[1]?.innerText, pts: td[2]?.innerText,
            by: td[3]?.innerText.trim(), best: td[2]?.className.includes('best') };
 }));
 for (const r of rows)
-  console.log(`   ${String(r.who).padEnd(18)} ${String(r.pts).padStart(3)}${r.best?'*':' '}  ${String(r.by||'-').padEnd(4)} ${r.line}`);
+  console.log(`   ${String(r.who).padEnd(18)} ${String(r.pts).padStart(3)}${r.best?'*':' '}  ${String(r.by||'-').padEnd(4)} ${String(r.pos).padEnd(24)} ${r.line}`);
 console.log('rows listed:', rows.length, 'of', roster.length, 'on the roster');
+// The quarterback is scored and named but cannot be drafted, and the table has
+// to say which -- otherwise he reads as a pick everybody missed.
+console.log('QB row says:', rows.find((r) => String(r.pos).startsWith('QB'))?.pos || 'NO QB ROW');
+console.log('a draftable row says:', rows.find((r) => String(r.pos).startsWith('RB'))?.pos || 'none');
 // nothing may spill its column on a phone
 const wide = await p.evaluate(() => { const d=document.querySelector('.grid--tall');
   return d ? d.scrollWidth - d.clientWidth : -1; });
