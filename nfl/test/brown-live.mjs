@@ -3,6 +3,8 @@
 // every minute, because every open phone polls.
 import { chromium, devices } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import fs from 'node:fs'; import path from 'node:path';
+import { pin, WEEK1_MORNING, WEEK1_AFTERNOON } from './clock.mjs';
+
 const root='/home/user/kevinzoss.com/nfl';
 const T={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml'};
 const roster=[{id:'2',name:'Quinshon Judkins',short:'Q. Judkins',pos:'RB',number:'10'},
@@ -45,14 +47,12 @@ await c.route('**script.google.com**', async route => {
   if (route.request().method() === 'POST') { saves++; return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,version:'brown-1'})}); }
   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({state:seed,updatedAt:1,version:'brown-1'})});
 });
-// An advanceable clock. A box score is not re-read on every render -- renders
-// are far more frequent than anything ESPN has to say -- so the test has to let
-// time pass between polls instead of firing three resumes inside two seconds.
-await c.addInitScript(([s])=>{ localStorage.setItem('pickem:me','kz'); localStorage.setItem('pickem:2026',s);
-  let skew = 0; const R = Date;
-  class D extends R { constructor(...a){ super(...(a.length ? a : [R.now() + skew])); } static now(){ return R.now() + skew; } }
-  window.Date = D; window.__advance = (ms) => { skew += ms; };
-},[JSON.stringify(seed)]);
+// Mid-game on week 1's Sunday, and advanceable: a box score is not re-read on
+// every render -- renders are far more frequent than anything ESPN has to say --
+// so the test lets time pass between polls rather than firing three resumes
+// inside two seconds.
+await pin(c, WEEK1_AFTERNOON);
+await c.addInitScript(([s])=>{ localStorage.setItem('pickem:me','kz'); localStorage.setItem('pickem:2026',s); },[JSON.stringify(seed)]);
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.goto('https://kevinzoss.com/nfl/'); await p.waitForTimeout(1800);
 

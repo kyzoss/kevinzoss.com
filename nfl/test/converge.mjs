@@ -10,6 +10,8 @@
 // that does not.
 import { chromium, devices } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import fs from 'node:fs'; import path from 'node:path';
+import { pin, WEEK1_MORNING, WEEK1_AFTERNOON } from './clock.mjs';
+
 const root='/home/user/kevinzoss.com/nfl';
 const T={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml'};
 const g=(a,h,sp)=>({id:`${a}@${h}`,away:a,home:h,spread:sp,status:'pre',awayScore:null,homeScore:null,kickoff:'2026-09-13T17:00Z'});
@@ -69,6 +71,7 @@ async function run(label, mergeBack) {
       return route.fulfill({status:200,contentType:'application/json',
         body: JSON.stringify({ state: board, updatedAt: board.updatedAt, version:'merge-back-1' })});
     });
+    await pin(c);
     await c.addInitScript(([s,me])=>{ localStorage.setItem('pickem:me',me); localStorage.setItem('pickem:2026',s); },
       [JSON.stringify(seeds[who]), who]);
     const p=await c.newPage(); await p.goto('https://kevinzoss.com/nfl/'); await p.waitForTimeout(2200);
@@ -121,7 +124,8 @@ async function unpick() {
     return route.fulfill({status:200,contentType:'application/json',
       body: JSON.stringify({ state: board, updatedAt: board.updatedAt, version:'merge-back-1' })});
   });
-  await c.addInitScript(([s,me])=>{ localStorage.setItem('pickem:me',me); localStorage.setItem('pickem:2026',s); },
+  await pin(c);
+    await c.addInitScript(([s,me])=>{ localStorage.setItem('pickem:me',me); localStorage.setItem('pickem:2026',s); },
     [JSON.stringify(doc(JSON.parse(JSON.stringify(ALL)), 5000)), 'kz']);
   const p=await c.newPage(); await p.goto('https://kevinzoss.com/nfl/'); await p.waitForTimeout(1400);
   const before = Object.keys(board.weeks[1].picks.kz).length;

@@ -60,7 +60,8 @@ case "$out" in *"MOVED"*"stayed put"*) line "origin move only if verified" "PASS
 
 out=$(timeout 115 node $SP/brown.mjs 2>&1)
 if echo "$out" | grep -q "KZ Quinshon Judkins 23 points" \
-  && echo "$out" | grep -q "picker groups: QB RB WR TE K" \
+  && echo "$out" | grep -q "picker groups: RB WR TE K" \
+  && ! echo "$out" | grep -q "D. Watson" \
   && echo "$out" | grep -q "Q. Judkins GREYED + disabled" \
   && echo "$out" | grep -q "page errors: none"; then
   line "brown of the week, end to end" "PASS"
@@ -90,6 +91,8 @@ if echo "$out" | grep -q "winner   : WINNER KZ Kevin Quinshon Judkins · 23 pts 
   && echo "$out" | grep -q "tied week: SPLIT AZ Andrew KC Concepcion · 23 pts \$2 KZ Kevin Quinshon Judkins · 23 pts \$2" \
   && echo "$out" | grep -q "Jerry Jeudy         45" \
   && echo "$out" | grep -q "rows listed: 7 of 7" \
+  && echo "$out" | grep -q "QB row says: QB · 4 · NOT IN THE POOL" \
+  && echo "$out" | grep -q "a draftable row says: RB · 10" \
   && echo "$out" | grep -q "table h-overflow inside its own scroller: none" \
   && echo "$out" | grep -q "page errors: none"; then
   line "winner named, every Brown listed" "PASS"

@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=4136243c";
-import * as SC from "./scoring.js?v=4136243c";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=4136243c";
-import { fetchWeek } from "./espn.js?v=4136243c";
+import * as S from "./store.js?v=f66a837e";
+import * as SC from "./scoring.js?v=f66a837e";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=f66a837e";
+import { fetchWeek } from "./espn.js?v=f66a837e";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=4136243c";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=4136243c";
+import { fetchSpreads } from "./odds.js?v=f66a837e";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=f66a837e";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -53,10 +53,11 @@ function surname(full) {
   return parts[parts.length - 1] || String(full);
 }
 
-/** "TB", "TB and IND", "TB, IND and SF" -- never "TB and IND and SF". */
-function listOf(items) {
-  if (items.length < 3) return items.join(" and ");
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+/** "TB", "TB and IND", "TB, IND and SF" -- never "TB and IND and SF". Pass
+ *  "or" for a list of alternatives rather than a list of things. */
+function listOf(items, word = "and") {
+  if (items.length < 3) return items.join(` ${word} `);
+  return `${items.slice(0, -1).join(", ")} ${word} ${items[items.length - 1]}`;
 }
 function ordinal(n) { return n + (["th", "st", "nd", "rd"][((n % 100) - 20) % 10] || ["th", "st", "nd", "rd"][n % 100] || "th"); }
 function gameById(week, id) { return SC.weekGames(S.getState(), week).find((g) => g.id === id); }
@@ -173,6 +174,13 @@ const brownShape = new Map();
 // the window and the live points skip a minute.
 const BROWN_LIVE_MS = 20_000;
 const BROWN_IDLE_MS = 60_000;
+
+/** Positions you may draft from. */
+const draftPositions = () => cfg.brownOfWeek?.positions || [];
+/** Positions the roster loads -- wider, so every box-score line has a name. */
+const rosterPositions = () => cfg.brownOfWeek?.rosterPositions || draftPositions();
+/** Can this player be picked, or is he only here so his score reads properly? */
+const draftable = (m) => draftPositions().includes(m.pos);
 
 async function refreshBrownStats(week) {
   if (!cfg.brownOfWeek) return;
@@ -767,7 +775,7 @@ function renderBrown(state, week) {
 
   return `<section class="section${live ? " section--live" : ""}">
     <div class="section__head"><h2 class="section__title">Brown of the week · ${SC.money(SC.brownWeekly(state, cfg))}${live ? ` <span class="badge badge--live">Live</span>` : ""}</h2>
-      <span class="section__sub">One ${esc(teamName(team))} player, best score takes the pot; a tie splits it. Round ${round} · weeks ${start}–${end}: a player you have used is spent until it resets. ${when}</span></div>
+      <span class="section__sub">One ${esc(teamName(team))} player — ${esc(listOf(draftPositions(), "or"))}, never a quarterback — and the best score takes the pot; a tie splits it. Round ${round} · weeks ${start}–${end}: a player you have used is spent until it resets. ${when}</span></div>
     ${dry && commish() && brownShape.get(week) ? `<div class="commish" style="margin:0 0 10px">
       <span class="commish__k">Commissioner</span>
       <p>ESPN answered, but nothing in it scored. It sent: <code>${esc(brownShape.get(week))}</code></p></div>` : ""}
@@ -1110,7 +1118,7 @@ function renderBrownScores(state) {
   const known = new Set(roster.map((r) => r.id));
   const extras = Object.keys(stats).filter((id) => !known.has(id))
     .map((id) => ({ id, name: `#${id}`, short: id, pos: "", number: "" }));
-  const rank = Object.fromEntries((cfg.brownOfWeek.positions || []).map((p, i) => [p, i]));
+  const rank = Object.fromEntries(rosterPositions().map((p, i) => [p, i]));
   const men = [...roster, ...extras]
     .map((m) => ({ ...m, points: stats[m.id] ? SC.scoreBrownLine(stats[m.id], cfg).total : null }))
     .sort((a, b) => (b.points ?? -1) - (a.points ?? -1)
@@ -1118,8 +1126,12 @@ function renderBrownScores(state) {
       || (Number(a.number || 999) - Number(b.number || 999))
       || String(a.name).localeCompare(String(b.name)));
 
+  // Positions we list and score but nobody may pick -- the quarterback, because
+  // one man throws for the whole team, so he is not a choice between Browns.
+  const offPool = rosterPositions().filter((p) => !draftPositions().includes(p));
   const head = `<div class="section__head"><h2 class="section__title">Week ${week} · every Brown</h2>
-    <span class="section__sub">Everyone eligible, and what the box score gave them on the pool's table. The row that took the pot is marked — the top score on the day often belongs to nobody.</span></div>`;
+    <span class="section__sub">Every Brown, and what the box score gave them on the pool's table. The row that took the pot is marked — the top score on the day often belongs to nobody.${offPool.length
+      ? ` ${esc(listOf(offPool, "and"))} ${offPool.length === 1 ? "is listed but is" : "are listed but are"} not in the pool to draft.` : ""}</span></div>`;
 
   if (!men.length) {
     return `<section class="section">${head}
@@ -1134,8 +1146,12 @@ function renderBrownScores(state) {
     // that took the pot is the one worth marking, and a huge game from a player
     // nobody chose is exactly the thing the table exists to show.
     const top = m.points != null && best != null && m.points === best && by;
+    // A position the pool does not draft from is still listed and still scored --
+    // the table's job is "what did the man you could not have get" -- but it has
+    // to say why he was never an option.
+    const off = m.pos && !draftable(m);
     return `<tr class="${m.points ? "" : "brownsc--zero"}${top ? " brownsc--won" : ""}">
-      <td><b>${esc(m.name)}</b>${m.pos ? `<i>${esc(m.pos)}${m.number ? ` · ${esc(m.number)}` : ""}</i>` : ""}</td>
+      <td><b>${esc(m.name)}</b>${m.pos ? `<i>${esc(m.pos)}${m.number ? ` · ${esc(m.number)}` : ""}${off ? ` · <u>not in the pool</u>` : ""}</i>` : ""}</td>
       <td class="line">${line ? esc(SC.brownStatLine(line)) || "no counting stats" : "—"}</td>
       <td class="num${top ? " best" : ""}">${m.points != null ? fmtPts(m.points) : "—"}</td>
       <td class="by">${by}</td></tr>`;
@@ -1170,6 +1186,7 @@ function renderSettings(state) {
     <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game, and it has to win outright: +${cfg.dup.win} if it does, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft closes with the picks, at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, except that a dog whose own game has already kicked off can no longer be ranked.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
     <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and the field re-enters &mdash; a forfeit never shares. And if nobody picked at all, nothing is settled: the pot rolls into next week. The week-by-week tracker is on the Standings tab.</p>
+    <p><b>Brown of the week.</b> ${SC.money(cfg.brownOfWeek?.perPlayer ?? 1)} from everyone, every week &mdash; ${SC.money(SC.brownWeekly(state, cfg))} a week with ${state.players.length} playing. Name one ${esc(teamName(cfg.sideBet.team))} player and score his game on the pool's table. You may draft a <b>${esc(listOf(draftPositions(), "or"))}</b> &mdash; <b>no quarterbacks</b>, since one man throws for the whole team, so he is not a choice between Browns. Best score takes the pot and a tie splits it, so nothing rolls over. Rounds are ${cfg.brownOfWeek?.roundWeeks ?? 4} weeks like LMS: a player you have used is spent until the round resets, and only a week that actually got scored spends him. It locks when the ${esc(teamName(cfg.sideBet.team))} kick off. Every Brown's line, including the ones nobody could pick, is on the ${esc(cfg.sideBet?.label?.split(" ")[0] || "Browns")} tab.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.perPlayer ?? 0)} from everyone, so ${SC.money(SC.sideBetPot(state, cfg))} on the table. One guess each at the ${esc(teamName(cfg.sideBet.team))}' final record before Week 1. Closest wins, points scored breaks ties.</p>
   </div></section>`;
 }
@@ -1263,7 +1280,7 @@ function brownModal() {
     ? `<p class="mute" style="margin:0 0 10px;font-size:12px">Spent this round: ${Object.entries(used).map(([id, w]) => `${esc(roster.find((r) => r.id === id)?.short || id)} (wk ${w})`).join(" · ")}</p>`
     : "";
 
-  const groups = (cfg.brownOfWeek.positions || []).map((pos) => {
+  const groups = draftPositions().map((pos) => {
     const men = roster.filter((r) => r.pos === pos);
     if (!men.length) return "";
     return `<div class="depth"><h5>${esc(pos)}</h5><div class="teamgrid">${men.map((m) => {
@@ -1473,6 +1490,10 @@ function setBrown(who) {
   if (who) {
     const spent = SC.brownUsed(state, cfg, ui.week, pid).find((u) => u.id === who);
     if (spent) return toast(`Already used in week ${spent.week} this round.`, { bad: true });
+    // The picker cannot offer one, but a stale tab or an old board can still
+    // send one through, and the rule belongs on the save rather than the screen.
+    const man = (state.brownsRoster || []).find((r) => r.id === who);
+    if (man && !draftable(man)) return toast(`${man.pos} is not in the pool.`, { bad: true });
   }
   flashSaved();
   S.update((d) => {
@@ -1487,11 +1508,12 @@ function setBrown(who) {
 async function loadRoster() {
   try {
     toast("Loading the roster…");
-    const roster = await BR.fetchRoster(cfg.sideBet?.team || "CLE", cfg.brownOfWeek?.positions);
+    const load = rosterPositions();
+    const roster = await BR.fetchRoster(cfg.sideBet?.team || "CLE", load);
     if (!roster.length) throw new Error("ESPN returned no players in those positions");
     S.update((d) => { d.brownsRoster = roster; });
-    const missing = BR.missingPositions(roster, cfg.brownOfWeek?.positions);
-    const census = BR.rosterCensus(roster, cfg.brownOfWeek?.positions);
+    const missing = BR.missingPositions(roster, load);
+    const census = BR.rosterCensus(roster, load);
     toast(missing.length
       ? `${roster.length} loaded — ${census}. No ${missing.join(" or ")}: tell Kevin, ESPN may label them differently.`
       : `${roster.length} players loaded — ${census}.`, { bad: missing.length > 0, ms: 8000 });
