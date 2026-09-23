@@ -540,6 +540,25 @@ console.log("— side bet");
   const bet2 = SC.sideBet(st, cfg);
   eq("points scored breaks the tie", bet2.winners, ["hz"]);
 }
+{ // the guesses close when the Browns first play, and stay closed
+  const st = blank();
+  const KICK = Date.parse("2026-09-13T17:00:00Z");
+  st.weeks[1] = { games: [g("NE","SEA",-3,null,null,"2026-09-10T00:20:00Z"),
+                          g("CLE","BAL",-9,null,null,"2026-09-13T17:00:00Z")], picks: {}, lms: {}, dupPrefs: {} };
+  eq("open the week the season starts", SC.betLocked(st, cfg, KICK - 3 * 86400e3), false);
+  eq("still open an hour before they play", SC.betLocked(st, cfg, KICK - 3600e3), false);
+  eq("closed the moment they kick off", SC.betLocked(st, cfg, KICK), true);
+  eq("and closed a fortnight later", SC.betLocked(st, cfg, KICK + 14 * 86400e3), true);
+  // a Thursday opener the Browns are not in must not close the door on them
+  const thu = blank();
+  thu.weeks[1] = { games: [g("NE","SEA",-3,20,24,"2026-09-10T00:20:00Z")], picks: {}, lms: {}, dupPrefs: {} };
+  eq("somebody else's game does not close it", SC.betLocked(thu, cfg, KICK), false);
+  eq("no slate at all leaves it open", SC.betLocked(blank(), cfg, KICK), false);
+  // the Browns playing is what closes it, whatever the status field says
+  const live = blank();
+  live.weeks[1] = { games: [{ ...g("CLE","BAL",-9), status: "in", kickoff: null }], picks: {}, lms: {}, dupPrefs: {} };
+  eq("a game in progress closes it with no kickoff time", SC.betLocked(live, cfg, KICK), true);
+}
 { // actual record derived from finals as they land
   const st = blank();
   st.weeks[1] = { games: [g("CLE","BAL",-20,10,35)], picks: {}, lms: {}, dupPrefs: {} };

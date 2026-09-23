@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=f66a837e";
-import * as SC from "./scoring.js?v=f66a837e";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=f66a837e";
-import { fetchWeek } from "./espn.js?v=f66a837e";
+import * as S from "./store.js?v=40ffd4cf";
+import * as SC from "./scoring.js?v=40ffd4cf";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=40ffd4cf";
+import { fetchWeek } from "./espn.js?v=40ffd4cf";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=f66a837e";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=f66a837e";
+import { fetchSpreads } from "./odds.js?v=40ffd4cf";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=40ffd4cf";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -976,18 +976,19 @@ function renderLmsTracker(state, led) {
 function renderSideBet(state) {
   const bet = SC.sideBet(state, cfg);
   const team = cfg.sideBet.team;
-  // Guesses close when the Browns themselves first play -- not when any game in
-  // week 1 kicks off, which shut the door on Wednesday night for a team that
-  // does not play until Sunday.
+  // Guesses close when the Browns themselves first play, and closed means
+  // closed: no commissioner override. The override existed so a guess could be
+  // fixed, but the fix and the cheat are the same edit, and the man who can
+  // make it is the one running the pool.
   const firstGame = SC.firstGameFor(state, team);
-  const locked = Boolean(firstGame && SC.hasStarted(firstGame));
+  const locked = SC.betLocked(state, cfg);
   const pid = actor();
   const manual = Boolean(state.sideBet?.actual);
 
   const rows = state.players.map((p) => {
     const pr = bet.predictions[p.id];
     const r = bet.ranked.find((x) => x.id === p.id);
-    const canEdit = p.id === pid && (!locked || commish());
+    const canEdit = p.id === pid && !locked;
     const pay = bet.payouts[p.id];
     const mine = p.id === pid;
     return `<div class="pred ${mine ? "pred--me" : ""}" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
@@ -997,7 +998,7 @@ function renderSideBet(state) {
 
   const a = bet.actual;
   const status = bet.settled ? "Settled."
-    : locked ? "Guesses locked. This updates as games go final."
+    : locked ? "Guesses are final — nobody can change one now, the commissioner included. This updates as games go final."
     : firstGame ? `Guesses open until ${esc(teamName(team))} kick off — ${esc(fmtKick(firstGame.kickoff))}.`
     : "Guesses open until their first game.";
   return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">${esc(cfg.sideBet.label)} · ${SC.money(SC.sideBetPot(state, cfg))}</h2><span class="section__sub">${SC.money(cfg.sideBet.perPlayer ?? 0)} each, one guess before the ${esc(teamName(team))} first play. Closest record wins; points scored breaks ties.</span></div>
@@ -1187,7 +1188,7 @@ function renderSettings(state) {
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
     <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and the field re-enters &mdash; a forfeit never shares. And if nobody picked at all, nothing is settled: the pot rolls into next week. The week-by-week tracker is on the Standings tab.</p>
     <p><b>Brown of the week.</b> ${SC.money(cfg.brownOfWeek?.perPlayer ?? 1)} from everyone, every week &mdash; ${SC.money(SC.brownWeekly(state, cfg))} a week with ${state.players.length} playing. Name one ${esc(teamName(cfg.sideBet.team))} player and score his game on the pool's table. You may draft a <b>${esc(listOf(draftPositions(), "or"))}</b> &mdash; <b>no quarterbacks</b>, since one man throws for the whole team, so he is not a choice between Browns. Best score takes the pot and a tie splits it, so nothing rolls over. Rounds are ${cfg.brownOfWeek?.roundWeeks ?? 4} weeks like LMS: a player you have used is spent until the round resets, and only a week that actually got scored spends him. It locks when the ${esc(teamName(cfg.sideBet.team))} kick off. Every Brown's line, including the ones nobody could pick, is on the ${esc(cfg.sideBet?.label?.split(" ")[0] || "Browns")} tab.</p>
-    <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.perPlayer ?? 0)} from everyone, so ${SC.money(SC.sideBetPot(state, cfg))} on the table. One guess each at the ${esc(teamName(cfg.sideBet.team))}' final record before Week 1. Closest wins, points scored breaks ties.</p>
+    <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.perPlayer ?? 0)} from everyone, so ${SC.money(SC.sideBetPot(state, cfg))} on the table. One guess each at the ${esc(teamName(cfg.sideBet.team))}' final record, in before they first take the field. The moment they kick off every guess is final &mdash; there is no commissioner edit, because the fix and the cheat are the same edit. Closest wins, points scored breaks ties.</p>
   </div></section>`;
 }
 
@@ -1380,7 +1381,11 @@ document.addEventListener("click", (e) => {
     case "edit-score": scoreModal(el.dataset.game); break;
     case "line-clear": S.update((d) => { const g = d.weeks[ui.week].games.find((x) => x.id === el.dataset.game); if (g) { g.spread = null; g.manualSpread = false; g.book = null; } }); closeModal(); break;
     case "del-game": if (confirm("Remove this game and everyone's picks on it?")) S.update((d) => { const wk = d.weeks[ui.week]; wk.games = wk.games.filter((g) => g.id !== el.dataset.game); for (const p of Object.values(wk.picks)) delete p[el.dataset.game]; }); break;
-    case "bet-edit": betModal(el.dataset.id); break;
+    case "bet-edit": {
+      if (SC.betLocked(S.getState(), cfg)) return toast(`Guesses closed when the ${teamName(cfg.sideBet.team)} kicked off.`, { bad: true });
+      betModal(el.dataset.id);
+      break;
+    }
     case "bet-actual": betActualModal(); break;
     case "bet-actual-clear": S.update((d) => { d.sideBet.actual = null; }); closeModal(); break;
     case "adj-add": adjModal(); break;
@@ -1412,6 +1417,8 @@ document.addEventListener("submit", (e) => {
       break;
     }
     case "bet": {
+      // A modal left open across kickoff, or a stale tab, still lands here.
+      if (SC.betLocked(S.getState(), cfg)) { closeModal(); return toast("Guesses are closed.", { bad: true }); }
       const n = seasonGames();
       const wins = num("wins") == null ? null : Math.min(n, Math.max(0, num("wins")));
       if (wins == null) return;

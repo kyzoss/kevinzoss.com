@@ -60,6 +60,10 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     own -- and a poll that changed nothing saves nothing, since
                     every open phone polls once a minute. No winner is declared
                     mid-game, where the lead means nothing
+    betlock         the Browns record guesses seal when the Browns first play,
+                    for the commissioner too -- including through "Pick as",
+                    which is the route that used to let a guess be rewritten
+                    after the game was played
     brown-after     Monday morning, every game final and nothing on the board:
                     opening the app has to read the box score, because score
                     polling stopped when the last game ended. Runs a payload in

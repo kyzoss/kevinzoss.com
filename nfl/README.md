@@ -176,8 +176,13 @@ API keys.
   pot and the field re-enters — **a forfeit never shares**. If nobody made a
   live pick at all, nothing is settled: the pot rolls into the next week and
   nobody goes out, carrying across a block boundary if it has to.
-- **Browns record.** $10. One guess before Week 1. Closest wins, points scored
-  breaks ties. Actual record is computed from finals as weeks load.
+- **Browns record.** $10. One guess each, in before the Browns first take the
+  field -- not before the season kicks off, which shut the door on a Wednesday
+  night for a team that plays on Sunday. The moment they kick off every guess is
+  final for everyone, commissioner included: the override that let a guess be
+  fixed afterwards is the same edit as rigging it, and the man holding the pen
+  runs the pool. Closest wins, points scored breaks ties. Actual record is
+  computed from finals as weeks load.
 - **The LMS tracker** on the Standings tab is the season's history: a row per week,
   a column per player. A struck-through pick is the one that knocked them out,
   green is through, and each block's header names every payout it produced. A
