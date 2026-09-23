@@ -55,11 +55,23 @@ export function pointsFor(grade) {
 }
 
 /**
- * The earliest game this team plays, across the whole season. The side bet
- * closes when they first take the field, which is not the same as when the
- * season starts: a team with a Sunday opener should still be guessable on the
- * Thursday night the season kicks off.
+ * Are the record guesses closed?
+ *
+ * They close when the team itself first takes the field -- not when the season
+ * kicks off, which shut the door on a Wednesday night for a team that does not
+ * play until Sunday -- and once closed they are closed for everyone, the
+ * commissioner included. Four people have money on these. A guess that can
+ * still be rewritten after games have been played is not a guess, and the
+ * person holding the pen should be the last one able to do it.
  */
+export function betLocked(state, cfg, now = Date.now()) {
+  const team = cfg?.sideBet?.team;
+  if (!team) return false;
+  const g = firstGameFor(state, team);
+  return Boolean(g && hasStarted(g, now));
+}
+
+/** The earliest game this team plays, across the whole season. */
 export function firstGameFor(state, abbr) {
   let best = null;
   for (const wk of Object.values(state.weeks || {})) {
@@ -79,12 +91,6 @@ export function straightUpWinner(game) {
   return game.homeScore > game.awayScore ? game.home : game.away;
 }
 
-/**
- * When week N's lines freeze. Anchored to the week's Tuesday like everything
- * else, then offset -- the pool locks at the end of Wednesday, because that is
- * when every game reliably has a number. Locking earlier leaves games unlined,
- * and an unlined game is not dup-eligible.
- */
 /**
  * How far a zone is from UTC at an instant, in ms. Read off Intl rather than
  * assumed, so daylight saving is whatever the zone actually did that day.
@@ -127,6 +133,12 @@ function weekDate(week, days, cfg) {
   return { y: at.getUTCFullYear(), m: at.getUTCMonth() + 1, d: at.getUTCDate() };
 }
 
+/**
+ * When week N's lines freeze. Anchored to the week's Tuesday like everything
+ * else, then offset -- the pool locks at the end of Wednesday, because that is
+ * when every game reliably has a number. Locking earlier leaves games unlined,
+ * and an unlined game is not dup-eligible.
+ */
 export function lineLockAt(week, cfg) {
   const lock = cfg.lineLock || {};
   const date = weekDate(week, Number(lock.daysAfterTuesday ?? 0), cfg);

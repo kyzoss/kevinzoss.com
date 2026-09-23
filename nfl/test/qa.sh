@@ -108,6 +108,17 @@ if echo "$out" | grep -q "summary pulled on open : yes" \
   line "box score read after the game" "PASS"
 else line "box score read after the game" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
+out=$(timeout 115 node $SP/betlock.mjs 2>&1)
+if echo "$out" | grep -q "before they play       edit buttons: 1" \
+  && echo "$out" | grep -q "after they played      edit buttons: 0" \
+  && echo "$out" | grep -qc "picking as Howard, edit buttons: 0" \
+  && echo "$out" | grep -q "nobody can change one now, the commissioner included" \
+  && [ "$(echo "$out" | grep -c 'picking as Howard, edit buttons: 1')" = "1" ] \
+  && [ "$(echo "$out" | grep -c 'picking as Howard, edit buttons: 0')" = "1" ] \
+  && ! echo "$out" | grep -q "page errors: [^n]"; then
+  line "record guesses seal at kickoff" "PASS"
+else line "record guesses seal at kickoff" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/coldstart.mjs 2>&1)
 if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"' \
   && echo "$out" | grep -q 'sheet reachable .*reports owned-merge-2; this app expects empty-is-missing-1' \
