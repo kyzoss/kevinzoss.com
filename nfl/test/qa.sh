@@ -108,6 +108,16 @@ if echo "$out" | grep -q "summary pulled on open : yes" \
   line "box score read after the game" "PASS"
 else line "box score read after the game" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
+out=$(timeout 115 node $SP/staleweek.mjs 2>&1)
+if echo "$out" | grep -q "week 2 scoreboard pulls: 1$" \
+  && echo "$out" | grep -q "slate now : NO@TB post 10-24 | ARI@LAC post 14-31" \
+  && echo "$out" | grep -q "Jim       : JV Jim No pick" \
+  && echo "$out" | grep -q "3 STILL STANDING" \
+  && echo "$out" | grep -q "no pick\[X\]" \
+  && echo "$out" | grep -q "page errors: none"; then
+  line "a stale week finishes on open" "PASS"
+else line "a stale week finishes on open" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/betlock.mjs 2>&1)
 if echo "$out" | grep -q "before they play       edit buttons: 1" \
   && echo "$out" | grep -q "after they played      edit buttons: 0" \

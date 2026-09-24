@@ -60,6 +60,10 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     own -- and a poll that changed nothing saves nothing, since
                     every open phone polls once a minute. No winner is declared
                     mid-game, where the lead means nothing
+    staleweek       a week with a game stuck "in" since Sunday, because nobody
+                    had the app open the minute it went final. Opening the week
+                    has to chase it: the week completes, the pot can settle, and
+                    LMS knocks out the player who never picked
     betlock         the Browns record guesses seal when the Browns first play,
                     for the commissioner too -- including through "Pick as",
                     which is the route that used to let a guess be rewritten
