@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=40ffd4cf";
-import * as SC from "./scoring.js?v=40ffd4cf";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=40ffd4cf";
-import { fetchWeek } from "./espn.js?v=40ffd4cf";
+import * as S from "./store.js?v=6072e60e";
+import * as SC from "./scoring.js?v=6072e60e";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=6072e60e";
+import { fetchWeek } from "./espn.js?v=6072e60e";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=40ffd4cf";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=40ffd4cf";
+import { fetchSpreads } from "./odds.js?v=6072e60e";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=6072e60e";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -139,7 +139,15 @@ function autoPull(week) {
   const games = wk?.games || [];
   const needSchedule = !games.length;
   const needLines = week === currentWeek() && !SC.linesLocked(state, week, cfg) && (needSchedule || games.some((g) => g.spread == null && g.status === "pre")) && Date.now() - (wk?.lastLinesPull || 0) > 3600e3;
-  if (needSchedule || needLines) pullSlate(week, { lines: needLines, quiet: true });
+  // A game that kicked off but never reached us as final. Score polling only
+  // runs while a game is live, so a week nobody had open at the right minute
+  // keeps a game stuck "in" for good -- and a week that never completes never
+  // settles: the pot does not pay, and LMS cannot knock anybody out, including
+  // the man who forgot to pick. Opening the week is enough to finish it now.
+  const stale = !needSchedule && games.some((g) => SC.hasStarted(g) && !SC.isFinal(g));
+  const needScores = stale && Date.now() - (scorePulled.get(week) || 0) > SCORE_PULL_MS;
+  if (needScores) scorePulled.set(week, Date.now());
+  if (needSchedule || needLines || needScores) pullSlate(week, { lines: needLines, quiet: true });
   // The box score cannot ride on the score poll alone. Polling stops the moment
   // every game is final, so opening the app on Monday -- which is when people
   // actually look -- pulled no box score at all, and Brown of the week sat
@@ -169,6 +177,10 @@ async function refreshScores(week, quiet = true) {
 // not pool data, and it must not sync round the table as though it were.
 const brownPulled = new Map();
 const brownShape = new Map();
+// When we last chased a week's unfinished scores, so opening a week does not
+// re-ask ESPN on every render.
+const scorePulled = new Map();
+const SCORE_PULL_MS = 60_000;
 // Renders happen far more often than polls, so a read needs a floor. It has to
 // sit well under the 60s score poll, though, or an arriving poll lands inside
 // the window and the live points skip a minute.
