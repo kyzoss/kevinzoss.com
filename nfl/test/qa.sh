@@ -108,6 +108,16 @@ if echo "$out" | grep -q "summary pulled on open : yes" \
   line "box score read after the game" "PASS"
 else line "box score read after the game" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
+out=$(timeout 115 node $SP/forfeit.mjs 2>&1)
+if echo "$out" | grep -q "JV Jim no pick, week 2 Out .*CANNOT pick" \
+  && echo "$out" | grep -q "Jim can open the picker: no" \
+  && echo "$out" | grep -q "Andrew can pick week 3: YES" \
+  && echo "$out" | grep -q "3 STILL STANDING" \
+  && echo "$out" | grep -q "tracker  : 3 NOW — — out —" \
+  && echo "$out" | grep -q "page errors: none"; then
+  line "a forfeit survives a wipeout" "PASS"
+else line "a forfeit survives a wipeout" "FAIL — $(echo "$out" | tail -5 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/staleweek.mjs 2>&1)
 if echo "$out" | grep -q "week 2 scoreboard pulls: 1$" \
   && echo "$out" | grep -q "slate now : NO@TB post 10-24 | ARI@LAC post 14-31" \

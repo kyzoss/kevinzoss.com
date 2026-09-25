@@ -435,6 +435,10 @@ export function lastManStanding(state, cfg) {
   // Teams each player has already spent this block. One team per player per
   // block: burn the obvious dog in week 1 and you can't come back to it.
   let used = Object.fromEntries(all.map((id) => [id, []]));
+  // Who has forfeited in this block: alive, the week finished, and they entered
+  // nothing at all. Kept because a whole-field bust puts everybody back in, and
+  // the man who never picked must not be among them.
+  let forfeited = new Set();
   const rows = {};
   for (let w = 1; w <= cfg.weeks; w++) {
     const wk = state.weeks?.[w] || {};
@@ -447,6 +451,7 @@ export function lastManStanding(state, cfg) {
     if (round !== prevRound) {
       alive = [...all]; prevRound = round;
       used = Object.fromEntries(all.map((id) => [id, []]));
+      forfeited = new Set();
       // The pot deliberately is not cleared here: an unpaid rollover carries
       // into the next block rather than evaporating.
     }
@@ -509,12 +514,26 @@ export function lastManStanding(state, cfg) {
           row.eliminated = [];
         }
       }
-      if (row.ended) { alive = [...all]; pot = 0; }
+      // Entering nothing is a forfeit, and it sticks for the rest of the block.
+      // A bad pick is not: naming a team on a bye, or one already used, is still
+      // turning up. And a week that settled nothing at all records nothing --
+      // it knocks nobody out, so it must not quietly mark anyone either.
+      if (!row.rolled) for (const id of alive) if (row.results[id] === "nopick") forfeited.add(id);
+      if (row.ended) {
+        // A block that ran its course starts a fresh one, everybody in. A block
+        // settled early because every live pick busted puts the field back for
+        // the rest of the weeks -- but not the forfeiters. They were not in the
+        // contest that just wiped out, and "everyone else's team won" must not
+        // be the way back for the man who entered nothing: that would make
+        // forgetting to pick a bet rather than a forfeit.
+        alive = w === roundEnd ? [...all] : all.filter((id) => !forfeited.has(id));
+        pot = 0;
+      }
       // a rollover leaves alive and used untouched by design
     }
     rows[w] = row;
   }
-  return { rows, alive, pot, used };
+  return { rows, alive, pot, used, forfeited: [...forfeited] };
 }
 
 /**

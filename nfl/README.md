@@ -173,9 +173,16 @@ API keys.
   Name a team to lose; wins, ties and no-picks knock you out for the round.
   Rounds are fixed four-week blocks and survivors split at the end. If every
   live pick busts in the same week, the players who actually picked split the
-  pot and the field re-enters — **a forfeit never shares**. If nobody made a
-  live pick at all, nothing is settled: the pot rolls into the next week and
-  nobody goes out, carrying across a block boundary if it has to.
+  pot and **they** re-enter for the rest of the block. **A forfeit neither
+  shares nor comes back**: enter nothing and you are out for the block whatever
+  everybody else's teams did. The re-entry used to be the whole field, which
+  meant a week where every other pick came in was the way back for the one man
+  who had not turned up, and forgetting to pick became a bet rather than a
+  forfeit. A bad pick is not a forfeit -- naming a team on a bye, or one already
+  used, is still turning up, and those come back with everyone else. If nobody
+  made a live pick at all, nothing is settled: the pot rolls into the next week,
+  nobody goes out and nobody is marked a forfeit, carrying across a block
+  boundary if it has to.
 - **Browns record.** $10. One guess each, in before the Browns first take the
   field -- not before the season kicks off, which shut the door on a Wednesday
   night for a team that plays on Sunday. The moment they kick off every guess is
