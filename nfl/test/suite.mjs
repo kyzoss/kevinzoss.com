@@ -442,17 +442,52 @@ console.log("- LMS: a forfeit never shares, and an all-forfeit week rolls over")
   eq("all-forfeit week pays nobody", led.lms.rows[2].payouts, {});
   eq("and is flagged as rolled",     led.lms.rows[2].rolled, true);
   eq("nobody is knocked out",        led.lms.rows[2].eliminated, []);
-  eq("field is intact",              led.lms.rows[2].aliveEntering.length, 4);
+  // The whole field busting in wk1 put the pickers back in for the rest of the
+  // block. It does not put back the two who entered nothing: "everybody else's
+  // team won" cannot be the way back for a man who was not playing, or
+  // forgetting to pick becomes a bet rather than a forfeit.
+  eq("the pickers re-enter",         led.lms.rows[2].aliveEntering.sort(), ["az","kz"]);
+  eq("the forfeits do not",          [led.lms.rows[2].results.jv, led.lms.rows[2].results.hz], ["out","out"]);
+  eq("and a rolled week marks nobody a forfeit", led.lms.rows[2].eliminated, []);
 
-  // wk3: one real pick loses, so that player survives on the carried pot
-  wk(3, [g("C","D",-3,10,20)], { jv:"C" });
+  // wk3: one real pick loses, so that player survives on the carried pot.
+  // It has to be az: jv forfeited in wk1 and is out of this block for good.
+  wk(3, [g("C","D",-3,10,20)], { az:"C" });
   led = SC.ledger(st, cfg);
-  eq("survivor carries on",    led.lms.rows[3].results.jv, "safe");
+  eq("survivor carries on",    led.lms.rows[3].results.az, "safe");
+  eq("the forfeit is still out", led.lms.rows[3].results.jv, "out");
   eq("nothing paid mid-block", led.lms.rows[3].payouts, {});
   eq("wk2's rolled pot carried", led.lms.rows[3].pot, 8);   // wk1 paid out, wk2 rolled
-  wk(4, [g("E","F",-3,10,20)], { jv:"E" });
+  wk(4, [g("E","F",-3,10,20)], { az:"E" });
   led = SC.ledger(st, cfg);
-  eq("survivor takes the carried pot", led.lms.rows[4].payouts, { jv: 12 });
+  eq("survivor takes the carried pot", led.lms.rows[4].payouts, { az: 12 });
+}
+
+console.log("- LMS: a forfeit is not revived by everyone else busting");
+{
+  const st = blank();
+  const wk = (n, gs, lms) => { st.weeks[n] = { games: gs, picks: {}, lms, dupPrefs: {} }; };
+  wk(1, [g("NO","TB",-3,10,24)], { az:"NO", kz:"NO", jv:"NO", hz:"NO" });   // TB won, all safe
+  // wk2: the three who picked all watched their team win. Jim entered nothing.
+  wk(2, [g("ARI","LAC",-3,31,14)], { az:"ARI", kz:"ARI", hz:"ARI" });
+  let led = SC.ledger(st, cfg);
+  eq("the three who played busted",
+     [led.lms.rows[2].results.az, led.lms.rows[2].results.kz, led.lms.rows[2].results.hz],
+     ["busted","busted","busted"]);
+  eq("and the one who did not, forfeited", led.lms.rows[2].results.jv, "nopick");
+  eq("only the players split the pot", Object.keys(led.lms.rows[2].payouts).sort(), ["az","hz","kz"]);
+  eq("the forfeit is out the week after", led.lms.rows[3].results.jv, "out");
+  eq("while the busted three are back",
+     led.lms.rows[3].aliveEntering.sort(), ["az","hz","kz"]);
+  // and he stays out for the rest of the block, however the weeks go
+  wk(3, [g("NYJ","TEN",-3,3,20)], { az:"NYJ" });
+  led = SC.ledger(st, cfg);
+  eq("still out in week 4", led.lms.rows[4].results.jv, "out");
+  // the new block hands him his seat back
+  wk(5, [g("SF","LAR",-3,10,20)], {});
+  led = SC.ledger(st, cfg);
+  eq("a new block starts him level", led.lms.rows[5].results.jv, "nopick");
+  eq("and he is in the field again", led.lms.rows[5].aliveEntering.length, 4);
 }
 
 console.log("- LMS: an unresolved pick does not spend the team");

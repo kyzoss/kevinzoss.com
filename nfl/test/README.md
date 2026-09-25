@@ -60,6 +60,10 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     own -- and a poll that changed nothing saves nothing, since
                     every open phone polls once a minute. No winner is declared
                     mid-game, where the lead means nothing
+    forfeit         every live pick busts in one week, which settles the pot
+                    early and puts the field back in for the rest of the block.
+                    The man who entered nothing does not come back with them,
+                    and the row says which week he went out and why
     staleweek       a week with a game stuck "in" since Sunday, because nobody
                     had the app open the minute it went final. Opening the week
                     has to chase it: the week completes, the pot can settle, and

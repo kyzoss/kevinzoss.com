@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=6072e60e";
-import * as SC from "./scoring.js?v=6072e60e";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=6072e60e";
-import { fetchWeek } from "./espn.js?v=6072e60e";
+import * as S from "./store.js?v=b7165d12";
+import * as SC from "./scoring.js?v=b7165d12";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=b7165d12";
+import { fetchWeek } from "./espn.js?v=b7165d12";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=6072e60e";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=6072e60e";
+import { fetchSpreads } from "./odds.js?v=b7165d12";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=b7165d12";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -485,7 +485,7 @@ function renderWeek(state) {
     ${games.length ? renderDupBar(state, week, dups, tally) + renderSlate(state, week, games, tally, dups) : renderEmptySlate()}
   </section>
 
-  ${games.length ? renderLms(state, week, lrow, games) + renderBrown(state, week) : ""}`;
+  ${games.length ? renderLms(state, week, lrow, games, led.lms) + renderBrown(state, week) : ""}`;
 }
 
 /** When this week's lines freeze, in the pool's zone -- not the phone's. */
@@ -796,7 +796,21 @@ function renderBrown(state, week) {
   </section>`;
 }
 
-function renderLms(state, week, lrow, games) {
+/** Why this player is out, looking back through the block. */
+function wentOut(lms, week, pid) {
+  const row = lms?.rows?.[week];
+  if (!row) return "";
+  const WHY = { busted: "their team won", nopick: "no pick", nogame: "team wasn't playing", reused: "already used" };
+  for (let w = row.roundStart; w < week; w++) {
+    const r = lms.rows[w];
+    if (!r?.complete || r.rolled) continue;
+    const why = WHY[r.results?.[pid]];
+    if (why && r.eliminated.includes(pid)) return `${why}, week ${w}`;
+  }
+  return "";
+}
+
+function renderLms(state, week, lrow, games, lms) {
   const pid = actor();
   const picks = state.weeks[week]?.lms || {};
   const rows = state.players.map((p) => {
@@ -819,7 +833,12 @@ function renderLms(state, week, lrow, games) {
       : res === "reused" ? `<span class="badge badge--loss">Already used</span>`
       : team ? `<span class="badge">${g && g.status === "in" ? "Live" : "Locked in"}</span>` : `<span class="badge">Needs a pick</span>`;
     const pay = lrow?.payouts?.[p.id] ? `<span class="badge badge--money">${SC.money(lrow.payouts[p.id])}</span>` : "";
-    const sub = g ? `${g.home === team ? `vs ${g.away}` : `@ ${g.home}`} · ${started && g.homeScore != null ? `${g.awayScore}-${g.homeScore}` : fmtKick(g.kickoff)}` : team ? "Not on this week's slate" : (canEdit ? "Tap to choose" : "");
+    // A bare "Out" invites the question, so the row answers it: which week it
+    // was and what happened. It is also the receipt when somebody is sure they
+    // should still be in.
+    const sub = out ? (wentOut(lms, week, p.id) || "out for this block")
+      : g ? `${g.home === team ? `vs ${g.away}` : `@ ${g.home}`} · ${started && g.homeScore != null ? `${g.awayScore}-${g.homeScore}` : fmtKick(g.kickoff)}`
+      : team ? "Not on this week's slate" : (canEdit ? "Tap to choose" : "");
     return `<div class="lmsrow ${out ? "lmsrow--out" : ""}" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
       <button class="lmsrow__pick" data-action="lms-open" ${canEdit ? "" : "disabled"}>${team ? `<img ${logoAttrs(team)}>` : ""}<div><div class="lmsrow__team">${team ? `${esc(team)} <span>to lose</span>` : esc(p.name)}</div><div class="lmsrow__sub">${esc(sub)}</div></div></button>
       <div style="display:grid;gap:4px;justify-items:end">${badge}${pay}</div></div>`;
@@ -1198,7 +1217,7 @@ function renderSettings(state) {
     <p><b>Picks.</b> Every game, straight up: pick the team you think wins. A win is 1 point and nothing else scores — a tie counts as a loss. The spread is not part of it — it only sets which dogs go up for the dup draft. Everything locks at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, and any game that kicks off before then locks at its own kickoff instead.</p>
     <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game, and it has to win outright: +${cfg.dup.win} if it does, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft closes with the picks, at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, except that a dog whose own game has already kicked off can no longer be ranked.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
-    <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and the field re-enters &mdash; a forfeit never shares. And if nobody picked at all, nothing is settled: the pot rolls into next week. The week-by-week tracker is on the Standings tab.</p>
+    <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and <b>they</b> re-enter for the rest of the block. A forfeit neither shares nor comes back: enter nothing and you are out for the block, whatever everybody else&rsquo;s teams did. And if nobody picked at all, nothing is settled: the pot rolls into next week and marks no one. The week-by-week tracker is on the Standings tab.</p>
     <p><b>Brown of the week.</b> ${SC.money(cfg.brownOfWeek?.perPlayer ?? 1)} from everyone, every week &mdash; ${SC.money(SC.brownWeekly(state, cfg))} a week with ${state.players.length} playing. Name one ${esc(teamName(cfg.sideBet.team))} player and score his game on the pool's table. You may draft a <b>${esc(listOf(draftPositions(), "or"))}</b> &mdash; <b>no quarterbacks</b>, since one man throws for the whole team, so he is not a choice between Browns. Best score takes the pot and a tie splits it, so nothing rolls over. Rounds are ${cfg.brownOfWeek?.roundWeeks ?? 4} weeks like LMS: a player you have used is spent until the round resets, and only a week that actually got scored spends him. It locks when the ${esc(teamName(cfg.sideBet.team))} kick off. Every Brown's line, including the ones nobody could pick, is on the ${esc(cfg.sideBet?.label?.split(" ")[0] || "Browns")} tab.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.perPlayer ?? 0)} from everyone, so ${SC.money(SC.sideBetPot(state, cfg))} on the table. One guess each at the ${esc(teamName(cfg.sideBet.team))}' final record, in before they first take the field. The moment they kick off every guess is final &mdash; there is no commissioner edit, because the fix and the cheat are the same edit. Closest wins, points scored breaks ties.</p>
   </div></section>`;
