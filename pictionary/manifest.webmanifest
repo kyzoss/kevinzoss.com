@@ -1,0 +1,16 @@
+{
+  "name": "Family Pictionary",
+  "short_name": "Pictionary",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#6C4BFF",
+  "theme_color": "#6C4BFF",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "description": "Draw it, guess it! A pass-the-phone drawing game for kids 4 to 10."
+}

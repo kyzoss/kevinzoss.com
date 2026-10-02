@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Family Pictionary</title>
+  <meta name="description" content="Draw it, guess it! A pass-the-phone drawing game for kids 4 to 10 and the grown-ups who play with them." />
+  <meta name="robots" content="noindex" />
+  <meta property="og:title" content="Family Pictionary" />
+  <meta property="og:description" content="Draw it, guess it! A pass-the-phone drawing game for kids 4 to 10." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://pictionary.kevinzoss.com/icon-512.png" />
+
+  <meta name="theme-color" content="#6C4BFF" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pictionary" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/app.css?v=1" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- HOME -->
+    <section class="screen" id="home">
+      <div class="home-inner">
+        <div class="logo" aria-label="Pictionary">
+          <span>P</span><span>i</span><span>c</span><span>t</span><span>i</span><span>o</span><span>n</span><span>a</span><span>r</span><span>y</span>
+        </div>
+        <p class="tagline">Draw it! Guess it! 🎨</p>
+        <div class="home-doodles" aria-hidden="true">🖍️ 🦄 🚀 🐶 🌈</div>
+        <button class="btn big go" data-act="resume" id="resumeBtn" hidden>⏯️ Keep playing</button>
+        <button class="btn big primary" data-act="newGame">▶️ Play!</button>
+        <div class="home-row">
+          <button class="btn tile" data-act="studio"><span class="tile-ico">🎭</span>Make a Character</button>
+          <button class="btn tile" data-act="freeDraw"><span class="tile-ico">🖍️</span>Free Draw</button>
+          <button class="btn tile" data-act="gallery"><span class="tile-ico">🖼️</span>Art Show</button>
+          <button class="btn tile" data-act="howTo"><span class="tile-ico">❓</span>How to Play</button>
+        </div>
+        <button class="sound-toggle" data-act="toggleSound" aria-label="Sound on or off">🔊</button>
+      </div>
+    </section>
+
+    <!-- SETUP: three short steps -->
+    <section class="screen" id="setup">
+      <header class="bar">
+        <button class="icon-btn" data-act="setupBack" aria-label="Back">⬅️</button>
+        <div class="steps" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="icon-spacer"></span>
+      </header>
+
+      <div class="step" data-step="0">
+        <h1>Who's playing? 👋</h1>
+        <p class="sub">Tap the animal to change it (your 🎭 characters are in there too!). Pick each person's age so their words are just right.</p>
+        <div id="playerList" class="player-list"></div>
+        <button class="btn add" data-act="addPlayer" id="addPlayerBtn">➕ Add a player</button>
+      </div>
+
+      <div class="step" data-step="1">
+        <h1>What should we draw? ✏️</h1>
+        <p class="sub">Pick as many as you like!</p>
+        <div class="cat-tools">
+          <button class="chip" data-act="catsAll">✅ All of them</button>
+          <button class="chip" data-act="catsNone">Clear</button>
+        </div>
+        <div id="catGrid" class="cat-grid"></div>
+      </div>
+
+      <div class="step" data-step="2">
+        <h1>How do we play? 🎲</h1>
+        <div class="opt-group">
+          <h2>Game type</h2>
+          <div class="seg" data-opt="mode">
+            <button data-val="race"><b>⭐ Star Race</b><small>Everyone collects stars</small></button>
+            <button data-val="team"><b>🤝 Team Family</b><small>Fill the rainbow together</small></button>
+          </div>
+        </div>
+        <div class="opt-group">
+          <h2>Timer</h2>
+          <div class="seg four" data-opt="pace">
+            <button data-val="relaxed"><b>🐢</b><small>Slow</small></button>
+            <button data-val="normal"><b>🐇</b><small>Normal</small></button>
+            <button data-val="speedy"><b>⚡</b><small>Speedy</small></button>
+            <button data-val="off"><b>♾️</b><small>No timer</small></button>
+          </div>
+          <p class="note" id="paceNote"></p>
+        </div>
+        <div class="opt-group">
+          <h2>Turns each</h2>
+          <div class="seg four" data-opt="rounds">
+            <button data-val="1"><b>1</b></button>
+            <button data-val="2"><b>2</b></button>
+            <button data-val="3"><b>3</b></button>
+            <button data-val="5"><b>5</b></button>
+          </div>
+        </div>
+        <div class="opt-group">
+          <h2>Helper hints 💡</h2>
+          <div class="seg" data-opt="hints">
+            <button data-val="on"><b>On</b><small>Show letters as time runs</small></button>
+            <button data-val="off"><b>Off</b><small>No letter clues</small></button>
+          </div>
+        </div>
+      </div>
+
+      <footer class="setup-foot">
+        <button class="btn big primary" data-act="setupNext" id="setupNext">Next ➡️</button>
+      </footer>
+    </section>
+
+    <!-- HANDOFF -->
+    <section class="screen" id="handoff">
+      <div class="center-col">
+        <div class="turn-count" id="turnCount"></div>
+        <div class="avatar huge bounce" id="handAvatar"></div>
+        <h1 class="hand-title" id="handTitle"></h1>
+        <p class="hand-sub">Everyone else, close your eyes! 🙈</p>
+        <button class="btn big primary" data-act="showWords" id="handBtn"></button>
+        <div class="mini-scores" id="miniScores"></div>
+      </div>
+      <button class="corner-btn" data-act="quitAsk" aria-label="Quit">🏠</button>
+    </section>
+
+    <!-- PICK A WORD -->
+    <section class="screen" id="pick">
+      <div class="center-col">
+        <h1>Pick one to draw! 🤫</h1>
+        <div class="word-cards" id="wordCards"></div>
+        <button class="btn soft" data-act="newCards" id="newCardsBtn">🔄 New cards</button>
+      </div>
+    </section>
+
+    <!-- COUNTDOWN -->
+    <section class="screen" id="countdown">
+      <div class="center-col">
+        <p class="cd-sub">Put the phone where everyone can see!</p>
+        <div class="cd-num" id="cdNum">3</div>
+        <p class="cd-sub" id="cdHint"></p>
+      </div>
+    </section>
+
+    <!-- DRAW BOARD (also Free Draw) -->
+    <section class="screen" id="draw">
+      <div class="draw-head">
+        <div class="who-chip" id="drawWho"></div>
+        <div class="timer" id="timer">
+          <div class="timer-fill" id="timerFill"></div>
+          <span class="timer-runner" id="timerRunner">🐇</span>
+          <span class="timer-num" id="timerNum"></span>
+        </div>
+        <button class="icon-btn game-only" data-act="pause" aria-label="Pause">⏸️</button>
+        <button class="icon-btn free-only" data-act="freeHome" aria-label="Home">🏠</button>
+        <button class="icon-btn free-only" data-act="freeSave" aria-label="Save to Art Show">💾</button>
+        <button class="icon-btn free-only" data-act="freeNew" aria-label="New page">📄</button>
+      </div>
+      <div class="hint-row game-only">
+        <div class="hint" id="hint"></div>
+        <button class="peek" id="peekBtn" aria-label="Hold to peek at your word">👀</button>
+        <button class="btn gotit" data-act="gotIt">🎉 Got it!</button>
+      </div>
+      <div class="board" id="board">
+        <canvas id="canvas"></canvas>
+        <div class="peek-card" id="peekCard"></div>
+        <div class="hint-pop" id="hintPop">💡 Hint!</div>
+        <div class="last-secs" id="lastSecs"></div>
+        <div class="stamp-hint" id="stampHint">👆 Tap to stamp it! Drag to move.</div>
+      </div>
+      <div class="tools">
+        <div class="palette" id="palette"></div>
+        <div class="toolrow">
+          <button class="tool" data-tool="undo" aria-label="Undo">↩️</button>
+          <button class="tool" data-tool="size" aria-label="Brush size"><span class="size-dot" id="sizeDot"></span></button>
+          <button class="tool" data-tool="pen" aria-label="Crayon">🖍️</button>
+          <button class="tool" data-tool="fill" aria-label="Paint bucket">🪣</button>
+          <button class="tool" data-tool="eraser" aria-label="Eraser">🧽</button>
+          <button class="tool" data-tool="stamp" aria-label="Characters and stickers">🧸</button>
+          <button class="tool" data-tool="clear" aria-label="Clear page">🗑️</button>
+        </div>
+      </div>
+      <div class="tray" id="tray" hidden>
+        <div class="tray-card">
+          <div class="tray-head">
+            <b>🧸 Pick one to stamp!</b>
+            <button class="icon-btn" data-act="trayClose" aria-label="Close">✖️</button>
+          </div>
+          <div class="tray-body" id="trayBody"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHARACTER STUDIO -->
+    <section class="screen" id="studio">
+      <header class="bar">
+        <button class="icon-btn" data-act="studioBack" aria-label="Back">⬅️</button>
+        <h1 class="bar-title">🎭 Character Studio</h1>
+        <span class="icon-spacer"></span>
+      </header>
+      <div class="studio-wrap">
+        <div class="studio-stage">
+          <canvas id="studioCanvas"></canvas>
+          <button class="dice" data-act="charRandom" aria-label="Surprise me">🎲</button>
+        </div>
+        <div class="studio-name">
+          <input id="charName" maxlength="16" placeholder="Name your character" aria-label="Character name" />
+        </div>
+        <div class="part-tabs" id="partTabs"></div>
+        <div class="part-grid" id="partGrid"></div>
+        <div class="studio-actions">
+          <button class="btn big primary" data-act="charSave">💾 Save my character</button>
+          <button class="btn soft" data-act="charDraw">🖍️ Draw a world for them</button>
+          <button class="btn soft" data-act="charDelete" id="charDeleteBtn">🗑️ Delete</button>
+        </div>
+        <h2 class="my-chars-title">My characters</h2>
+        <div class="my-chars" id="myChars"></div>
+      </div>
+    </section>
+
+    <!-- WHO GUESSED -->
+    <section class="screen" id="who">
+      <div class="center-col">
+        <h1 id="whoTitle">Who guessed it? 🙋</h1>
+        <div class="who-grid" id="whoGrid"></div>
+        <button class="btn soft" data-act="nobody" id="nobodyBtn">😅 Nobody got it</button>
+        <button class="btn soft" data-act="backToDraw" id="backDrawBtn">✏️ Oops, keep drawing</button>
+      </div>
+    </section>
+
+    <!-- REVEAL -->
+    <section class="screen" id="reveal">
+      <div class="center-col">
+        <h1 class="reveal-title" id="revealTitle"></h1>
+        <div class="reveal-word" id="revealWord"></div>
+        <div class="replay-card">
+          <canvas id="replayCanvas"></canvas>
+          <button class="replay-btn" data-act="replay" aria-label="Watch it again">🔁</button>
+        </div>
+        <div class="reveal-stars" id="revealStars"></div>
+        <button class="btn big primary" data-act="nextTurn" id="nextBtn">Next ➡️</button>
+      </div>
+    </section>
+
+    <!-- END -->
+    <section class="screen" id="end">
+      <div class="end-inner">
+        <h1 class="end-title" id="endTitle">🏆 Great game! 🏆</h1>
+        <div id="endBody"></div>
+        <div class="end-actions">
+          <button class="btn big primary" data-act="playAgain">🔁 Play again</button>
+          <button class="btn soft" data-act="endGallery">🖼️ See the Art Show</button>
+          <button class="btn soft" data-act="home">🏠 Home</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section class="screen" id="gallery">
+      <header class="bar">
+        <button class="icon-btn" data-act="galleryBack" aria-label="Back">⬅️</button>
+        <h1 class="bar-title">🖼️ Art Show</h1>
+        <span class="icon-spacer"></span>
+      </header>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </section>
+
+    <!-- HOW TO -->
+    <section class="screen" id="howto">
+      <header class="bar">
+        <button class="icon-btn" data-act="home" aria-label="Back">⬅️</button>
+        <h1 class="bar-title">How to Play</h1>
+        <span class="icon-spacer"></span>
+      </header>
+      <div class="howto-body">
+        <div class="how"><span>1️⃣</span><p><b>Pass the phone</b> to the artist. Everyone else closes their eyes!</p></div>
+        <div class="how"><span>2️⃣</span><p><b>Pick a card.</b> The picture shows what to draw, so little ones don't need to read. Tap 🔈 to hear it quietly.</p></div>
+        <div class="how"><span>3️⃣</span><p><b>Put the phone down</b> where everyone can see. Draw with your finger! No letters or numbers allowed. 🤐</p></div>
+        <div class="how"><span>4️⃣</span><p><b>Shout your guesses!</b> When someone gets it, the artist taps <b>🎉 Got it!</b></p></div>
+        <div class="how"><span>⭐</span><p><b>Star Race:</b> the guesser and the artist both get a star. <b>Team Family:</b> everyone works together to fill the rainbow.</p></div>
+        <div class="how"><span>💡</span><p>Stuck? Hints pop up as the timer runs down. Forgot your word? Hold <b>👀 Peek</b>.</p></div>
+        <div class="how"><span>🎭</span><p><b>Make a Character</b> from silly parts, then stamp it on the page with 🧸 and draw a whole world around it. Turn on <b>Character Adventures</b> and your character shows up in the game: you draw what it's doing!</p></div>
+        <div class="how"><span>🎂</span><p>Each player's age picks their words and their time. Littles get easy words and extra time.</p></div>
+        <div class="how"><span>📲</span><p><b>Tip for grown-ups:</b> Share → Add to Home Screen makes it a full-screen app that works offline in the car.</p></div>
+        <button class="btn big primary" data-act="newGame">▶️ Let's play!</button>
+      </div>
+    </section>
+
+    <!-- MODALS -->
+    <div class="modal" id="modal" hidden>
+      <div class="modal-card">
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-actions" id="modalActions"></div>
+      </div>
+    </div>
+
+    <div class="viewer" id="viewer" hidden>
+      <img id="viewerImg" alt="" />
+      <div class="viewer-cap" id="viewerCap"></div>
+      <div class="viewer-actions">
+        <button class="btn soft" data-act="viewerShare">📤 Save / Share</button>
+        <button class="btn soft" data-act="viewerDelete">🗑️ Delete</button>
+        <button class="btn primary" data-act="viewerClose">✖️ Close</button>
+      </div>
+    </div>
+
+    <canvas id="confetti" aria-hidden="true"></canvas>
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <script src="./js/words.js?v=1"></script>
+  <script src="./js/characters.js?v=1"></script>
+  <script src="./js/draw.js?v=1"></script>
+  <script src="./js/app.js?v=1"></script>
+</body>
+</html>
