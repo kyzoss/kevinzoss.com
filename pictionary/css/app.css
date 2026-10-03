@@ -277,7 +277,7 @@ h2 { margin: 0 0 10px; font-family: var(--serif); font-weight: 400; font-size: 1
 .prompt-card { position: relative; flex: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px 16px 14px; box-shadow: var(--shadow); text-align: center; }
 .pc-label { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--muted); padding: 0 40px; flex-wrap: wrap; }
 .pc-label .pc-cat { color: var(--dim); }
-.pc-label .pc-cat::before { content: '·'; margin-right: 8px; }
+.pc-label { column-gap: 14px; row-gap: 2px; }
 .pc-hint { font-family: var(--serif); font-size: 26px; line-height: 1.15; margin: 6px 0 8px; min-height: 30px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pc-hint .blanks { letter-spacing: 4px; }
 .pc-timer { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -321,7 +321,9 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .tool { flex: 1; min-width: 0; height: 42px; border-radius: 12px; color: var(--text); display: flex; align-items: center; justify-content: center; transition: transform .12s; }
 .tool:active { transform: scale(.9); }
 .tool.on { background: var(--green); color: var(--green-ink); }
-.btn.gotit { width: 100%; min-height: 52px; font-size: 17px; letter-spacing: .04em; }
+.answer-row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.btn.gotit, .btn.missed { width: 100%; min-height: 52px; font-size: 17px; letter-spacing: .04em; padding: 0 12px; }
+.btn.missed { color: var(--muted); box-shadow: none; background: var(--card-2); }
 
 #draw.free .game-only { display: none !important; }
 #draw:not(.free) .free-only { display: none !important; }
@@ -355,7 +357,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
   .palette { flex-wrap: wrap; }
   .swatch { flex: 0 0 20%; height: 32px; }
   .tool { height: 36px; }
-  .btn.gotit { min-height: 44px; }
+  .btn.gotit, .btn.missed { min-height: 44px; font-size: 15px; }
 }
 
 /* ---------- who / reveal ---------- */
@@ -484,3 +486,9 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Sound on/off: the same button on every screen; muted shows a clay tint. */
+.sound-btn.muted { color: var(--clay); }
+.sound-btn.muted::after { content: 'Off'; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.sound-btn { position: relative; }
+.corner-btn.sound-btn { position: absolute; }

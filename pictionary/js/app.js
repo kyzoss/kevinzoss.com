@@ -72,14 +72,51 @@
     buzz() { this.tone(330, 0.25, 'sawtooth', 0.07, 0, 220); this.tone(220, 0.45, 'sawtooth', 0.07, 0.22, 140); },
     fanfare() { [523, 523, 523, 659, 784, 659, 784, 1047].forEach((f, i) => this.tone(f, i === 7 ? 0.6 : 0.16, 'triangle', 0.16, [0, .14, .28, .42, .62, .78, .92, 1.1][i])); },
   };
+  // The narrator: a warm female voice. Browsers only offer the voices the
+  // device has installed, so rank by name: the natural/neural ones first
+  // (Microsoft Aria/Jenny, Apple Ava/Zoe premium), then the familiar good ones
+  // (Samantha on iPhone, Google US English on Android/Chrome), then any
+  // English voice that is not obviously male.
+  const FEMALE = ['ava', 'zoe', 'aria', 'jenny', 'michelle', 'emma', 'samantha', 'allison', 'susan', 'serena', 'karen',
+    'moira', 'tessa', 'kate', 'nicky', 'joelle', 'shelley', 'sandy', 'flo', 'victoria', 'fiona', 'zira', 'hazel',
+    'libby', 'sonia', 'natasha', 'female', 'woman', 'google us english', 'google uk english female'];
+  const MALE = /\b(male|man|alex|daniel|fred|tom|aaron|arthur|gordon|rishi|oliver|george|guy|davis|tony|ralph|albert|bruce|junior|reed|eddy|grandpa|rocko|thomas|james|ryan|eric|mark|david|liam|christopher|roger|brian|andrew|steffan)\b/i;
+  // Android's Google voices carry codes instead of names; these are its women.
+  const ANDROID_FEMALE = /en-us-x-(sfg|tpf|iob|iog|tpc)|en-gb-x-(gba|gbc|gbg)|en-au-x-(afa|aua)/i;
+  let narrator = null;
+  function pickVoice() {
+    if (!('speechSynthesis' in window)) return null;
+    const all = speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang));
+    if (!all.length) return null;
+    const score = (v) => {
+      const n = v.name.toLowerCase();
+      if (MALE.test(n) && !/female/.test(n)) return -100;
+      let sc = 0;
+      const i = FEMALE.findIndex((f) => n.includes(f));
+      if (i >= 0) sc += 60 - i;
+      if (ANDROID_FEMALE.test(v.voiceURI || '') || ANDROID_FEMALE.test(n)) sc += 45;
+      if (/natural|neural|premium|enhanced|online/.test(n)) sc += 30;
+      if (/^en[-_]US/i.test(v.lang)) sc += 8;
+      if (v.localService) sc += 2; // works offline
+      if (/compact|eloquence|novelty|bells|bubbles|whisper|zarvox|trinoids|jester|organ|bad news|good news|wobble|cellos|boing/.test(n)) sc -= 200;
+      return sc;
+    };
+    return all.slice().sort((a, b) => score(b) - score(a))[0] || null;
+  }
+  if ('speechSynthesis' in window) {
+    narrator = pickVoice();
+    speechSynthesis.addEventListener && speechSynthesis.addEventListener('voiceschanged', () => { narrator = pickVoice(); });
+  }
   function speak(text, quiet) {
     if (!Sound.on || !('speechSynthesis' in window)) return;
     try {
       speechSynthesis.cancel();
+      if (!narrator) narrator = pickVoice();
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = 0.95; u.pitch = 1.15; u.volume = quiet ? 0.35 : 1;
-      const v = speechSynthesis.getVoices().find((x) => /^en(-|_)US/i.test(x.lang)) || null;
-      if (v) u.voice = v;
+      if (narrator) { u.voice = narrator; u.lang = narrator.lang; } else u.lang = 'en-US';
+      // A touch slower and only slightly brighter than default reads as warm,
+      // not cartoonish.
+      u.rate = 0.92; u.pitch = 1.08; u.volume = quiet ? 0.4 : 1;
       speechSynthesis.speak(u);
     } catch (_) {}
   }
@@ -850,8 +887,10 @@
     toggleSound() {
       Sound.on = !Sound.on;
       store.set('pict.sound', Sound.on);
-      $('soundBtn').innerHTML = '<svg class="ic"><use href="#i-' + (Sound.on ? 'sound' : 'mute') + '"/></svg>';
+      refreshSound();
       if (!Sound.on && 'speechSynthesis' in window) speechSynthesis.cancel();
+      toast(Sound.on ? 'Sound on' : 'Sound off');
+      if (Sound.on) { Sound.pop(); speak('Sound is on!'); }
     },
     newGame() { step = 0; show('setup'); renderSetup(); },
     resume() {
@@ -940,6 +979,14 @@
       else { store.del('pict.game'); G = null; stopTimer(); actions.home(); }
     },
     gotIt() { gotIt(); },
+    // Nobody guessed it: end the turn now, reveal the word, no stars.
+    missed() {
+      if (!timer.running) return;
+      G.guessMs = elapsed();
+      stopTimer();
+      Sound.buzz();
+      reveal(false, -1);
+    },
     fullscreen() {
       setFull(true);
       if (!store.get('pict.fullTip', false)) { toast('Tap Tools to get the toolbar back'); store.set('pict.fullTip', true); }
@@ -1043,7 +1090,7 @@
     }
     const el = e.target.closest('[data-act]');
     if (!el || !actions[el.dataset.act]) return;
-    if (!['chooseCard', 'gotIt'].includes(el.dataset.act)) Sound.pop();
+    if (!['chooseCard', 'gotIt', 'missed'].includes(el.dataset.act)) Sound.pop();
     actions[el.dataset.act](el, e);
   });
   $('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') { /* must pick a button */ } });
@@ -1073,7 +1120,16 @@
 
   function refreshHome() {
     $('resumeBtn').hidden = !store.get('pict.game', null);
-    $('soundBtn').innerHTML = '<svg class="ic"><use href="#i-' + (Sound.on ? 'sound' : 'mute') + '"/></svg>';
+    refreshSound();
+  }
+  // Every sound button on every screen shows the same state.
+  function refreshSound() {
+    document.querySelectorAll('[data-act="toggleSound"]').forEach((b) => {
+      b.innerHTML = '<svg class="ic"><use href="#i-' + (Sound.on ? 'sound' : 'mute') + '"/></svg>';
+      b.classList.toggle('muted', !Sound.on);
+      b.setAttribute('aria-pressed', String(Sound.on));
+      b.setAttribute('aria-label', Sound.on ? 'Sound is on. Tap to turn it off' : 'Sound is off. Tap to turn it on');
+    });
   }
   refreshHome();
   show('home');

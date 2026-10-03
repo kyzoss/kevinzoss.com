@@ -31,7 +31,7 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
   <link rel="preload" href="./fonts/marcellus.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="./css/app.css?v=4" />
+  <link rel="stylesheet" href="./css/app.css?v=6" />
 </head>
 <body>
   <!-- Line icons, used as <svg class="ic"><use href="#i-name"/></svg> -->
@@ -136,7 +136,7 @@
         <button class="tab" data-act="gallery"><svg class="ic"><use href="#i-image"/></svg>Art</button>
         <button class="tab" data-act="howTo"><svg class="ic"><use href="#i-help"/></svg>Help</button>
       </nav>
-      <button class="corner-btn right" data-act="toggleSound" id="soundBtn" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
+      <button class="corner-btn right sound-btn" data-act="toggleSound" id="soundBtn" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
     </section>
 
     <!-- DECKS -->
@@ -155,7 +155,7 @@
       <header class="bar">
         <button class="icon-btn plain" data-act="setupBack" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
         <div class="steps" aria-hidden="true"><i></i><i></i><i></i></div>
-        <span class="icon-spacer"></span>
+        <button class="icon-btn plain sound-btn" data-act="toggleSound" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
       </header>
 
       <div class="step" data-step="0">
@@ -231,6 +231,7 @@
         <div class="mini-scores" id="miniScores"></div>
       </div>
       <button class="corner-btn" data-act="quitAsk" aria-label="Quit"><svg class="ic"><use href="#i-home"/></svg></button>
+      <button class="corner-btn right sound-btn" data-act="toggleSound" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
     </section>
 
     <!-- PICK A WORD -->
@@ -241,6 +242,7 @@
         <div class="word-cards" id="wordCards"></div>
         <button class="btn soft" data-act="newCards" id="newCardsBtn"></button>
       </div>
+      <button class="corner-btn right sound-btn" data-act="toggleSound" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
     </section>
 
     <!-- COUNTDOWN -->
@@ -261,6 +263,7 @@
         <div class="draw-top-r">
           <button class="icon-btn plain free-only" data-act="freeNew" aria-label="New page"><svg class="ic"><use href="#i-page"/></svg></button>
           <button class="icon-btn plain free-only" data-act="freeSave" aria-label="Save to Art Show"><svg class="ic"><use href="#i-save"/></svg></button>
+          <button class="icon-btn plain sound-btn" data-act="toggleSound" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
           <button class="icon-btn plain" data-act="fullscreen" aria-label="Full screen"><svg class="ic"><use href="#i-expand"/></svg></button>
         </div>
       </header>
@@ -299,7 +302,10 @@
           <button class="tool" data-tool="undo" aria-label="Undo"><svg class="ic"><use href="#i-undo"/></svg></button>
           <button class="tool" data-tool="clear" aria-label="Clear page"><svg class="ic"><use href="#i-trash"/></svg></button>
         </div>
-        <button class="btn primary gotit game-only" data-act="gotIt">Got it</button>
+        <div class="answer-row game-only">
+          <button class="btn soft missed" data-act="missed">Didn't get it</button>
+          <button class="btn primary gotit" data-act="gotIt">Got it</button>
+        </div>
       </div>
       <div class="tray" id="tray" hidden>
         <div class="tray-card">
@@ -361,6 +367,7 @@
         <div class="reveal-stars" id="revealStars"></div>
         <button class="btn big primary" data-act="nextTurn" id="nextBtn">Next</button>
       </div>
+      <button class="corner-btn right sound-btn" data-act="toggleSound" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
     </section>
 
     <!-- END -->
@@ -433,6 +440,6 @@
   <script src="./js/words.js?v=4"></script>
   <script src="./js/characters.js?v=4"></script>
   <script src="./js/draw.js?v=4"></script>
-  <script src="./js/app.js?v=4"></script>
+  <script src="./js/app.js?v=6"></script>
 </body>
 </html>
