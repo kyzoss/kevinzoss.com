@@ -1,0 +1,16 @@
+{
+  "name": "Pictionary",
+  "short_name": "Pictionary",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#F3EDE3",
+  "theme_color": "#F3EDE3",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "description": "Draw, guess, laugh, together. A pass-the-phone drawing game for the whole family."
+}

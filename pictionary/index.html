@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Pictionary · Draw, Guess, Laugh, Together</title>
+  <meta name="description" content="A pass-the-phone drawing game for the whole family. Pick a deck, draw with your finger, and guess before the timer runs out. Free, no sign-up, works offline." />
+  <meta name="robots" content="noindex" />
+  <link rel="canonical" href="https://pictionary.kevinzoss.com/" />
+  <meta property="og:site_name" content="Pictionary" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://pictionary.kevinzoss.com/" />
+  <meta property="og:title" content="Pictionary · Draw, Guess, Laugh, Together" />
+  <meta property="og:description" content="A pass-the-phone drawing game for the whole family, ages 4 and up. Free, no sign-up, works offline." />
+  <!-- Served from the always-on Vercel host so previews work whatever DNS is doing. -->
+  <meta property="og:image" content="https://pictionary-phi.vercel.app/share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Pictionary, in green serif capitals, with an agave mark and a plaster arch with plants." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Pictionary · Draw, Guess, Laugh, Together" />
+  <meta name="twitter:description" content="A pass-the-phone drawing game for the whole family, ages 4 and up." />
+  <meta name="twitter:image" content="https://pictionary-phi.vercel.app/share.png" />
+
+  <meta name="theme-color" content="#F3EDE3" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Pictionary" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <link rel="preload" href="./fonts/marcellus.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="./css/app.css?v=4" />
+</head>
+<body>
+  <!-- Line icons, used as <svg class="ic"><use href="#i-name"/></svg> -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-resume" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></symbol>
+      <symbol id="i-pen" viewBox="0 0 24 24"><path d="M15.2 4.8l4 4L8 20H4v-4z"/><path d="M13 7l4 4"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .8c0 1.8-2.5 2.2-2.5 4"/><circle cx="12" cy="17.3" r=".6" fill="currentColor"/></symbol>
+      <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
+      <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></symbol>
+      <symbol id="i-page" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M12 11v6M9 14h6"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+      <symbol id="i-brush" viewBox="0 0 24 24"><path d="M18.4 3.6a2 2 0 0 1 2.8 2.8L12 15.6 8.4 12z"/><path d="M8 13c-2.5 0-4 1.6-4 4 0 1.4-.6 2.4-1.5 3 3.5.6 7.5-.5 7.5-4.5"/></symbol>
+      <symbol id="i-fill" viewBox="0 0 24 24"><path d="M5 11l7-7 7 7-7 7z"/><path d="M5 11h14"/><path d="M20 15s1.5 2 1.5 3a1.5 1.5 0 0 1-3 0c0-1 1.5-3 1.5-3z" fill="currentColor"/></symbol>
+      <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M16 3.5l5 5-11 11H5l-2.5-2.5z"/><path d="M9.5 9.5l5 5"/><path d="M10 20h11"/></symbol>
+      <symbol id="i-sticker" viewBox="0 0 24 24"><path d="M20 12.5V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h7.5z"/><path d="M12.5 20c0-4.1 3.4-7.5 7.5-7.5"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M9 14.5c.8.8 1.8 1.2 3 1.2"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+      <symbol id="i-replay" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
+      <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M16 4h4v4"/><path d="M4 20L20 4"/><path d="M20 16v4h-4"/><path d="M15 15l5 5"/><path d="M4 4l5 5"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
+      <symbol id="i-volume" viewBox="0 0 24 24"><path d="M5 9v6h3l4 4V5L8 9z"/><path d="M15.5 9a4 4 0 0 1 0 6"/></symbol>
+      <symbol id="i-mask" viewBox="0 0 24 24"><path d="M4 5c5 2 11 2 16 0v6c0 5-3.6 9-8 9s-8-4-8-9z"/><path d="M8.5 11h2M13.5 11h2"/><path d="M9.5 15c1.4 1 3.6 1 5 0"/></symbol>
+      <symbol id="i-agave" viewBox="0 0 64 48"><path d="M32 40C31 28 29 16 32 4c3 12 1 24 0 36z"/><path d="M31 40C25 30 19 22 10 14c11 5 18 14 21 26z"/><path d="M33 40c6-10 12-18 21-26-11 5-18 14-21 26z"/><path d="M30 40C22 34 13 30 3 28c11-1 21 4 27 12z"/><path d="M34 40c8-6 17-10 27-12-11-1-21 4-27 12z"/><path d="M31 40c-3-9-6-17-12-26 7 7 11 16 12 26zM33 40c3-9 6-17 12-26-7 7-11 16-12 26z"/><path d="M8 44h48"/></symbol>
+      <symbol id="i-cards" viewBox="0 0 24 24"><rect x="8" y="5" width="12" height="16" rx="2" transform="rotate(10 14 13)"/><path d="M13.5 4.2L6 3a2 2 0 0 0-2.3 1.7L2 16a2 2 0 0 0 1.7 2.3l3.3.5"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M18 14.3c2.2.7 3.5 2.8 3.5 5.7"/></symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+      <symbol id="i-homeline" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V20h-5v-6H9v6H4z"/></symbol>
+    </defs>
+  </svg>
+
+  <div id="app">
+
+    <!-- HOME -->
+    <section class="screen" id="home">
+      <div class="hero" aria-hidden="true">
+        <svg viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="hwall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E9DCC8"/><stop offset="1" stop-color="#E2D2BA"/></linearGradient>
+            <linearGradient id="hopen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FBF5EA"/><stop offset="1" stop-color="#F1E4CF"/></linearGradient>
+            <linearGradient id="hfloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E7D9C3"/><stop offset="1" stop-color="#F3EDE3"/></linearGradient>
+            <filter id="hblur"><feGaussianBlur stdDeviation="7"/></filter>
+            <filter id="hsoft"><feGaussianBlur stdDeviation="1.2"/></filter>
+          </defs>
+          <rect width="400" height="600" fill="url(#hwall)"/>
+          <path d="M40 470V190a160 160 0 0 1 320 0v280z" fill="url(#hopen)"/>
+          <path d="M40 470V190a160 160 0 0 1 320 0v280" fill="none" stroke="#D3BFA2" stroke-width="18" opacity=".55"/>
+          <path d="M58 470V194a142 142 0 0 1 284 0v276" fill="none" stroke="#C9B293" stroke-width="2" opacity=".5"/>
+          <g fill="#6B5537" opacity=".13" filter="url(#hblur)">
+            <ellipse cx="300" cy="70" rx="70" ry="12" transform="rotate(-25 300 70)"/>
+            <ellipse cx="340" cy="120" rx="60" ry="10" transform="rotate(-40 340 120)"/>
+            <ellipse cx="260" cy="130" rx="50" ry="9" transform="rotate(-10 260 130)"/>
+            <ellipse cx="330" cy="190" rx="55" ry="9" transform="rotate(-55 330 190)"/>
+            <ellipse cx="90" cy="260" rx="40" ry="8" transform="rotate(30 90 260)"/>
+          </g>
+          <rect y="455" width="400" height="145" fill="url(#hfloor)"/>
+          <g stroke="#D6C6AE" stroke-width="1" opacity=".7"><path d="M0 500h400M0 540h400M60 455l-60 145M200 455v145M340 455l60 145"/></g>
+          <g filter="url(#hsoft)">
+            <path d="M330 470c0-60 10-120 40-170" stroke="#4E6B48" stroke-width="3" fill="none"/>
+            <path d="M370 300c-30-10-60 0-80 25 30 5 60-5 80-25zM350 340c25-25 55-30 70-25-15 25-45 35-70 25zM345 380c-30-15-60-8-78 15 30 8 60 2 78-15zM352 420c25-20 50-22 65-15-15 22-42 28-65 15z" fill="#5E7F55"/>
+            <path d="M20 470c5-70 0-120-25-170" stroke="#4E6B48" stroke-width="3" fill="none"/>
+            <path d="M-5 300c30-5 55 10 70 35-30 0-58-12-70-35zM10 350c-25-20-52-20-65-10 18 20 45 24 65 10zM14 395c30-8 55 5 68 28-30 2-56-10-68-28z" fill="#6E8E61"/>
+            <ellipse cx="80" cy="440" rx="70" ry="40" fill="#4F6E49"/>
+            <path d="M30 440c10-50 40-80 70-90-10 30-30 60-70 90zM70 430c0-40 20-75 55-95-5 35-20 70-55 95zM100 440c20-35 50-50 80-50-20 25-45 42-80 50z" fill="#3E5B3B"/>
+            <path d="M300 470c-5-30 0-50 15-70M320 470c5-35 20-55 40-65M290 470c-15-25-30-35-50-38" stroke="#3E5B3B" stroke-width="10" stroke-linecap="round" fill="none"/>
+          </g>
+          <path d="M250 520h110l-12 60h-86z" fill="#C9A47A"/>
+          <path d="M256 535h98M259 552h92M262 568h86" stroke="#B08A5E" stroke-width="2"/>
+          <path d="M40 525h80l-8 55H48z" fill="#D4B48C"/>
+        </svg>
+      </div>
+      <div class="home-inner">
+        <div class="brand">
+          <svg class="agave" viewBox="0 0 64 48" aria-hidden="true"><use href="#i-agave"/></svg>
+          <h1 class="logo">Pictionary</h1>
+          <p class="tagline">Draw <i>\</i> Guess <i>\</i> Laugh <i>\</i> Together</p>
+        </div>
+        <div class="home-actions">
+          <button class="menu-btn gold" data-act="resume" id="resumeBtn" hidden><svg class="ic"><use href="#i-resume"/></svg><span><b>Continue</b><small>Pick up where you left off</small></span></button>
+          <button class="menu-btn dark" data-act="newGame"><svg class="ic"><use href="#i-pen"/></svg><span><b>Play</b><small>Start a new game</small></span></button>
+          <button class="menu-btn" data-act="freeDraw"><svg class="ic"><use href="#i-brush"/></svg><span><b>Free Draw</b><small>Doodle anything</small></span></button>
+          <button class="menu-btn" data-act="decks"><svg class="ic"><use href="#i-cards"/></svg><span><b>Browse Decks</b><small>Themes for every age</small></span></button>
+        </div>
+      </div>
+      <nav class="tabbar">
+        <button class="tab on" data-act="home"><svg class="ic"><use href="#i-homeline"/></svg>Home</button>
+        <button class="tab" data-act="decks"><svg class="ic"><use href="#i-cards"/></svg>Decks</button>
+        <button class="tab" data-act="studio"><svg class="ic"><use href="#i-users"/></svg>Characters</button>
+        <button class="tab" data-act="gallery"><svg class="ic"><use href="#i-image"/></svg>Art</button>
+        <button class="tab" data-act="howTo"><svg class="ic"><use href="#i-help"/></svg>Help</button>
+      </nav>
+      <button class="corner-btn right" data-act="toggleSound" id="soundBtn" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
+    </section>
+
+    <!-- DECKS -->
+    <section class="screen" id="decks">
+      <header class="bar">
+        <button class="icon-btn plain" data-act="home" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <h1 class="bar-title">Choose a deck</h1>
+        <span class="icon-spacer"></span>
+      </header>
+      <p class="sub center">Tap to turn decks on or off. Every game uses the ones you pick.</p>
+      <div class="deck-list" id="deckList"></div>
+    </section>
+
+    <!-- SETUP: three short steps -->
+    <section class="screen" id="setup">
+      <header class="bar">
+        <button class="icon-btn plain" data-act="setupBack" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div class="steps" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="icon-spacer"></span>
+      </header>
+
+      <div class="step" data-step="0">
+        <p class="eyebrow">Step 1 of 3</p>
+        <h1>Who's playing?</h1>
+        <p class="sub">Tap a picture to change it (your characters are in there too). Each player's age sets their words and their time.</p>
+        <div id="playerList" class="player-list"></div>
+        <button class="btn add" data-act="addPlayer" id="addPlayerBtn"><svg class="ic"><use href="#i-plus"/></svg>Add player</button>
+      </div>
+
+      <div class="step" data-step="1">
+        <p class="eyebrow">Step 2 of 3</p>
+        <h1>What should we draw?</h1>
+        <p class="sub">Pick as many as you like.</p>
+        <div class="cat-tools">
+          <button class="chip" data-act="catsAll">Select all</button>
+          <button class="chip" data-act="catsNone">Clear</button>
+        </div>
+        <div id="catGrid" class="deck-list"></div>
+      </div>
+
+      <div class="step" data-step="2">
+        <p class="eyebrow">Step 3 of 3</p>
+        <h1>Game settings</h1>
+        <div class="opt-group">
+          <h2>Mode</h2>
+          <div class="seg" data-opt="mode">
+            <button data-val="race"><b>Star Race</b><small>Everyone collects stars</small></button>
+            <button data-val="team"><b>Team Family</b><small>Fill the rainbow together</small></button>
+          </div>
+        </div>
+        <div class="opt-group">
+          <h2>Timer</h2>
+          <div class="seg four" data-opt="pace">
+            <button data-val="relaxed"><b>Relaxed</b></button>
+            <button data-val="normal"><b>Normal</b></button>
+            <button data-val="speedy"><b>Speedy</b></button>
+            <button data-val="off"><b>Off</b></button>
+          </div>
+          <p class="note" id="paceNote"></p>
+        </div>
+        <div class="opt-group">
+          <h2>Turns each</h2>
+          <div class="seg four" data-opt="rounds">
+            <button data-val="1"><b>1</b></button>
+            <button data-val="2"><b>2</b></button>
+            <button data-val="3"><b>3</b></button>
+            <button data-val="5"><b>5</b></button>
+          </div>
+        </div>
+        <div class="opt-group">
+          <h2>Letter hints</h2>
+          <div class="seg" data-opt="hints">
+            <button data-val="on"><b>On</b><small>Reveal letters as time runs</small></button>
+            <button data-val="off"><b>Off</b><small>Category only</small></button>
+          </div>
+        </div>
+      </div>
+
+      <footer class="setup-foot">
+        <button class="btn big primary" data-act="setupNext" id="setupNext">Next</button>
+      </footer>
+    </section>
+
+    <!-- HANDOFF -->
+    <section class="screen" id="handoff">
+      <div class="center-col">
+        <div class="turn-count" id="turnCount"></div>
+        <div class="avatar huge bounce" id="handAvatar"></div>
+        <h1 class="hand-title" id="handTitle"></h1>
+        <p class="hand-sub">Everyone else, close your eyes.</p>
+        <button class="btn big primary" data-act="showWords" id="handBtn"></button>
+        <div class="mini-scores" id="miniScores"></div>
+      </div>
+      <button class="corner-btn" data-act="quitAsk" aria-label="Quit"><svg class="ic"><use href="#i-home"/></svg></button>
+    </section>
+
+    <!-- PICK A WORD -->
+    <section class="screen" id="pick">
+      <div class="center-col">
+        <p class="eyebrow">Top secret</p>
+        <h1>Pick one to draw</h1>
+        <div class="word-cards" id="wordCards"></div>
+        <button class="btn soft" data-act="newCards" id="newCardsBtn"></button>
+      </div>
+    </section>
+
+    <!-- COUNTDOWN -->
+    <section class="screen" id="countdown">
+      <div class="center-col">
+        <p class="cd-sub">Put the phone where everyone can see</p>
+        <div class="cd-num" id="cdNum">3</div>
+        <p class="cd-sub dim" id="cdHint"></p>
+      </div>
+    </section>
+
+    <!-- DRAW BOARD (also Free Draw) -->
+    <section class="screen" id="draw">
+      <header class="draw-top">
+        <button class="icon-btn plain game-only" data-act="pause" aria-label="Pause"><svg class="ic"><use href="#i-pause"/></svg></button>
+        <button class="icon-btn plain free-only" data-act="freeHome" aria-label="Home"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div class="draw-title" id="roundLabel"></div>
+        <div class="draw-top-r">
+          <button class="icon-btn plain free-only" data-act="freeNew" aria-label="New page"><svg class="ic"><use href="#i-page"/></svg></button>
+          <button class="icon-btn plain free-only" data-act="freeSave" aria-label="Save to Art Show"><svg class="ic"><use href="#i-save"/></svg></button>
+          <button class="icon-btn plain" data-act="fullscreen" aria-label="Full screen"><svg class="ic"><use href="#i-expand"/></svg></button>
+        </div>
+      </header>
+      <div class="prompt-card game-only">
+        <div class="pc-label" id="drawWho"></div>
+        <div class="pc-hint" id="hint"></div>
+        <div class="pc-timer">
+          <span class="timer-num" id="timerNum"></span>
+          <div class="timer" id="timer"><div class="timer-fill" id="timerFill"></div></div>
+        </div>
+        <button class="peek" id="peekBtn" aria-label="Hold to peek at your word"><svg class="ic"><use href="#i-eye"/></svg></button>
+      </div>
+      <div class="board" id="board">
+        <canvas id="canvas"></canvas>
+        <div class="peek-card" id="peekCard"></div>
+        <div class="hint-pop" id="hintPop">Hint unlocked</div>
+        <div class="last-secs" id="lastSecs"></div>
+        <div class="stamp-hint" id="stampHint">Tap to place. Drag to move.</div>
+        <div class="full-ui">
+          <button class="full-exit" data-act="exitFull" aria-label="Show tools"><svg class="ic"><use href="#i-back"/></svg><span>Tools</span></button>
+          <div class="full-timer game-only"><i id="fullFill"></i></div>
+          <span class="full-num game-only" id="fullNum"></span>
+        </div>
+      </div>
+      <div class="tools">
+        <div class="palette" id="palette"></div>
+        <div class="size-row">
+          <span class="size-dot" id="sizeDot"></span>
+          <input type="range" id="sizeRange" min="3" max="34" value="10" aria-label="Brush size" />
+        </div>
+        <div class="toolrow">
+          <button class="tool" data-tool="pen" aria-label="Brush"><svg class="ic"><use href="#i-brush"/></svg></button>
+          <button class="tool" data-tool="fill" aria-label="Paint bucket"><svg class="ic"><use href="#i-fill"/></svg></button>
+          <button class="tool" data-tool="eraser" aria-label="Eraser"><svg class="ic"><use href="#i-eraser"/></svg></button>
+          <button class="tool" data-tool="stamp" aria-label="Characters and stickers"><svg class="ic"><use href="#i-sticker"/></svg></button>
+          <button class="tool" data-tool="undo" aria-label="Undo"><svg class="ic"><use href="#i-undo"/></svg></button>
+          <button class="tool" data-tool="clear" aria-label="Clear page"><svg class="ic"><use href="#i-trash"/></svg></button>
+        </div>
+        <button class="btn primary gotit game-only" data-act="gotIt">Got it</button>
+      </div>
+      <div class="tray" id="tray" hidden>
+        <div class="tray-card">
+          <div class="tray-head">
+            <b>Stamps</b>
+            <button class="icon-btn plain" data-act="trayClose" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button>
+          </div>
+          <div class="tray-body" id="trayBody"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHARACTER STUDIO -->
+    <section class="screen" id="studio">
+      <header class="bar">
+        <button class="icon-btn plain" data-act="studioBack" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <h1 class="bar-title">Character Studio</h1>
+        <span class="icon-spacer"></span>
+      </header>
+      <div class="studio-wrap">
+        <div class="studio-stage">
+          <canvas id="studioCanvas"></canvas>
+          <button class="dice" data-act="charRandom" aria-label="Surprise me"><svg class="ic"><use href="#i-dice"/></svg></button>
+        </div>
+        <div class="studio-name">
+          <input id="charName" maxlength="16" placeholder="Name your character" aria-label="Character name" />
+        </div>
+        <div class="part-tabs" id="partTabs"></div>
+        <div class="part-grid" id="partGrid"></div>
+        <div class="studio-actions">
+          <button class="btn big primary" data-act="charSave"><svg class="ic"><use href="#i-check"/></svg>Save character</button>
+          <button class="btn soft" data-act="charDraw"><svg class="ic"><use href="#i-pen"/></svg>Draw a world for them</button>
+          <button class="btn soft danger" data-act="charDelete" id="charDeleteBtn"><svg class="ic"><use href="#i-trash"/></svg>Delete</button>
+        </div>
+        <h2 class="my-chars-title">My characters</h2>
+        <div class="my-chars" id="myChars"></div>
+      </div>
+    </section>
+
+    <!-- WHO GUESSED -->
+    <section class="screen" id="who">
+      <div class="center-col">
+        <h1 id="whoTitle">Who guessed it?</h1>
+        <div class="who-grid" id="whoGrid"></div>
+        <button class="btn soft" data-act="nobody" id="nobodyBtn">Nobody got it</button>
+        <button class="btn soft" data-act="backToDraw" id="backDrawBtn"><svg class="ic"><use href="#i-back"/></svg>Keep drawing</button>
+      </div>
+    </section>
+
+    <!-- REVEAL -->
+    <section class="screen" id="reveal">
+      <div class="center-col">
+        <h1 class="reveal-title" id="revealTitle"></h1>
+        <div class="reveal-word" id="revealWord"></div>
+        <div class="replay-card">
+          <canvas id="replayCanvas"></canvas>
+          <button class="replay-btn" data-act="replay" aria-label="Watch it again"><svg class="ic"><use href="#i-replay"/></svg></button>
+        </div>
+        <div class="reveal-stars" id="revealStars"></div>
+        <button class="btn big primary" data-act="nextTurn" id="nextBtn">Next</button>
+      </div>
+    </section>
+
+    <!-- END -->
+    <section class="screen" id="end">
+      <div class="end-inner">
+        <p class="eyebrow">Final results</p>
+        <h1 class="end-title" id="endTitle">Great game</h1>
+        <div id="endBody"></div>
+        <div class="end-actions">
+          <button class="btn big primary" data-act="playAgain"><svg class="ic"><use href="#i-replay"/></svg>Play again</button>
+          <button class="btn soft" data-act="endGallery"><svg class="ic"><use href="#i-image"/></svg>See the Art Show</button>
+          <button class="btn soft" data-act="home"><svg class="ic"><use href="#i-home"/></svg>Home</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section class="screen" id="gallery">
+      <header class="bar">
+        <button class="icon-btn plain" data-act="galleryBack" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <h1 class="bar-title">Art Show</h1>
+        <span class="icon-spacer"></span>
+      </header>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </section>
+
+    <!-- HOW TO -->
+    <section class="screen" id="howto">
+      <header class="bar">
+        <button class="icon-btn plain" data-act="home" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <h1 class="bar-title">How to Play</h1>
+        <span class="icon-spacer"></span>
+      </header>
+      <div class="howto-body">
+        <div class="how"><span>01</span><p><b>Pass the phone</b> to the artist. Everyone else closes their eyes.</p></div>
+        <div class="how"><span>02</span><p><b>Pick a card.</b> The picture shows what to draw, so little ones don't need to read. Tap the speaker to hear it quietly.</p></div>
+        <div class="how"><span>03</span><p><b>Put the phone down</b> where everyone can see and draw with your finger. No letters or numbers.</p></div>
+        <div class="how"><span>04</span><p><b>Shout your guesses.</b> When someone gets it, the artist taps <b>Got it</b>.</p></div>
+        <div class="how"><span>05</span><p>Tap the <b>full screen</b> button to turn the whole phone into paper. Tap <b>Tools</b> to bring the toolbar back.</p></div>
+        <div class="how"><span>06</span><p><b>Star Race:</b> the guesser and the artist both get a star. <b>Team Family:</b> everyone works together to fill the rainbow.</p></div>
+        <div class="how"><span>07</span><p>Stuck? Hints unlock as the timer runs down. Forgot your word? Hold the <b>eye</b> button to peek.</p></div>
+        <div class="how"><span>08</span><p><b>Characters:</b> build one from parts, stamp it on the page and draw a world around it. Turn on <b>Character Adventures</b> and you draw what your character is doing.</p></div>
+        <div class="how"><span>09</span><p><b>Grown-ups:</b> Share, then Add to Home Screen makes it a full-screen app that works offline.</p></div>
+        <button class="btn big primary" data-act="newGame"><svg class="ic"><use href="#i-play"/></svg>Let's play</button>
+      </div>
+    </section>
+
+    <!-- MODALS -->
+    <div class="modal" id="modal" hidden>
+      <div class="modal-card">
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-actions" id="modalActions"></div>
+      </div>
+    </div>
+
+    <div class="viewer" id="viewer" hidden>
+      <img id="viewerImg" alt="" />
+      <div class="viewer-cap" id="viewerCap"></div>
+      <div class="viewer-actions">
+        <button class="btn soft" data-act="viewerShare"><svg class="ic"><use href="#i-share"/></svg>Save / Share</button>
+        <button class="btn soft danger" data-act="viewerDelete"><svg class="ic"><use href="#i-trash"/></svg>Delete</button>
+        <button class="btn primary" data-act="viewerClose">Close</button>
+      </div>
+    </div>
+
+    <canvas id="confetti" aria-hidden="true"></canvas>
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <script src="./js/words.js?v=4"></script>
+  <script src="./js/characters.js?v=4"></script>
+  <script src="./js/draw.js?v=4"></script>
+  <script src="./js/app.js?v=4"></script>
+</body>
+</html>
