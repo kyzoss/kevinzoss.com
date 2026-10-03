@@ -22,19 +22,18 @@
     { id: 1, label: '4-5', name: 'Little' },
     { id: 2, label: '6-7', name: 'Kid' },
     { id: 3, label: '8-10', name: 'Big kid' },
-    { id: 4, label: '🧑', name: 'Grown-up' },
+    { id: 4, label: 'Adult', name: 'Grown-up' },
   ];
   // Seconds to draw, by the drawer's age. Littles need longer to get going.
   const BASE_TIME = { 1: 100, 2: 80, 3: 65, 4: 60 };
   const PACE = { relaxed: 1.4, normal: 1, speedy: 0.65, off: 0 };
-  const RUNNER = { relaxed: '🐢', normal: '🐇', speedy: '⚡', off: '♾️' };
   const COLORS = ['#222222', '#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#0A84FF', '#AF52DE', '#FF6FB5', '#A2672D', 'rainbow'];
   const SIZES = [{ stroke: 5, stamp: 0.2, dot: 8 }, { stroke: 10, stamp: 0.32, dot: 14 }, { stroke: 20, stamp: 0.48, dot: 22 }];
   const STICKERS = ['🌳', '🌲', '🌸', '🌻', '🌈', '☀️', '🌙', '⭐', '☁️', '⚡', '🏠', '🏰', '⛺', '🚗', '🚀', '✈️', '⛵', '🚂',
     '🐶', '🐱', '🦄', '🐉', '🦖', '🐠', '🦋', '🐝', '🐞', '🍎', '🍕', '🍦', '🎂', '🍩', '🎈', '🎁', '👑', '💎', '⚽', '🏀',
     '🎸', '❤️', '💖', '✨', '🔥', '💧', '🌊', '⛰️', '🌵', '🍄', '🎃', '👻', '🤖', '👽', '🛸', '🪐'];
-  const CHEERS = ['You got it! 🎉', 'Amazing! 🤩', 'Woo-hoo! 🥳', 'Super duper! 🌟', 'Awesome! 🙌', 'Nailed it! 💥', 'Hooray! 🎊'];
-  const TRIES = ['Good try! 💪', 'So close! 🤏', 'Nice drawing! 🎨', 'Great effort! 🌈'];
+  const CHEERS = ['You got it!', 'Nailed it.', 'Brilliant.', 'Too easy.', 'Right on.', 'Spot on!', 'Yes!'];
+  const TRIES = ['So close.', 'Good try.', 'Nice drawing.', 'Next time.'];
 
   // ---------------- sound, speech, buzz ----------------
   const Sound = {
@@ -105,7 +104,21 @@
 
   // ---------------- screens, modal, toast, confetti ----------------
   let current = 'home';
+  // Full-screen drawing: CSS hides everything but the page; on browsers that
+  // allow it (Android, desktop) the real Fullscreen API also hides the
+  // browser bars. iPhone Safari has no element fullscreen, so there it is the
+  // CSS version, or truly full screen once added to the home screen.
+  function setFull(on) {
+    $('draw').classList.toggle('full', on);
+    try {
+      const de = document.documentElement;
+      if (on && de.requestFullscreen && !document.fullscreenElement) de.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+      if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    } catch (_) {}
+  }
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) $('draw').classList.remove('full'); });
   function show(id) {
+    if (id !== 'draw' && $('draw').classList.contains('full')) setFull(false);
     document.querySelectorAll('.screen.on').forEach((s) => s.classList.remove('on'));
     $(id).classList.add('on');
     $(id).scrollTop = 0;
@@ -139,7 +152,7 @@
     const cv = $('confetti');
     const ctx = cv.getContext('2d');
     let parts = [], raf = 0;
-    const cols = ['#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#0A84FF', '#AF52DE', '#FF6FB5'];
+    const cols = ['#C8623E', '#E2A33E', '#8DB089', '#2A9D8F', '#D9467A', '#F3EADA', '#A06C43'];
     function size() { cv.width = innerWidth * (devicePixelRatio || 1); cv.height = innerHeight * (devicePixelRatio || 1); }
     function frame() {
       const d = devicePixelRatio || 1;
@@ -207,7 +220,7 @@
   function renderSetup() {
     document.querySelectorAll('#setup .step').forEach((el) => el.classList.toggle('on', Number(el.dataset.step) === step));
     document.querySelectorAll('#setup .steps i').forEach((el, i) => el.classList.toggle('on', i === step));
-    $('setupNext').textContent = step === 2 ? 'Start! 🚀' : 'Next ➡️';
+    $('setupNext').textContent = step === 2 ? 'Start game' : 'Next';
     if (step === 0) renderPlayers();
     if (step === 1) renderCats();
     if (step === 2) renderOpts();
@@ -319,12 +332,12 @@
     $('turnCount').textContent = 'Turn ' + (G.turn + 1) + ' of ' + G.total;
     $('handAvatar').outerHTML = avatarHTML(p.av, 'huge bounce').replace('class="', 'id="handAvatar" class="');
     $('handTitle').textContent = p.name + "'s turn!";
-    $('handBtn').textContent = "I'm " + p.name + '! Show me 👀';
+    $('handBtn').textContent = "I'm " + p.name + ', show my cards';
     if (G.mode === 'team') {
       const pct = Math.round((G.teamStars / G.total) * 100);
-      $('miniScores').innerHTML = '<div class="rainbow-meter"><div class="label">🌈 Family stars: ' + G.teamStars + '</div><div class="rainbow-track"><div class="rainbow-fill" style="width:' + pct + '%"></div></div></div>';
+      $('miniScores').innerHTML = '<div class="rainbow-meter"><div class="label">Family stars · ' + G.teamStars + ' of ' + G.total + '</div><div class="rainbow-track"><div class="rainbow-fill" style="width:' + pct + '%"></div></div></div>';
     } else {
-      $('miniScores').innerHTML = G.players.map((q) => '<div class="mini-score">' + avatarHTML(q.av, 'sm') + '⭐ ' + q.stars + '</div>').join('');
+      $('miniScores').innerHTML = G.players.map((q) => '<div class="mini-score">' + avatarHTML(q.av, 'sm') + '<b>★</b> ' + q.stars + '</div>').join('');
     }
     G.swaps = 2;
     show('handoff');
@@ -340,15 +353,15 @@
   function renderCards() {
     $('wordCards').innerHTML = G.cards.map((c, i) => {
       const cat = catOf(c);
-      const stars = '⭐'.repeat(c.level);
+      const stars = '★'.repeat(c.level);
       const face = c.ch
         ? '<div class="wchar-row"><img class="wchar" alt="" src="' + Characters.toDataURL(c.ch) + '"><span class="we">' + c.emoji + '</span></div><div class="wis">' + esc(c.ch.name) + ' is…</div>'
         : '<div class="we">' + c.emoji + '</div>';
       return '<div class="word-card" style="--c:' + cat.color + '" data-act="chooseCard" data-i="' + i + '" role="button" tabindex="0">' +
-        '<button class="say" data-act="sayCard" data-i="' + i + '" aria-label="Hear it">🔈</button>' +
+        '<button class="say" data-act="sayCard" data-i="' + i + '" aria-label="Hear it">' + '<svg class="ic"><use href="#i-volume"/></svg>' + '</button>' +
         face + '<div class="ww">' + esc(c.word) + '</div><div class="wc">' + cat.emoji + ' ' + esc(cat.name) + '</div><div class="stars">' + stars + '</div></div>';
     }).join('');
-    $('newCardsBtn').textContent = G.swaps > 0 ? '🔄 New cards (' + G.swaps + ' left)' : '🔄 No more new cards';
+    $('newCardsBtn').textContent = G.swaps > 0 ? 'Deal new cards · ' + G.swaps + ' left' : 'No more new cards';
     $('newCardsBtn').disabled = G.swaps <= 0;
   }
   const cardSpeech = (c) => (c.ch ? c.ch.name + ' is ' : '') + c.word;
@@ -361,7 +374,7 @@
     store.set('pict.recent', recent.slice(-150));
     speechSynthesis && speechSynthesis.cancel && speechSynthesis.cancel();
     show('countdown');
-    $('cdHint').textContent = 'Everyone, open your eyes! 👀';
+    $('cdHint').textContent = 'Everyone, open your eyes';
     for (const n of [3, 2, 1]) {
       const el = $('cdNum');
       el.textContent = n;
@@ -385,7 +398,6 @@
     Object.assign(timer, { running: true, dur: seconds * 1000, start: performance.now(), pausedAt: 0, paused: 0, lastSec: -1, hint1: false, hint2: false });
     $('timer').classList.toggle('off', !seconds);
     $('timer').classList.remove('mid', 'low');
-    $('timerRunner').textContent = RUNNER[G.pace];
     cancelAnimationFrame(timer.raf);
     timer.raf = requestAnimationFrame(tickTimer);
   }
@@ -403,16 +415,18 @@
     const el = elapsed();
     if (!timer.dur) {
       $('timerFill').style.transform = 'scaleX(1)';
-      $('timerRunner').style.left = '50%';
+      $('fullFill').style.transform = 'scaleX(1)';
       $('timerNum').textContent = '';
+      $('fullNum').textContent = '';
       maybeHints(el / 90000);
     } else {
       const left = Math.max(0, timer.dur - el);
       const frac = left / timer.dur;
       const secs = Math.ceil(left / 1000);
       $('timerFill').style.transform = 'scaleX(' + frac + ')';
-      $('timerRunner').style.left = Math.max(6, Math.min(80, frac * 100)) + '%';
+      $('fullFill').style.transform = 'scaleX(' + frac + ')';
       $('timerNum').textContent = secs;
+      $('fullNum').textContent = secs;
       $('timer').classList.toggle('mid', frac <= 0.5 && secs > 10);
       $('timer').classList.toggle('low', secs <= 10);
       if (secs !== timer.lastSec) {
@@ -444,7 +458,7 @@
   }
   function renderHint(level) {
     const c = G.card, cat = catOf(c);
-    const lead = c.ch ? '🎭 What is ' + esc(c.ch.name) + ' doing?' : cat.emoji + ' ' + esc(cat.name);
+    const lead = c.ch ? 'What is ' + esc(c.ch.name) + ' doing?' : cat.emoji + ' ' + esc(cat.name);
     const tail = level > 0 ? ' <span class="blanks">' + esc(blanks(c.word, level > 1)) + '</span>' : '';
     $('hint').innerHTML = lead + tail;
   }
@@ -501,6 +515,7 @@
     $('peekCard').innerHTML = G.card.ch
       ? '<img alt="" style="width:120px;height:120px" src="' + Characters.toDataURL(G.card.ch) + '"><div>' + esc(G.card.ch.name) + ' is…</div><div>' + G.card.emoji + ' ' + esc(G.card.word) + '</div>'
       : '<div class="we">' + G.card.emoji + '</div><div>' + esc(G.card.word) + '</div>';
+    $('draw').classList.remove('full');
     show('draw');
     board.enabled = true;
     requestAnimationFrame(() => {
@@ -527,10 +542,10 @@
   function renderWho(timedOut) {
     G.timedOut = timedOut;
     if (G.mode === 'team') {
-      $('whoTitle').textContent = "⏰ Time's up! Did someone shout it?";
-      $('whoGrid').innerHTML = '<button class="who-btn" data-act="teamGot"><span class="avatar" style="--av:#FFE066">🙌</span>Yes, we got it!</button>';
+      $('whoTitle').textContent = "Time's up. Did someone shout it?";
+      $('whoGrid').innerHTML = '<button class="who-btn" data-act="teamGot"><span class="avatar" style="--av:#4ADE80">🙌</span>Yes, we got it</button>';
     } else {
-      $('whoTitle').textContent = timedOut ? "⏰ Time's up! Did anyone get it?" : 'Who guessed it? 🙋';
+      $('whoTitle').textContent = timedOut ? "Time's up. Did anyone get it?" : 'Who guessed it?';
       $('whoGrid').innerHTML = G.players.map((q, i) => i === drawerIdx() ? '' :
         '<button class="who-btn" data-act="whoGot" data-i="' + i + '">' + avatarHTML(q.av) + esc(q.name) + '</button>').join('');
     }
@@ -550,15 +565,15 @@
     if (got) {
       if (G.mode === 'team') {
         G.teamStars++;
-        awards.push('<div class="star-award"><span class="avatar sm" style="--av:#FFE066">🌈</span>Family <b>+1 ⭐</b></div>');
+        awards.push('<div class="star-award"><span class="avatar sm" style="--av:#FFE066">🌈</span>Family <b>+1 ★</b></div>');
       } else {
         p.stars++; p.gotDrawn++;
-        awards.push('<div class="star-award">' + avatarHTML(p.av, 'sm') + esc(p.name) + ' <b>+1 ⭐</b></div>');
+        awards.push('<div class="star-award">' + avatarHTML(p.av, 'sm') + esc(p.name) + ' <b>+1 ★</b></div>');
         if (guesser >= 0) {
           const q = G.players[guesser];
           q.stars++; q.guesses++;
           if (!q.fastest || G.guessMs < q.fastest) q.fastest = G.guessMs;
-          awards.push('<div class="star-award">' + avatarHTML(q.av, 'sm') + esc(q.name) + ' <b>+1 ⭐</b></div>');
+          awards.push('<div class="star-award">' + avatarHTML(q.av, 'sm') + esc(q.name) + ' <b>+1 ★</b></div>');
         }
       }
     }
@@ -570,7 +585,7 @@
     $('revealStars').innerHTML = awards.join('');
     const last = G.turn + 1 >= G.total;
     const next = G.players[(G.turn + 1) % G.players.length];
-    $('nextBtn').innerHTML = last ? 'See how we did! 🏆' : 'Next: ' + esc(next.name) + ' ➡️';
+    $('nextBtn').innerHTML = last ? 'See results' : 'Next up: ' + esc(next.name);
     show('reveal');
     G.lastDrawing = drawing;
     requestAnimationFrame(() => playReplay());
@@ -628,31 +643,31 @@
       const best = store.get('pict.teamBest', 0);
       const record = pct > best && G.teamStars > 0;
       if (record) store.set('pict.teamBest', pct);
-      $('endTitle').textContent = pct >= 80 ? '🌈 Rainbow complete!' : pct >= 50 ? '🎉 Great teamwork!' : '💪 Nice teamwork!';
-      html += '<div class="team-total">⭐ ' + G.teamStars + ' / ' + G.total + '</div>';
+      $('endTitle').textContent = pct >= 80 ? 'Rainbow complete.' : pct >= 50 ? 'Great teamwork.' : 'Nice teamwork.';
+      html += '<div class="team-total">' + G.teamStars + '<small> / ' + G.total + ' stars</small></div>';
       html += '<div class="rainbow-meter"><div class="label">Family stars</div><div class="rainbow-track"><div class="rainbow-fill" id="endRainbow" style="width:0%"></div></div></div>';
-      html += record ? '<div class="record">🏅 New family record!</div>' : best ? '<div class="record">Family best: ' + best + '%</div>' : '';
+      html += record ? '<div class="record">New family record</div>' : best ? '<div class="record">Family best: ' + best + '%</div>' : '';
       setTimeout(() => { const r = $('endRainbow'); if (r) r.style.width = pct + '%'; }, 300);
     } else {
       const ranked = ps.map((p, i) => ({ p, i })).sort((a, b) => b.p.stars - a.p.stars);
       const top = ranked[0].p.stars;
       const winners = ranked.filter((r) => r.p.stars === top);
-      $('endTitle').textContent = winners.length > 1 ? '🤝 It’s a tie! 🤝' : '🏆 ' + winners[0].p.name + ' wins! 🏆';
+      $('endTitle').textContent = winners.length > 1 ? 'It’s a tie.' : winners[0].p.name + ' wins.';
       // Podium order 2-1-3. Ties share a medal, so nobody is "third" by luck.
       const place = (r) => 1 + ranked.filter((x) => x.p.stars > r.p.stars).length;
       const podium = ranked.slice(0, 3);
       const order = podium.length === 3 ? [podium[1], podium[0], podium[2]] : podium.length === 2 ? [podium[1], podium[0]] : podium;
-      const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+      const medals = { 1: '1ST', 2: '2ND', 3: '3RD' };
       html += '<div class="podium">' + order.map((r) => {
         const pl = place(r);
-        return '<div class="pod p' + Math.min(pl, 3) + '">' + avatarHTML(r.p.av) + '<div class="name">' + esc(r.p.name) + '</div><div class="block"><span class="medal">' + (medals[pl] || '🏅') + '</span>⭐ ' + r.p.stars + '</div></div>';
+        return '<div class="pod p' + Math.min(pl, 3) + '">' + avatarHTML(r.p.av) + '<div class="name">' + esc(r.p.name) + '</div><div class="block"><span class="medal">' + (medals[pl] || pl + 'TH') + '</span>' + r.p.stars + '</div></div>';
       }).join('') + '</div>';
     }
     html += '<div class="awards">' + ps.map((p, i) => {
       const a = awards.get(i);
       return '<div class="award" style="animation-delay:' + (0.3 + i * 0.12) + 's"><span class="ai">' + a[0] + '</span>' + avatarHTML(p.av, 'sm') +
         '<div><div class="at">' + esc(a[1]) + '</div><div class="an">' + esc(p.name) + '</div></div>' +
-        (G.mode === 'race' ? '<span class="score">⭐ ' + p.stars + '</span>' : '') + '</div>';
+        (G.mode === 'race' ? '<span class="score">★ ' + p.stars + '</span>' : '') + '</div>';
     }).join('') + '</div>';
     $('endBody').innerHTML = html;
     show('end');
@@ -683,7 +698,7 @@
         '<div class="cap">' + (g.emoji || '🖍️') + ' ' + esc(g.ch ? g.ch + ' ' + g.word : g.word) + '</div>' +
         '<div class="by">by ' + esc(g.by) + '</div>' +
       '</button>'
-    ).join('') : '<div class="empty"><b>🖼️</b>No drawings yet! Play a game or try Free Draw.</div>';
+    ).join('') : '<div class="empty"><b>No drawings yet</b>Play a game or try Free Draw.</div>';
   }
   let viewing = null;
   function viewArt(id) {
@@ -712,7 +727,8 @@
   // ---------------- free draw ----------------
   function startFree(stampChar) {
     $('draw').classList.add('free');
-    $('drawWho').innerHTML = '🖍️ Free Draw';
+    $('draw').classList.remove('full');
+    $('drawWho').textContent = 'Free Draw';
     show('draw');
     board.enabled = true;
     keepAwake(true);
@@ -732,8 +748,8 @@
   }
   async function leaveFree() {
     if (freeDirty && !board.isBlank()) {
-      const v = await ask('<span class="big-emoji">🖼️</span>Save your picture to the Art Show?', [
-        { label: '💾 Yes, save it!', cls: 'primary', val: 'save' }, { label: 'No thanks', val: 'no' }, { label: 'Keep drawing', val: 'stay' },
+      const v = await ask('Save your picture to the Art Show?', [
+        { label: 'Yes, save it!', cls: 'primary', val: 'save' }, { label: 'No thanks', val: 'no' }, { label: 'Keep drawing', val: 'stay' },
       ]);
       if (v === 'stay') return false;
       if (v === 'save') saveFree();
@@ -743,18 +759,18 @@
   function saveFree() {
     const it = saveToGallery(board.drawing, { word: 'Free draw', emoji: '🖍️', by: 'Free Draw', gameId: '' });
     freeDirty = false;
-    if (it) { toast('Saved to the Art Show! 🖼️'); Sound.ding(); confetti(60); }
+    if (it) { toast('Saved to the Art Show!'); Sound.ding(); confetti(60); }
   }
 
   // ---------------- stamp tray ----------------
   function openTray() {
     const free = $('draw').classList.contains('free');
     const chars = Characters.all();
-    let html = '<div class="tray-sec">🎭 Characters</div><div class="tray-grid">' +
+    let html = '<div class="tray-sec">Characters</div><div class="tray-grid">' +
       chars.map((c) => '<button class="tray-item" data-act="pickStamp" data-ch="' + esc(c.id) + '" aria-label="' + esc(c.name) + '"><img alt="" src="' + Characters.toDataURL(c) + '"></button>').join('') +
-      (free ? '<button class="tray-item make" data-act="trayMake"><span>➕</span>Make one</button>' : '') + '</div>';
+      (free ? '<button class="tray-item make" data-act="trayMake">' + '<svg class="ic"><use href="#i-plus"/></svg>' + 'New</button>' : '') + '</div>';
     // Emoji stickers would hand the guessers the answer, so they're Free Draw only.
-    if (free) html += '<div class="tray-sec">✨ Stickers</div><div class="tray-grid">' +
+    if (free) html += '<div class="tray-sec">Stickers</div><div class="tray-grid">' +
       STICKERS.map((e) => '<button class="tray-item" data-act="pickStamp" data-e="' + e + '">' + e + '</button>').join('') + '</div>';
     $('trayBody').innerHTML = html;
     $('tray').hidden = false;
@@ -794,7 +810,7 @@
     drawCharTo($('studioCanvas'), ch, 300);
     const nameEl = $('charName');
     if (document.activeElement !== nameEl) nameEl.value = ch.name || '';
-    $('partTabs').innerHTML = TABS.map(([k, e, l]) => '<button class="part-tab' + (studio.tab === k ? ' on' : '') + '" data-act="partTab" data-k="' + k + '">' + e + '<small>' + l + '</small></button>').join('');
+    $('partTabs').innerHTML = TABS.map(([k, e, l]) => '<button class="part-tab' + (studio.tab === k ? ' on' : '') + '" data-act="partTab" data-k="' + k + '">' + l + '</button>').join('');
     const opts = Characters.PARTS[studio.tab];
     $('partGrid').innerHTML = opts.map((o, i) => '<button class="part-opt' + (ch[studio.tab] === o.id ? ' on' : '') + '" data-act="partPick" data-i="' + i + '"><canvas></canvas>' + (o.label ? esc(o.label) : '') + '</button>').join('');
     $('partGrid').querySelectorAll('canvas').forEach((cv, i) => {
@@ -802,7 +818,7 @@
     });
     const mine = Characters.load();
     $('charDeleteBtn').hidden = !mine.some((c) => c.id === ch.id);
-    $('myChars').innerHTML = '<button class="my-char new" data-act="charNew"><b>➕</b>New</button>' + mine.map((c) =>
+    $('myChars').innerHTML = '<button class="my-char new" data-act="charNew">' + '<svg class="ic"><use href="#i-plus"/></svg>' + 'New</button>' + mine.map((c) =>
       '<button class="my-char' + (c.id === ch.id ? ' on' : '') + '" data-act="charEdit" data-id="' + esc(c.id) + '"><img alt="" src="' + Characters.toDataURL(c) + '"><span>' + esc(c.name) + '</span></button>'
     ).join('');
   }
@@ -825,7 +841,7 @@
     toggleSound() {
       Sound.on = !Sound.on;
       store.set('pict.sound', Sound.on);
-      document.querySelector('.sound-toggle').textContent = Sound.on ? '🔊' : '🔇';
+      $('soundBtn').innerHTML = '<svg class="ic"><use href="#i-' + (Sound.on ? 'sound' : 'mute') + '"/></svg>';
       if (!Sound.on && 'speechSynthesis' in window) speechSynthesis.cancel();
     },
     newGame() { step = 0; show('setup'); renderSetup(); },
@@ -843,7 +859,7 @@
     viewerClose() { $('viewer').hidden = true; },
     viewerShare() { shareArt(); },
     async viewerDelete() {
-      const v = await ask('<span class="big-emoji">🗑️</span>Delete this drawing?', [{ label: 'Yes, delete', cls: 'primary', val: true }, { label: 'Keep it', val: false }]);
+      const v = await ask('Delete this drawing?', [{ label: 'Yes, delete', cls: 'primary', val: true }, { label: 'Keep it', val: false }]);
       if (!v) return;
       store.set('pict.gallery', store.get('pict.gallery', []).filter((g) => g.id !== viewing.id));
       $('viewer').hidden = true;
@@ -852,7 +868,7 @@
 
     setupBack() { if (step > 0) { step--; renderSetup(); } else actions.home(); },
     setupNext() {
-      if (step === 1 && !S.cats.length) { toast('Pick at least one! 👆'); Sound.boing(); return; }
+      if (step === 1 && !S.cats.length) { toast('Pick at least one!'); Sound.boing(); return; }
       if (step < 2) { step++; renderSetup(); return; }
       saveSettings();
       startGame();
@@ -900,20 +916,25 @@
       Sound.sparkle();
     },
     async quitAsk() {
-      const v = await ask('<span class="big-emoji">🏠</span>Stop this game?', [{ label: 'Keep playing! ▶️', cls: 'primary', val: false }, { label: 'Yes, stop', val: true }]);
+      const v = await ask('Stop this game?', [{ label: 'Keep playing', cls: 'primary', val: false }, { label: 'Yes, stop', val: true }]);
       if (!v) return;
       store.del('pict.game'); G = null; stopTimer(); actions.home();
     },
     async pause() {
       pauseTimer();
-      const v = await ask('<span class="big-emoji">⏸️</span>Paused', [
-        { label: '▶️ Keep drawing', cls: 'primary', val: 'go' }, { label: '😅 Too hard, give up', val: 'give' }, { label: '🏠 Stop the game', val: 'quit' },
+      const v = await ask('Paused', [
+        { label: 'Keep drawing', cls: 'primary', val: 'go' }, { label: 'Too hard, give up', val: 'give' }, { label: 'Stop the game', val: 'quit' },
       ]);
       if (v === 'go') resumeTimer();
       else if (v === 'give') { stopTimer(); reveal(false, -1); }
       else { store.del('pict.game'); G = null; stopTimer(); actions.home(); }
     },
     gotIt() { gotIt(); },
+    fullscreen() {
+      setFull(true);
+      if (!store.get('pict.fullTip', false)) { toast('Tap Tools to get the toolbar back'); store.set('pict.fullTip', true); }
+    },
+    exitFull() { setFull(false); },
     whoGot(el) { reveal(true, Number(el.dataset.i)); },
     teamGot() { reveal(true, -1); },
     nobody() { reveal(false, -1); },
@@ -924,7 +945,7 @@
 
     freeDraw() { startFree(null); },
     async freeHome() { if (await leaveFree()) actions.home(); },
-    freeSave() { if (board.isBlank()) { toast('Draw something first! 🖍️'); return; } saveFree(); },
+    freeSave() { if (board.isBlank()) { toast('Draw something first!'); return; } saveFree(); },
     async freeNew() { if (await leaveFree()) { resetBoard(); } },
 
     color(el) {
@@ -945,8 +966,8 @@
     studio() { openStudio('home'); },
     async studioBack() {
       if (!studio.saved) {
-        const v = await ask('<span class="big-emoji">🎭</span>Save ' + esc(studio.ch.name || 'your character') + ' first?', [
-          { label: '💾 Save', cls: 'primary', val: 'save' }, { label: "Don't save", val: 'no' }, { label: 'Keep making', val: 'stay' },
+        const v = await ask('Save ' + esc(studio.ch.name || 'your character') + ' first?', [
+          { label: 'Save', cls: 'primary', val: 'save' }, { label: "Don't save", val: 'no' }, { label: 'Keep making', val: 'stay' },
         ]);
         if (v === 'stay') return;
         if (v === 'save') saveChar();
@@ -971,14 +992,14 @@
     },
     charSave() {
       const ch = saveChar();
-      toast(ch.name + ' is saved! 🎉');
+      toast(ch.name + ' is saved');
       Sound.fanfare(); confetti(90, ['🎭', '⭐']);
       speak('Hi, I’m ' + ch.name + '!');
     },
     charNew() { studio.ch = Characters.random(); studio.saved = false; studio.tab = 'body'; renderStudio(); },
     charEdit(el) { const c = Characters.byId(el.dataset.id); if (c) { studio.ch = Object.assign({}, c); studio.saved = true; renderStudio(); } },
     async charDelete() {
-      const v = await ask('<span class="big-emoji">👋</span>Say bye-bye to ' + esc(studio.ch.name) + '?', [{ label: 'Yes, delete', cls: 'primary', val: true }, { label: 'Keep them!', val: false }]);
+      const v = await ask('Say bye-bye to ' + esc(studio.ch.name) + '?', [{ label: 'Yes, delete', cls: 'primary', val: true }, { label: 'Keep them!', val: false }]);
       if (!v) return;
       const id = studio.ch.id;
       Characters.save(Characters.load().filter((c) => c.id !== id));
@@ -1000,7 +1021,7 @@
     if (tool) {
       const t = tool.dataset.tool;
       if (t === 'undo') { if (!board.undo()) Sound.boing(); else Sound.pop(); }
-      else if (t === 'clear') { if (board.clear()) { Sound.tone(300, 0.3, 'sine', 0.12, 0, 90); toast('Oops? Tap ↩️ to bring it back'); } }
+      else if (t === 'clear') { if (board.clear()) { Sound.tone(300, 0.3, 'sine', 0.12, 0, 90); toast('Cleared. Tap undo to bring it back'); } }
       else if (t === 'size') { sizeIdx = (sizeIdx + 1) % SIZES.length; applySize(); renderTools(); Sound.pop(); }
       else if (t === 'stamp') { openTray(); Sound.pop(); }
       else {
@@ -1043,7 +1064,7 @@
 
   function refreshHome() {
     $('resumeBtn').hidden = !store.get('pict.game', null);
-    document.querySelector('.sound-toggle').textContent = Sound.on ? '🔊' : '🔇';
+    $('soundBtn').innerHTML = '<svg class="ic"><use href="#i-' + (Sound.on ? 'sound' : 'mute') + '"/></svg>';
   }
   refreshHome();
   show('home');

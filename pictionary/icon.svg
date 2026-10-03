@@ -1,13 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6C4BFF"/><stop offset="1" stop-color="#3BA7FF"/></linearGradient></defs>
-  <rect width="512" height="512" rx="112" fill="url(#g)"/>
-  <rect x="96" y="104" width="320" height="260" rx="40" fill="#fff"/>
-  <path d="M140 300 C 180 200, 230 330, 270 230 S 350 190, 372 260" fill="none" stroke="#FF5E9C" stroke-width="22" stroke-linecap="round"/>
-  <circle cx="190" cy="180" r="30" fill="#FFD43B"/>
-  <g transform="translate(330 330) rotate(-40)">
-    <rect x="-22" y="-110" width="44" height="150" rx="10" fill="#22C55E"/>
-    <rect x="-22" y="-110" width="44" height="26" rx="10" fill="#FF9EC0"/>
-    <path d="M-22 40 L0 88 L22 40 Z" fill="#FFE0B2"/>
-    <path d="M-8 70 L0 88 L8 70 Z" fill="#2A1A5E"/>
+  <defs>
+    <linearGradient id="w" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B57E50"/><stop offset=".6" stop-color="#8D5B37"/><stop offset="1" stop-color="#74472A"/></linearGradient>
+    <pattern id="slat" width="28" height="512" patternUnits="userSpaceOnUse"><rect width="28" height="512" fill="url(#w)"/><rect x="25" width="3" height="512" fill="#5A361F" opacity=".55"/></pattern>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#13201A"/>
+  <path d="M136 436V236a120 120 0 0 1 240 0v200z" fill="url(#slat)"/>
+  <path d="M136 436V236a120 120 0 0 1 240 0v200" fill="none" stroke="#E2A33E" stroke-width="10" opacity=".9"/>
+  <circle cx="256" cy="168" r="30" fill="#C8623E"/>
+  <rect x="96" y="430" width="320" height="14" rx="7" fill="#F3EADA" opacity=".9"/>
+  <g fill="none" stroke="#FFF6E8" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M318 236a24 24 0 0 1 34 34L256 366l-34-34z"/>
+    <path d="M216 342c-30 0-46 18-46 46 0 16-6 26-17 32 40 8 88-5 88-52"/>
   </g>
 </svg>

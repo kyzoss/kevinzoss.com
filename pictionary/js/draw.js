@@ -11,8 +11,8 @@
 // A stamp carries its whole character, so a drawing still renders after the
 // character is edited or deleted.
 (function () {
-  const PAPER = '#FFFFFF';
-  const MARGIN = '#E9E4FA';
+  const PAPER = '#FFFDF8';
+  const MARGIN = '#EFE7D8';
   const ERASER_SCALE = 2.2;
 
   function rainbowAt(op, k) {
@@ -213,8 +213,27 @@
       canvas.style.height = h + 'px';
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
+      growToFit(w, h);
       view = fitView(canvas.width, canvas.height, board.drawing.w, board.drawing.h);
       renderAll(ctx, view, board.drawing.ops);
+    }
+    // When the board changes shape (full screen, rotation) the page grows to
+    // match it instead of leaving bare margins: the drawing keeps its scale
+    // relative to the old page and sits centred on the new, bigger one. The
+    // page only ever grows, so nothing already drawn can fall off an edge.
+    function shiftOp(op, dx, dy) {
+      if (op.t === 's') { for (let i = 0; i < op.p.length; i += 2) { op.p[i] += dx; op.p[i + 1] += dy; } }
+      else if (op.t !== 'c') { op.x += dx; op.y += dy; }
+    }
+    function growToFit(w, h) {
+      const d = board.drawing;
+      const s = Math.min(w / d.w, h / d.h);
+      const nw = w / s, nh = h / s;
+      if (nw - d.w < 0.5 && nh - d.h < 0.5) return;
+      const dx = (nw - d.w) / 2, dy = (nh - d.h) / 2;
+      for (const op of d.ops) shiftOp(op, dx, dy);
+      if (ghost) shiftOp(ghost.op, dx, dy);
+      d.w = nw; d.h = nh;
     }
     board.reset = function () {
       const { w, h } = cssSize();
