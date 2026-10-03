@@ -1,8 +1,8 @@
 // Offline play (car trips, planes): cache the app shell on install, then serve
 // cache-first and refresh in the background. Bump VERSION when files change.
-const VERSION = 'pict-v8';
-const SHELL = ['./', './index.html', './css/app.css?v=8', './js/extras.js?v=8', './js/words.js?v=8', './js/characters.js?v=8',
-  './js/draw.js?v=8', './js/app.js?v=8', './js/games.js?v=8', './manifest.webmanifest', './icon.svg', './icon-192.png', './apple-touch-icon.png',
+const VERSION = 'pict-v10';
+const SHELL = ['./', './index.html', './css/app.css?v=10', './js/extras.js?v=8', './js/words.js?v=8', './js/characters.js?v=8',
+  './js/draw.js?v=8', './js/app.js?v=9', './js/games.js?v=8', './manifest.webmanifest', './icon.svg', './icon-192.png', './apple-touch-icon.png',
   './fonts/marcellus.woff2', './fonts/jost-300.woff2', './fonts/jost-400.woff2', './fonts/jost-500.woff2', './fonts/jost-600.woff2'];
 
 self.addEventListener('install', (e) => {

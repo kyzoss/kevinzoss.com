@@ -1,6 +1,6 @@
 {
-  "name": "Pictionary",
-  "short_name": "Pictionary",
+  "name": "Mesa · Family Games",
+  "short_name": "Mesa",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
@@ -12,5 +12,5 @@
     { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" },
     { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
-  "description": "Draw, guess, laugh, together. A pass-the-phone drawing game for the whole family."
+  "description": "Family games for the table and the road: Pictionary, Charades, Quiz Quest, Story Spinner and I Spy Bingo."
 }
