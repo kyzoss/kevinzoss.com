@@ -498,3 +498,101 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 #draw.sketch:not(.free) .ready-btn { display: flex; }
 #draw.sketch .answer-row, #draw.sketch .pc-timer { display: none !important; }
 #draw.sketch .prompt-card { background: #F6ECD3; }
+
+/* ---------- games hub ---------- */
+.game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.game-tile {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; text-align: left;
+  min-height: 66px; padding: 10px 12px; border-radius: 18px; background: rgba(251, 248, 242, .94); border: 1px solid var(--line); box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: transform .12s;
+}
+.game-tile:active { transform: scale(.97); }
+.game-tile .gt-e { grid-row: span 2; font-size: 26px; width: 40px; height: 44px; border-radius: 999px 999px 8px 8px; background: var(--card-2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+.game-tile b { font-family: var(--serif); font-weight: 400; font-size: 15px; line-height: 1.15; letter-spacing: .02em; }
+.game-tile small { font-size: 12px; color: var(--muted); line-height: 1.2; }
+.home-actions .menu-btn { min-height: 66px; }
+.seg.three { grid-template-columns: repeat(3, 1fr); }
+
+/* ---------- 4 cards to pick from ---------- */
+.word-cards { grid-template-columns: 1fr 1fr; gap: 10px; }
+.word-card { padding: 10px 8px 12px; gap: 4px; border-radius: 20px; }
+.word-card::before { height: 86px; }
+.word-card .we { font-size: 50px; height: 66px; }
+.word-card .wchar-row { height: 66px; }
+.word-card .wchar { width: 56px; height: 56px; }
+.word-card .wchar-row .we { font-size: 34px; }
+.word-card .ww { font-size: 19px; min-height: 2.3em; margin-top: 4px; }
+.word-card .wc { font-size: 11px; }
+#pick .center-col { gap: 14px; }
+
+/* ---------- Napkin / Charades: no board, the phone keeps time ---------- */
+.offscreen { display: none; }
+#draw.offscreen .board, #draw.offscreen .palette, #draw.offscreen .size-row, #draw.offscreen .toolrow, #draw.offscreen [data-act=fullscreen] { display: none !important; }
+#draw.offscreen .offscreen {
+  display: flex; flex: 1; min-height: 0; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px;
+  border-radius: var(--r-lg); background: var(--card); border: 1px dashed var(--line-2);
+}
+.offscreen .os-ico { font-size: 84px; line-height: 1; }
+.offscreen h2 { font-size: 22px; color: var(--green); margin: 0; }
+.offscreen p { margin: 0; color: var(--muted); font-size: 15px; max-width: 280px; line-height: 1.45; }
+
+/* ---------- shared game layout ---------- */
+.game-col { width: 100%; max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; padding-bottom: 16px; }
+.game-foot { display: flex; justify-content: center; gap: 8px; }
+.screen-tip { margin: 0; text-align: center; color: var(--dim); font-size: 13px; line-height: 1.45; }
+.btn.wide { width: 100%; }
+.bar .sound-btn { color: var(--text); }
+
+/* ---------- quiz ---------- */
+.quiz-who { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.quiz-who b { display: block; font-weight: 500; font-size: 16px; }
+.quiz-who small { display: block; font-size: 12px; color: var(--muted); }
+.quiz-card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow-lg); padding: 22px 20px 24px; text-align: center; min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.quiz-cat { font-size: 12px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); }
+.quiz-q { font-family: var(--serif); font-size: clamp(22px, 6.4vw, 28px); line-height: 1.25; }
+.quiz-a { font-family: var(--serif); font-size: clamp(24px, 7vw, 32px); color: var(--green); background: #EEF2EA; border-radius: 16px; padding: 10px 18px; animation: zoom .4s cubic-bezier(.2, 1.3, .4, 1); }
+.quiz-judge { grid-template-columns: 1fr 1.4fr; }
+.quiz-judge:has(.quiz-who-grid) { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.quiz-ask { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
+.quiz-who-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
+.who-btn.sm { padding: 10px 6px; font-size: 14px; gap: 6px; }
+.who-btn.sm .avatar { width: 40px; height: 40px; font-size: 24px; }
+#quizModes button { min-height: 46px; }
+#quizModes button.on { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+
+/* ---------- story ---------- */
+.reels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.reel { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px 14px; border-radius: 999px 999px 18px 18px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); min-height: 170px; }
+.reel-k { font-size: 10px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); margin-top: 14px; }
+.reel-e { font-size: 44px; line-height: 1; height: 56px; display: flex; align-items: center; }
+.reel-e img { width: 56px; height: 56px; }
+.reel-t { font-family: var(--serif); font-size: 14px; line-height: 1.2; text-align: center; }
+.reel.spinning .reel-e { filter: blur(1.5px); transform: translateY(2px); }
+.story-card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); padding: 18px 48px 18px 20px; }
+.story-text { font-family: var(--serif); font-size: 19px; line-height: 1.45; }
+.story-card .say { top: 10px; right: 10px; }
+.story-twist { background: #F6ECD3; border: 1px solid rgba(201, 154, 46, .35); color: #7A5C17; border-radius: 16px; padding: 12px 16px; font-family: var(--serif); font-size: 17px; text-align: center; animation: zoom .4s cubic-bezier(.2, 1.3, .4, 1); }
+.story-teller { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; color: var(--muted); }
+.story-teller b { color: var(--text); font-weight: 500; }
+
+/* ---------- I Spy bingo ---------- */
+.spy-places { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 5px; border-radius: 18px; background: var(--sunk); }
+.spy-places button { min-height: 52px; border-radius: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); }
+.spy-places button b { font-size: 20px; font-weight: 400; }
+.spy-places button small { font-size: 12px; }
+.spy-places button.on { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+.bingo { display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 6px; }
+.cell { position: relative; aspect-ratio: 1; border-radius: 14px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 4px; transition: transform .12s, background .2s; }
+.cell:active { transform: scale(.94); }
+.cell .ce { font-size: 30px; line-height: 1; }
+.cell .ct { font-size: 11px; line-height: 1.15; color: var(--muted); text-align: center; }
+.bingo[style*="--n: 3"] .cell .ce { font-size: 40px; }
+.bingo[style*="--n: 3"] .cell .ct { font-size: 13px; }
+.cell.found { background: #E6EEDF; border-color: rgba(47, 75, 53, .35); }
+.cell.found::after { content: '✓'; position: absolute; top: 4px; right: 6px; width: 20px; height: 20px; border-radius: 50%; background: var(--green); color: var(--green-ink); font-size: 12px; display: flex; align-items: center; justify-content: center; }
+.cell.line { background: var(--green); border-color: transparent; }
+.cell.line .ct { color: rgba(245, 240, 230, .85); }
+.cell.line::after { background: var(--sun); color: var(--text); }
+
+.story-actions { grid-template-columns: 1fr 1.5fr; }
+.story-actions .btn { padding: 0 12px; font-size: 16px; white-space: nowrap; }

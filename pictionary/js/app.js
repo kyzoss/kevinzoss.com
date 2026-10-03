@@ -239,7 +239,7 @@
   const defaults = {
     players: [{ name: '', av: 0, age: 2 }, { name: '', av: 4, age: 3 }],
     cats: CATEGORIES.filter((c) => !c.character).map((c) => c.id),
-    mode: 'race', pace: 'normal', rounds: 2, hints: 'on', flow: 'live',
+    mode: 'race', pace: 'normal', rounds: 2, hints: 'on', flow: 'live', medium: 'screen', silly: 'off',
   };
   let S = Object.assign({}, defaults, store.get('pict.settings', {}));
   S.cats = S.cats.filter((id) => CATEGORIES.some((c) => c.id === id));
@@ -338,6 +338,12 @@
       if (CATEGORIES.find((c) => c.id === card.cat).character) card.ch = characterFor(p);
       chosen.push(card);
     }
+    // Silly mode swaps in mashups: half the hand, or all of it.
+    const nSilly = G.silly === 'all' ? n : G.silly === 'some' ? Math.floor(n / 2) : 0;
+    for (let k = 0; k < nSilly; k++) {
+      const sc = Extras.sillyCard(L, G.used.concat(chosen.map((c) => c.word)));
+      if (sc) chosen[n - 1 - k] = sc;
+    }
     return chosen;
   }
   // A Character Adventure stars the drawer's own character if their avatar is
@@ -347,7 +353,7 @@
     const mine = Characters.load();
     return mine.length ? pick(mine) : pick(Characters.PRESETS);
   }
-  const catOf = (card) => CATEGORIES.find((c) => c.id === card.cat);
+  const catOf = (card) => card.cat === 'silly' ? Extras.SILLY_CAT : CATEGORIES.find((c) => c.id === card.cat);
 
   // ---------------- game ----------------
   let G = null;
@@ -360,7 +366,7 @@
     }));
     G = {
       id: 'g' + Date.now().toString(36),
-      players, cats: S.cats.slice(), mode: S.mode, pace: S.pace, hints: S.hints, flow: S.flow || 'live',
+      players, cats: S.cats.slice(), mode: S.mode, pace: S.pace, hints: S.hints, flow: S.flow || 'live', medium: S.medium || 'screen', silly: S.silly || 'off',
       total: players.length * Number(S.rounds), turn: 0, used: [], teamStars: 0, card: null,
     };
     saveGame();
@@ -388,7 +394,7 @@
   }
 
   function showWords() {
-    G.cards = dealCards(drawer(), 2);
+    G.cards = dealCards(drawer(), 4);
     renderCards();
     show('pick');
     Sound.sparkle();
@@ -418,8 +424,11 @@
     speechSynthesis && speechSynthesis.cancel && speechSynthesis.cancel();
     // Draw first: the artist sketches in secret with no clock, and the guess
     // clock only starts once they show everyone.
-    if (G.flow === 'drawFirst') { startDrawing(true); return; }
-    await countdown('Put the phone where everyone can see', 'Everyone, open your eyes', 'Draw!');
+    // Charades has nothing to hide first, so it always starts right away.
+    if (G.flow === 'drawFirst' && G.medium !== 'act') { startDrawing(true); return; }
+    if (G.medium === 'act') await countdown('Stand up! Everyone can watch', 'Act it out. No talking!', 'Act!');
+    else if (G.medium === 'paper') await countdown('Phone face up in the middle', 'Grab a napkin or paper', 'Draw!');
+    else await countdown('Put the phone where everyone can see', 'Everyone, open your eyes', 'Draw!');
     startDrawing(false);
   }
   async function countdown(top, sub, go) {
@@ -568,6 +577,14 @@
     G.phase = sketch ? 'sketch' : 'guess';
     $('draw').classList.remove('free');
     $('draw').classList.toggle('sketch', !!sketch);
+    // Napkin and Charades: no board. The phone just keeps time.
+    const off = G.medium === 'paper' || G.medium === 'act';
+    $('draw').classList.toggle('offscreen', off);
+    if (off) {
+      $('offscreen').innerHTML = G.medium === 'act'
+        ? '<div class="os-ico">🎭</div><h2>Act it out!</h2><p>No talking, no sounds, no pointing at things in the room.</p>'
+        : '<div class="os-ico">✏️</div><h2>Draw on your napkin!</h2><p>Use paper or the kids menu. No letters or numbers.</p>';
+    }
     $('roundLabel').textContent = 'Turn ' + (G.turn + 1) + ' of ' + G.total;
     renderHint(0);
     $('peekCard').innerHTML = G.card.ch
@@ -586,7 +603,7 @@
   function renderSketchCard() {
     const p = drawer();
     $('drawWho').innerHTML = avatarHTML(p.av, 'xs') + '<span>Only ' + esc(p.name) + ' looks!</span>';
-    $('hint').textContent = 'Draw it in secret';
+    $('hint').textContent = G.medium === 'paper' ? 'Draw it on paper, in secret' : 'Draw it in secret';
   }
   // Artist is done: count everyone in, then the guess clock starts. The
   // drawing stays, and the artist can keep adding to it.
@@ -634,7 +651,8 @@
   function reveal(got, guesser) {
     stopTimer();
     const p = drawer();
-    const st = board.stats();
+    const onScreen = G.medium !== 'paper' && G.medium !== 'act';
+    const st = onScreen ? board.stats() : { colors: 0, strokes: 0 };
     p.drawn++; p.colors += st.colors; p.strokes += st.strokes;
     const awards = [];
     if (got) {
@@ -653,7 +671,7 @@
       }
     }
     const drawing = board.drawing;
-    saveToGallery(drawing, { word: G.card.word, emoji: G.card.emoji, ch: G.card.ch ? G.card.ch.name : '', by: p.name, av: p.av, gameId: G.id, got });
+    if (onScreen) saveToGallery(drawing, { word: G.card.word, emoji: G.card.emoji, ch: G.card.ch ? G.card.ch.name : '', by: p.name, av: p.av, gameId: G.id, got });
 
     $('revealTitle').textContent = got ? pick(CHEERS) : pick(TRIES);
     $('revealWord').innerHTML = (G.card.ch ? '<img alt="" style="width:56px;height:56px" src="' + Characters.toDataURL(G.card.ch) + '">' : '') + '<span class="we">' + G.card.emoji + '</span>' + esc(G.card.word);
@@ -663,7 +681,8 @@
     $('nextBtn').innerHTML = last ? 'See results' : 'Next up: ' + esc(next.name);
     show('reveal');
     G.lastDrawing = drawing;
-    requestAnimationFrame(() => playReplay());
+    $('reveal').querySelector('.replay-card').hidden = !onScreen;
+    if (onScreen) requestAnimationFrame(() => playReplay());
     if (got) { confetti(140, ['⭐', '🎉', G.card.emoji]); Sound.fanfare(); }
     const said = (got ? 'Yes! ' : '') + 'It was ' + cardSpeech(G.card) + '!';
     setTimeout(() => { if (current === 'reveal') speak(said); }, 500);
@@ -989,7 +1008,7 @@
       if (G.swaps <= 0) return;
       G.swaps--;
       G.cards.forEach((c) => G.used.push(c.word));
-      G.cards = dealCards(drawer(), 2);
+      G.cards = dealCards(drawer(), 4);
       renderCards();
       Sound.sparkle();
     },
@@ -1029,6 +1048,10 @@
     nextTurn() { nextTurn(); },
     replay() { playReplay(); },
     playAgain() { startGame(); },
+    // Hub tiles: the same game engine with a different place to draw.
+    playScreen() { S.medium = 'screen'; saveSettings(); actions.newGame(); },
+    playNapkin() { S.medium = 'paper'; saveSettings(); actions.newGame(); },
+    playCharades() { S.medium = 'act'; saveSettings(); actions.newGame(); },
 
     freeDraw() { startFree(null); },
     async freeHome() { if (await leaveFree()) actions.home(); },
@@ -1160,6 +1183,14 @@
       b.setAttribute('aria-pressed', String(Sound.on));
       b.setAttribute('aria-label', Sound.on ? 'Sound is on. Tap to turn it off' : 'Sound is off. Tap to turn it on');
     });
+  }
+  window.App = { $, esc, pick, wait, store, show, speak, Sound, toast, ask, confetti, buzz, avatarHTML, keepAwake, actions, refreshSound,
+    settings: () => S, playerName, ANIMALS, current: () => current };
+  // games.kevinzoss.com is the same app with the hub's name on the door.
+  if (/^games\./.test(location.hostname)) {
+    document.querySelector('#home .logo').textContent = 'Games';
+    document.querySelector('#home .tagline').innerHTML = 'Play <i>\\</i> Imagine <i>\\</i> Laugh <i>\\</i> Together';
+    document.title = 'Family Games \u00b7 Play, Imagine, Laugh, Together';
   }
   refreshHome();
   show('home');

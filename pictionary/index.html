@@ -31,7 +31,7 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
   <link rel="preload" href="./fonts/marcellus.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="./css/app.css?v=7" />
+  <link rel="stylesheet" href="./css/app.css?v=8" />
 </head>
 <body>
   <!-- Line icons, used as <svg class="ic"><use href="#i-name"/></svg> -->
@@ -124,9 +124,15 @@
         </div>
         <div class="home-actions">
           <button class="menu-btn gold" data-act="resume" id="resumeBtn" hidden><svg class="ic"><use href="#i-resume"/></svg><span><b>Continue</b><small>Pick up where you left off</small></span></button>
-          <button class="menu-btn dark" data-act="newGame"><svg class="ic"><use href="#i-pen"/></svg><span><b>Play</b><small>Start a new game</small></span></button>
-          <button class="menu-btn" data-act="freeDraw"><svg class="ic"><use href="#i-brush"/></svg><span><b>Free Draw</b><small>Doodle anything</small></span></button>
-          <button class="menu-btn" data-act="decks"><svg class="ic"><use href="#i-cards"/></svg><span><b>Browse Decks</b><small>Themes for every age</small></span></button>
+          <button class="menu-btn dark" data-act="playScreen"><svg class="ic"><use href="#i-pen"/></svg><span><b>Pictionary</b><small>Draw it on the phone</small></span></button>
+          <div class="game-grid">
+            <button class="game-tile" data-act="playNapkin"><span class="gt-e">✏️</span><b>Napkin Pictionary</b><small>Draw on paper</small></button>
+            <button class="game-tile" data-act="playCharades"><span class="gt-e">🎭</span><b>Charades</b><small>Act it out</small></button>
+            <button class="game-tile" data-act="quiz"><span class="gt-e">🧠</span><b>Quiz Quest</b><small>Questions for every age</small></button>
+            <button class="game-tile" data-act="story"><span class="gt-e">📖</span><b>Story Spinner</b><small>Make up a story</small></button>
+            <button class="game-tile" data-act="spy"><span class="gt-e">👀</span><b>I Spy Bingo</b><small>Car, dinner, plane</small></button>
+            <button class="game-tile" data-act="freeDraw"><span class="gt-e">🖍️</span><b>Free Draw</b><small>Doodle anything</small></button>
+          </div>
         </div>
       </div>
       <nav class="tabbar">
@@ -180,6 +186,22 @@
       <div class="step" data-step="2">
         <p class="eyebrow">Step 3 of 3</p>
         <h1>Game settings</h1>
+        <div class="opt-group">
+          <h2>How do we play?</h2>
+          <div class="seg three" data-opt="medium">
+            <button data-val="screen"><b>✍️ Phone</b><small>Draw on the screen</small></button>
+            <button data-val="paper"><b>✏️ Napkin</b><small>Draw on paper</small></button>
+            <button data-val="act"><b>🎭 Charades</b><small>Act it out</small></button>
+          </div>
+        </div>
+        <div class="opt-group">
+          <h2>Silly mode</h2>
+          <div class="seg three" data-opt="silly">
+            <button data-val="off"><b>Off</b><small>Normal cards</small></button>
+            <button data-val="some"><b>Some</b><small>Half are mashups</small></button>
+            <button data-val="all"><b>All silly</b><small>Koala + trumpet!</small></button>
+          </div>
+        </div>
         <div class="opt-group">
           <h2>Mode</h2>
           <div class="seg" data-opt="mode">
@@ -295,6 +317,7 @@
           <span class="full-num game-only" id="fullNum"></span>
         </div>
       </div>
+      <div class="offscreen" id="offscreen"></div>
       <div class="tools">
         <div class="palette" id="palette"></div>
         <div class="size-row">
@@ -419,8 +442,86 @@
         <div class="how"><span>07</span><p><b>Star Race:</b> the guesser and the artist both get a star. <b>Team Family:</b> everyone works together to fill the rainbow.</p></div>
         <div class="how"><span>08</span><p>Stuck? Hints unlock as the timer runs down. Forgot your word? Hold the <b>eye</b> button to peek.</p></div>
         <div class="how"><span>09</span><p><b>Characters:</b> build one from parts, stamp it on the page and draw a world around it. Turn on <b>Character Adventures</b> and you draw what your character is doing.</p></div>
-        <div class="how"><span>10</span><p><b>Grown-ups:</b> Share, then Add to Home Screen makes it a full-screen app that works offline.</p></div>
+        <div class="how"><span>10</span><p><b>More games:</b> Napkin Pictionary and Charades use the same cards with the phone just keeping time. Quiz Quest, Story Spinner and I Spy Bingo are read aloud, so the phone can stay face down.</p></div>
+        <div class="how"><span>11</span><p><b>Grown-ups:</b> Share, then Add to Home Screen makes it a full-screen app that works offline.</p></div>
         <button class="btn big primary" data-act="newGame"><svg class="ic"><use href="#i-play"/></svg>Let's play</button>
+      </div>
+    </section>
+
+    <!-- QUIZ QUEST -->
+    <section class="screen" id="quiz">
+      <header class="bar">
+        <button class="icon-btn plain" data-act="home" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <h1 class="bar-title">Quiz Quest</h1>
+        <button class="icon-btn plain sound-btn" data-act="toggleSound" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
+      </header>
+      <div class="game-col">
+        <div class="seg" id="quizModes">
+          <button data-act="quizMode" data-q="turns"><b>Take turns</b><small>Questions for each age</small></button>
+          <button data-act="quizMode" data-q="all"><b>Everyone shouts</b><small>First to answer</small></button>
+        </div>
+        <div class="quiz-who" id="quizWho"></div>
+        <div class="quiz-card">
+          <div class="quiz-cat" id="quizCat"></div>
+          <div class="quiz-q" id="quizQ"></div>
+          <div class="quiz-a" id="quizA" hidden></div>
+          <button class="say" data-act="quizSay" aria-label="Read it again"><svg class="ic"><use href="#i-volume"/></svg></button>
+        </div>
+        <button class="btn big primary" id="quizShow" data-act="quizShow">Show the answer</button>
+        <div class="answer-row quiz-judge" id="quizJudge" hidden></div>
+        <div class="mini-scores" id="quizScores"></div>
+        <div class="game-foot">
+          <button class="chip" data-act="quizSkip">Skip question</button>
+          <button class="chip" data-act="quizDone">Finish</button>
+        </div>
+        <p class="screen-tip">Phone face down is fine. She reads every question out loud.</p>
+      </div>
+    </section>
+
+    <!-- STORY SPINNER -->
+    <section class="screen" id="story">
+      <header class="bar">
+        <button class="icon-btn plain" data-act="home" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <h1 class="bar-title">Story Spinner</h1>
+        <button class="icon-btn plain sound-btn" data-act="toggleSound" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
+      </header>
+      <div class="game-col">
+        <div class="reels">
+          <button class="reel" id="reel-hero" data-act="storyReel" data-r="hero"><span class="reel-k">Hero</span><span class="reel-e"></span><span class="reel-t"></span></button>
+          <button class="reel" id="reel-place" data-act="storyReel" data-r="place"><span class="reel-k">Place</span><span class="reel-e"></span><span class="reel-t"></span></button>
+          <button class="reel" id="reel-problem" data-act="storyReel" data-r="problem"><span class="reel-k">Problem</span><span class="reel-e"></span><span class="reel-t"></span></button>
+        </div>
+        <p class="screen-tip">Tap one to spin just that one.</p>
+        <div class="story-card">
+          <div class="story-text" id="storyText"></div>
+          <button class="say" data-act="storySay" aria-label="Read it again"><svg class="ic"><use href="#i-volume"/></svg></button>
+        </div>
+        <div class="story-twist" id="storyTwist" hidden></div>
+        <div class="story-teller" id="storyTeller"></div>
+        <div class="answer-row story-actions">
+          <button class="btn soft" data-act="storyTwist">✨ Twist</button>
+          <button class="btn primary" data-act="storyNext">Next storyteller</button>
+        </div>
+        <button class="btn soft wide" data-act="storySpin">Spin a new story</button>
+        <p class="screen-tip">Go around the table. Each person adds a sentence or two, then the last one says "The end!"</p>
+      </div>
+    </section>
+
+    <!-- I SPY BINGO -->
+    <section class="screen" id="spy">
+      <header class="bar">
+        <button class="icon-btn plain" data-act="home" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <h1 class="bar-title">I Spy Bingo</h1>
+        <button class="icon-btn plain sound-btn" data-act="toggleSound" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
+      </header>
+      <div class="game-col">
+        <div class="spy-places" id="spyPlaces"></div>
+        <div class="bingo" id="bingo"></div>
+        <div class="game-foot">
+          <button class="chip" data-act="spySize" id="spySize"></button>
+          <button class="chip" data-act="spyNewCard">New card</button>
+        </div>
+        <p class="screen-tip">Eyes out the window! Tap a square only when you really spot it. Get a whole row, column or diagonal for BINGO.</p>
       </div>
     </section>
 
@@ -446,9 +547,11 @@
     <div class="toast" id="toast" role="status"></div>
   </div>
 
-  <script src="./js/words.js?v=4"></script>
-  <script src="./js/characters.js?v=4"></script>
-  <script src="./js/draw.js?v=4"></script>
-  <script src="./js/app.js?v=7"></script>
+  <script src="./js/extras.js?v=8"></script>
+  <script src="./js/words.js?v=8"></script>
+  <script src="./js/characters.js?v=8"></script>
+  <script src="./js/draw.js?v=8"></script>
+  <script src="./js/app.js?v=8"></script>
+  <script src="./js/games.js?v=8"></script>
 </body>
 </html>
