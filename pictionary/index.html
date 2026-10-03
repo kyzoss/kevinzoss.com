@@ -31,7 +31,7 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
   <link rel="preload" href="./fonts/marcellus.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="./css/app.css?v=6" />
+  <link rel="stylesheet" href="./css/app.css?v=7" />
 </head>
 <body>
   <!-- Line icons, used as <svg class="ic"><use href="#i-name"/></svg> -->
@@ -193,9 +193,16 @@
             <button data-val="relaxed"><b>Relaxed</b></button>
             <button data-val="normal"><b>Normal</b></button>
             <button data-val="speedy"><b>Speedy</b></button>
-            <button data-val="off"><b>Off</b></button>
+            <button data-val="off"><b>No limit</b></button>
           </div>
           <p class="note" id="paceNote"></p>
+        </div>
+        <div class="opt-group">
+          <h2>When does the clock start?</h2>
+          <div class="seg" data-opt="flow">
+            <button data-val="live"><b>Right away</b><small>Draw while everyone guesses</small></button>
+            <button data-val="drawFirst"><b>Draw first</b><small>Clock starts when you show it</small></button>
+          </div>
         </div>
         <div class="opt-group">
           <h2>Turns each</h2>
@@ -248,7 +255,7 @@
     <!-- COUNTDOWN -->
     <section class="screen" id="countdown">
       <div class="center-col">
-        <p class="cd-sub">Put the phone where everyone can see</p>
+        <p class="cd-sub" id="cdTop">Put the phone where everyone can see</p>
         <div class="cd-num" id="cdNum">3</div>
         <p class="cd-sub dim" id="cdHint"></p>
       </div>
@@ -306,6 +313,7 @@
           <button class="btn soft missed" data-act="missed">Didn't get it</button>
           <button class="btn primary gotit" data-act="gotIt">Got it</button>
         </div>
+        <button class="btn primary ready-btn" data-act="readyToGuess">Ready! Start the guess clock</button>
       </div>
       <div class="tray" id="tray" hidden>
         <div class="tray-card">
@@ -407,10 +415,11 @@
         <div class="how"><span>03</span><p><b>Put the phone down</b> where everyone can see and draw with your finger. No letters or numbers.</p></div>
         <div class="how"><span>04</span><p><b>Shout your guesses.</b> When someone gets it, the artist taps <b>Got it</b>.</p></div>
         <div class="how"><span>05</span><p>Tap the <b>full screen</b> button to turn the whole phone into paper. Tap <b>Tools</b> to bring the toolbar back.</p></div>
-        <div class="how"><span>06</span><p><b>Star Race:</b> the guesser and the artist both get a star. <b>Team Family:</b> everyone works together to fill the rainbow.</p></div>
-        <div class="how"><span>07</span><p>Stuck? Hints unlock as the timer runs down. Forgot your word? Hold the <b>eye</b> button to peek.</p></div>
-        <div class="how"><span>08</span><p><b>Characters:</b> build one from parts, stamp it on the page and draw a world around it. Turn on <b>Character Adventures</b> and you draw what your character is doing.</p></div>
-        <div class="how"><span>09</span><p><b>Grown-ups:</b> Share, then Add to Home Screen makes it a full-screen app that works offline.</p></div>
+        <div class="how"><span>06</span><p><b>No time limit</b> and <b>Draw first</b> are in game settings. With Draw first, the artist draws in secret with no clock, taps <b>Ready</b>, and the guess clock starts when everyone sees it.</p></div>
+        <div class="how"><span>07</span><p><b>Star Race:</b> the guesser and the artist both get a star. <b>Team Family:</b> everyone works together to fill the rainbow.</p></div>
+        <div class="how"><span>08</span><p>Stuck? Hints unlock as the timer runs down. Forgot your word? Hold the <b>eye</b> button to peek.</p></div>
+        <div class="how"><span>09</span><p><b>Characters:</b> build one from parts, stamp it on the page and draw a world around it. Turn on <b>Character Adventures</b> and you draw what your character is doing.</p></div>
+        <div class="how"><span>10</span><p><b>Grown-ups:</b> Share, then Add to Home Screen makes it a full-screen app that works offline.</p></div>
         <button class="btn big primary" data-act="newGame"><svg class="ic"><use href="#i-play"/></svg>Let's play</button>
       </div>
     </section>
@@ -440,6 +449,6 @@
   <script src="./js/words.js?v=4"></script>
   <script src="./js/characters.js?v=4"></script>
   <script src="./js/draw.js?v=4"></script>
-  <script src="./js/app.js?v=6"></script>
+  <script src="./js/app.js?v=7"></script>
 </body>
 </html>

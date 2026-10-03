@@ -492,3 +492,9 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .sound-btn.muted::after { content: 'Off'; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .sound-btn { position: relative; }
 .corner-btn.sound-btn { position: absolute; }
+
+/* Draw first: the artist sketches in secret; no clock, one Ready button. */
+.ready-btn { display: none; width: 100%; min-height: 52px; font-size: 17px; letter-spacing: .02em; }
+#draw.sketch:not(.free) .ready-btn { display: flex; }
+#draw.sketch .answer-row, #draw.sketch .pc-timer { display: none !important; }
+#draw.sketch .prompt-card { background: #F6ECD3; }

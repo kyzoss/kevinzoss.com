@@ -239,7 +239,7 @@
   const defaults = {
     players: [{ name: '', av: 0, age: 2 }, { name: '', av: 4, age: 3 }],
     cats: CATEGORIES.filter((c) => !c.character).map((c) => c.id),
-    mode: 'race', pace: 'normal', rounds: 2, hints: 'on',
+    mode: 'race', pace: 'normal', rounds: 2, hints: 'on', flow: 'live',
   };
   let S = Object.assign({}, defaults, store.get('pict.settings', {}));
   S.cats = S.cats.filter((id) => CATEGORIES.some((c) => c.id === id));
@@ -298,7 +298,7 @@
       const key = seg.dataset.opt;
       seg.querySelectorAll('button').forEach((b) => b.classList.toggle('on', String(S[key]) === b.dataset.val));
     });
-    if (S.pace === 'off') $('paceNote').textContent = 'No clock. The artist taps "Got it!" when someone guesses.';
+    if (S.pace === 'off') $('paceNote').textContent = 'No time limit. Take as long as you like, then tap Got it or Didn\u2019t get it.';
     else {
       const t = (age) => turnSeconds({ age }, S.pace);
       $('paceNote').textContent = 'Ages 4-5 get ' + t(1) + ' seconds, 6-7 get ' + t(2) + ', 8-10 get ' + t(3) + ', grown-ups ' + t(4) + '.';
@@ -360,7 +360,7 @@
     }));
     G = {
       id: 'g' + Date.now().toString(36),
-      players, cats: S.cats.slice(), mode: S.mode, pace: S.pace, hints: S.hints,
+      players, cats: S.cats.slice(), mode: S.mode, pace: S.pace, hints: S.hints, flow: S.flow || 'live',
       total: players.length * Number(S.rounds), turn: 0, used: [], teamStars: 0, card: null,
     };
     saveGame();
@@ -416,8 +416,16 @@
     recent.push(G.card.word);
     store.set('pict.recent', recent.slice(-150));
     speechSynthesis && speechSynthesis.cancel && speechSynthesis.cancel();
+    // Draw first: the artist sketches in secret with no clock, and the guess
+    // clock only starts once they show everyone.
+    if (G.flow === 'drawFirst') { startDrawing(true); return; }
+    await countdown('Put the phone where everyone can see', 'Everyone, open your eyes', 'Draw!');
+    startDrawing(false);
+  }
+  async function countdown(top, sub, go) {
     show('countdown');
-    $('cdHint').textContent = 'Everyone, open your eyes';
+    $('cdTop').textContent = top;
+    $('cdHint').textContent = sub;
     for (const n of [3, 2, 1]) {
       const el = $('cdNum');
       el.textContent = n;
@@ -425,10 +433,9 @@
       Sound.tock();
       await wait(800);
     }
-    $('cdNum').textContent = 'Draw!';
+    $('cdNum').textContent = go;
     Sound.go();
     await wait(450);
-    startDrawing();
   }
 
   // ---------------- timer ----------------
@@ -459,7 +466,9 @@
     if (!timer.dur) {
       $('timerFill').style.transform = 'scaleX(1)';
       $('fullFill').style.transform = 'scaleX(1)';
-      $('timerNum').textContent = '';
+      // No time limit: a gentle count-up instead of a countdown.
+      const up = Math.floor(el / 1000);
+      $('timerNum').textContent = 'No time limit · ' + Math.floor(up / 60) + ':' + String(up % 60).padStart(2, '0');
       $('fullNum').textContent = '';
       maybeHints(el / 90000);
     } else {
@@ -500,6 +509,7 @@
     }).join(' ');
   }
   function renderHint(level) {
+    if (G.phase === 'sketch') return;
     const c = G.card, cat = catOf(c);
     const p = drawer();
     $('drawWho').innerHTML = avatarHTML(p.av, 'xs') + '<span>' + esc(p.name) + ' is drawing</span><span class="pc-cat">' + cat.emoji + ' ' + esc(cat.name) + '</span>';
@@ -553,9 +563,11 @@
     freeDirty = false;
   }
 
-  function startDrawing() {
+  function startDrawing(sketch) {
     const p = drawer();
+    G.phase = sketch ? 'sketch' : 'guess';
     $('draw').classList.remove('free');
+    $('draw').classList.toggle('sketch', !!sketch);
     $('roundLabel').textContent = 'Turn ' + (G.turn + 1) + ' of ' + G.total;
     renderHint(0);
     $('peekCard').innerHTML = G.card.ch
@@ -567,8 +579,25 @@
     requestAnimationFrame(() => {
       resetBoard();
       if (G.card.ch) board.placeStamp({ t: 'k', ch: G.card.ch }, 0.5, 0.55, 0.42);
-      startTimer(turnSeconds(p, G.pace));
+      if (sketch) { stopTimer(); renderSketchCard(); speak('Draw your picture in secret. Tap Ready when you are done.', true); }
+      else startTimer(turnSeconds(p, G.pace));
     });
+  }
+  function renderSketchCard() {
+    const p = drawer();
+    $('drawWho').innerHTML = avatarHTML(p.av, 'xs') + '<span>Only ' + esc(p.name) + ' looks!</span>';
+    $('hint').textContent = 'Draw it in secret';
+  }
+  // Artist is done: count everyone in, then the guess clock starts. The
+  // drawing stays, and the artist can keep adding to it.
+  async function readyToGuess() {
+    if (G.phase !== 'sketch') return;
+    G.phase = 'guess';
+    await countdown('Show everyone the picture', 'Guess before the clock runs out!', 'Guess!');
+    $('draw').classList.remove('sketch');
+    show('draw');
+    renderHint(0);
+    requestAnimationFrame(() => startTimer(turnSeconds(drawer(), G.pace)));
   }
 
   function gotIt() {
@@ -773,7 +802,7 @@
   // ---------------- free draw ----------------
   function startFree(stampChar) {
     $('draw').classList.add('free');
-    $('draw').classList.remove('full');
+    $('draw').classList.remove('full', 'sketch');
     $('roundLabel').textContent = 'Free Draw';
     show('draw');
     board.enabled = true;
@@ -979,6 +1008,7 @@
       else { store.del('pict.game'); G = null; stopTimer(); actions.home(); }
     },
     gotIt() { gotIt(); },
+    readyToGuess() { readyToGuess(); },
     // Nobody guessed it: end the turn now, reveal the word, no stars.
     missed() {
       if (!timer.running) return;
