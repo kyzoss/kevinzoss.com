@@ -4,8 +4,9 @@ Mesa means table, short for sobremesa: the time a family lingers at the
 table after a meal. The app
 started as Pictionary and is now a hub of screen-light family games:
 Pictionary, Napkin Pictionary, Charades, Quiz Quest, Story Spinner and I Spy
-Bingo. It is served at games.kevinzoss.com and pictionary.kevinzoss.com
-(Vercel project `pictionary`, this folder).
+Bingo. Its home is games.kevinzoss.com; pictionary.kevinzoss.com serves the same
+app (Vercel project `pictionary`, this folder). Each needs a Cloudflare
+CNAME to cname.vercel-dns.com, DNS only.
 
 Pass-the-phone Pictionary for kids 4 to 10 (and the grown-ups playing with
 them). The phone is the board: put it on the table, the artist draws with a
