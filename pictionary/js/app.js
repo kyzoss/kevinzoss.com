@@ -1186,12 +1186,6 @@
   }
   window.App = { $, esc, pick, wait, store, show, speak, Sound, toast, ask, confetti, buzz, avatarHTML, keepAwake, actions, refreshSound,
     settings: () => S, playerName, ANIMALS, current: () => current };
-  // games.kevinzoss.com is the same app with the hub's name on the door.
-  if (/^games\./.test(location.hostname)) {
-    document.querySelector('#home .logo').textContent = 'Games';
-    document.querySelector('#home .tagline').innerHTML = 'Play <i>\\</i> Imagine <i>\\</i> Laugh <i>\\</i> Together';
-    document.title = 'Family Games \u00b7 Play, Imagine, Laugh, Together';
-  }
   refreshHome();
   show('home');
   if ('speechSynthesis' in window) speechSynthesis.getVoices();
