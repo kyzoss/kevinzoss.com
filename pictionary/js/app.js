@@ -14,9 +14,9 @@
   };
 
   const ANIMALS = [
-    ['🦊', '#FFC48A'], ['🐼', '#D0EBFF'], ['🐯', '#FFE066'], ['🐸', '#B2F2BB'], ['🦄', '#FCC2D7'],
-    ['🐙', '#E5DBFF'], ['🐨', '#E9ECEF'], ['🦁', '#FFD8A8'], ['🐵', '#EBD3B0'], ['🐷', '#FFDEEB'],
-    ['🐰', '#F3F0FF'], ['🐲', '#C3FAE8'], ['🐻', '#E6CCB2'], ['🐧', '#C5F6FA'], ['🦖', '#D8F5A2'], ['🐝', '#FFF3BF'],
+    ['🦊', '#EFD3B8'], ['🐼', '#DCE4DD'], ['🐯', '#F1DFB4'], ['🐸', '#D3E0C8'], ['🦄', '#EFD6D0'],
+    ['🐙', '#E3D9E6'], ['🐨', '#E4E0D8'], ['🦁', '#EED8BC'], ['🐵', '#E6D3BC'], ['🐷', '#F0DAD3'],
+    ['🐰', '#ECE6DC'], ['🐲', '#D2E2D6'], ['🐻', '#E2D0BC'], ['🐧', '#D8E2E4'], ['🦖', '#D9E3C6'], ['🐝', '#F1E4BE'],
   ];
   const AGES = [
     { id: 1, label: '4-5', name: 'Little' },
@@ -28,8 +28,7 @@
   const BASE_TIME = { 1: 100, 2: 80, 3: 65, 4: 60 };
   const PACE = { relaxed: 1.4, normal: 1, speedy: 0.65, off: 0 };
   const COLORS = ['#222222', '#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#0A84FF', '#AF52DE', '#FF6FB5', '#A2672D', 'rainbow'];
-  const SIZES = [{ stroke: 5, stamp: 0.2, dot: 8 }, { stroke: 10, stamp: 0.32, dot: 14 }, { stroke: 20, stamp: 0.48, dot: 22 }];
-  const STICKERS = ['🌳', '🌲', '🌸', '🌻', '🌈', '☀️', '🌙', '⭐', '☁️', '⚡', '🏠', '🏰', '⛺', '🚗', '🚀', '✈️', '⛵', '🚂',
+    const STICKERS = ['🌳', '🌲', '🌸', '🌻', '🌈', '☀️', '🌙', '⭐', '☁️', '⚡', '🏠', '🏰', '⛺', '🚗', '🚀', '✈️', '⛵', '🚂',
     '🐶', '🐱', '🦄', '🐉', '🦖', '🐠', '🦋', '🐝', '🐞', '🍎', '🍕', '🍦', '🎂', '🍩', '🎈', '🎁', '👑', '💎', '⚽', '🏀',
     '🎸', '❤️', '💖', '✨', '🔥', '💧', '🌊', '⛰️', '🌵', '🍄', '🎃', '👻', '🤖', '👽', '🛸', '🪐'];
   const CHEERS = ['You got it!', 'Nailed it.', 'Brilliant.', 'Too easy.', 'Right on.', 'Spot on!', 'Yes!'];
@@ -152,7 +151,7 @@
     const cv = $('confetti');
     const ctx = cv.getContext('2d');
     let parts = [], raf = 0;
-    const cols = ['#C8623E', '#E2A33E', '#8DB089', '#2A9D8F', '#D9467A', '#F3EADA', '#A06C43'];
+    const cols = ['#2F4B35', '#E3B23C', '#D9663A', '#8DA37F', '#C9A47A', '#6E8E61'];
     function size() { cv.width = innerWidth * (devicePixelRatio || 1); cv.height = innerHeight * (devicePixelRatio || 1); }
     function frame() {
       const d = devicePixelRatio || 1;
@@ -243,12 +242,19 @@
     });
     $('addPlayerBtn').hidden = S.players.length >= 8;
   }
+  // Deck rows, used by setup step 2 and the Decks tab: picture tile, name,
+  // a line of description and how many words suit each age.
   function renderCats() {
-    $('catGrid').innerHTML = CATEGORIES.map((c) =>
-      '<button class="cat' + (S.cats.includes(c.id) ? ' on' : '') + '" style="--c:' + c.color + '" data-act="toggleCat" data-id="' + c.id + '">' +
-        '<span class="ce">' + c.emoji + '</span>' + esc(c.name) + (c.character ? '<small>with your characters!</small>' : '') +
-      '</button>'
-    ).join('');
+    const html = CATEGORIES.map((c) => {
+      const n = (L) => c.words.filter((w) => w.level <= L).length;
+      return '<button class="deck' + (S.cats.includes(c.id) ? ' on' : '') + '" style="--c:' + c.color + '" data-act="toggleCat" data-id="' + c.id + '">' +
+        '<span class="deck-art"><span>' + c.emoji + '</span></span>' +
+        '<span class="deck-text"><b>' + esc(c.name) + '</b><small>' + esc(c.desc || '') + '</small><em>' + c.words.length + ' words · ' + n(1) + ' for littles</em></span>' +
+        '<span class="deck-check"><svg class="ic"><use href="#i-check"/></svg></span>' +
+      '</button>';
+    }).join('');
+    $('catGrid').innerHTML = html;
+    $('deckList').innerHTML = html;
   }
   function renderOpts() {
     document.querySelectorAll('#setup .seg').forEach((seg) => {
@@ -425,7 +431,7 @@
       const secs = Math.ceil(left / 1000);
       $('timerFill').style.transform = 'scaleX(' + frac + ')';
       $('fullFill').style.transform = 'scaleX(' + frac + ')';
-      $('timerNum').textContent = secs;
+      $('timerNum').textContent = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
       $('fullNum').textContent = secs;
       $('timer').classList.toggle('mid', frac <= 0.5 && secs > 10);
       $('timer').classList.toggle('low', secs <= 10);
@@ -458,9 +464,10 @@
   }
   function renderHint(level) {
     const c = G.card, cat = catOf(c);
-    const lead = c.ch ? 'What is ' + esc(c.ch.name) + ' doing?' : cat.emoji + ' ' + esc(cat.name);
-    const tail = level > 0 ? ' <span class="blanks">' + esc(blanks(c.word, level > 1)) + '</span>' : '';
-    $('hint').innerHTML = lead + tail;
+    const p = drawer();
+    $('drawWho').innerHTML = avatarHTML(p.av, 'xs') + '<span>' + esc(p.name) + ' is drawing</span><span class="pc-cat">' + cat.emoji + ' ' + esc(cat.name) + '</span>';
+    $('hint').innerHTML = level > 0 ? '<span class="blanks">' + esc(blanks(c.word, level > 1)) + '</span>'
+      : c.ch ? 'What is ' + esc(c.ch.name) + ' doing?' : 'Start guessing!';
   }
   function maybeHints(progress) {
     if (G.hints !== 'on') return;
@@ -478,7 +485,7 @@
     onStart() { if (current === 'draw') $('stampHint').classList.remove('on'); },
     onChange() { freeDirty = true; },
   });
-  let sizeIdx = 1, lastBrush = 'pen', freeDirty = false;
+  let brushSize = 10, lastBrush = 'pen', freeDirty = false;
   new ResizeObserver(() => { if (current === 'draw') board.resize(); }).observe($('board'));
 
   function renderPalette() {
@@ -491,13 +498,15 @@
       const t = b.dataset.tool;
       b.classList.toggle('on', ['pen', 'fill', 'eraser', 'stamp'].includes(t) && board.tool === t);
     });
-    const d = SIZES[sizeIdx].dot;
-    Object.assign($('sizeDot').style, { width: d + 'px', height: d + 'px' });
+    const d = Math.max(6, Math.min(30, brushSize));
+    Object.assign($('sizeDot').style, { width: d + 'px', height: d + 'px', background: board.color === 'rainbow' ? 'conic-gradient(#FF3B30,#FFD60A,#34C759,#0A84FF,#AF52DE,#FF3B30)' : board.color });
   }
+  // One slider sets both: crayon width, and how big a stamp lands.
   function applySize() {
-    board.size = SIZES[sizeIdx].stroke;
-    board.stampSize = Math.round(Math.min(board.drawing.w, board.drawing.h) * SIZES[sizeIdx].stamp);
+    board.size = brushSize;
+    board.stampSize = Math.round(Math.min(board.drawing.w, board.drawing.h) * (0.14 + (brushSize / 34) * 0.4));
   }
+  $('sizeRange').addEventListener('input', (e) => { brushSize = Number(e.target.value); applySize(); renderTools(); });
   function resetBoard() {
     board.reset();
     board.tool = 'pen'; lastBrush = 'pen';
@@ -510,7 +519,7 @@
   function startDrawing() {
     const p = drawer();
     $('draw').classList.remove('free');
-    $('drawWho').innerHTML = avatarHTML(p.av, 'sm') + esc(p.name);
+    $('roundLabel').textContent = 'Turn ' + (G.turn + 1) + ' of ' + G.total;
     renderHint(0);
     $('peekCard').innerHTML = G.card.ch
       ? '<img alt="" style="width:120px;height:120px" src="' + Characters.toDataURL(G.card.ch) + '"><div>' + esc(G.card.ch.name) + ' is…</div><div>' + G.card.emoji + ' ' + esc(G.card.word) + '</div>'
@@ -728,7 +737,7 @@
   function startFree(stampChar) {
     $('draw').classList.add('free');
     $('draw').classList.remove('full');
-    $('drawWho').textContent = 'Free Draw';
+    $('roundLabel').textContent = 'Free Draw';
     show('draw');
     board.enabled = true;
     keepAwake(true);
@@ -851,6 +860,7 @@
       G = g; keepAwake(true); goHandoff();
     },
     howTo() { show('howto'); },
+    decks() { renderCats(); show('decks'); },
     home() { keepAwake(false); show('home'); refreshHome(); },
     gallery() { galleryFrom = 'home'; renderGallery(); show('gallery'); },
     endGallery() { galleryFrom = 'end'; renderGallery(); show('gallery'); },
@@ -1022,7 +1032,6 @@
       const t = tool.dataset.tool;
       if (t === 'undo') { if (!board.undo()) Sound.boing(); else Sound.pop(); }
       else if (t === 'clear') { if (board.clear()) { Sound.tone(300, 0.3, 'sine', 0.12, 0, 90); toast('Cleared. Tap undo to bring it back'); } }
-      else if (t === 'size') { sizeIdx = (sizeIdx + 1) % SIZES.length; applySize(); renderTools(); Sound.pop(); }
       else if (t === 'stamp') { openTray(); Sound.pop(); }
       else {
         if (t === 'fill' && board.color === 'rainbow') board.color = '#FF3B30';

@@ -11,7 +11,7 @@ window.CATEGORIES = [
   {
     // Special: the drawer's Character Studio character starts on the page and
     // the drawer draws what it's up to. Guessers guess the adventure.
-    id: 'adventures', name: 'Character Adventures', emoji: '🎭', color: '#FF4FA3', character: true,
+    id: 'adventures', desc: 'Your character, your story', name: 'Character Adventures', emoji: '🎭', color: '#FF4FA3', character: true,
     words: [
       '🍦|eating ice cream|1', '😴|sleeping|1', '🎈|holding balloons|1', '🌧️|in the rain|1',
       '☀️|at the beach|1', '🎂|having a birthday|1', '⛄|making a snowman|1', '🍕|eating pizza|1',
@@ -25,7 +25,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'animals', name: 'Animals', emoji: '🐶', color: '#FF8A3D',
+    id: 'animals', desc: 'Wild, cute, and crazy', name: 'Animals', emoji: '🐶', color: '#FF8A3D',
     words: [
       '🐶|dog|1', '🐱|cat|1', '🐟|fish|1', '🐦|bird|1', '🐍|snake|1', '🐢|turtle|1',
       '🐷|pig|1', '🐮|cow|1', '🐰|bunny|1', '🐻|bear|1', '🐭|mouse|1', '🐞|ladybug|1',
@@ -38,7 +38,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'food', name: 'Yummy Food', emoji: '🍕', color: '#FF5E7A',
+    id: 'food', desc: 'Snacks, sweets, and treats', name: 'Yummy Food', emoji: '🍕', color: '#FF5E7A',
     words: [
       '🍎|apple|1', '🍌|banana|1', '🍕|pizza|1', '🍦|ice cream|1', '🍪|cookie|1',
       '🎂|cake|1', '🥚|egg|1', '🍇|grapes|1', '🥕|carrot|1', '🍓|strawberry|1',
@@ -51,7 +51,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'home', name: 'Around the House', emoji: '🏠', color: '#7C5CFF',
+    id: 'home', desc: 'Everyday things', name: 'Around the House', emoji: '🏠', color: '#7C5CFF',
     words: [
       '🏠|house|1', '🛏️|bed|1', '🪑|chair|1', '🚪|door|1', '🧸|teddy bear|1', '⚽|ball|1',
       '📚|book|1', '🥄|spoon|1', '☂️|umbrella|1', '🔑|key|1', '🧦|sock|1', '👟|shoe|1',
@@ -63,7 +63,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'nature', name: 'Outside & Nature', emoji: '🌳', color: '#2EBF6A',
+    id: 'nature', desc: 'Trees, sky, and weather', name: 'Outside & Nature', emoji: '🌳', color: '#2EBF6A',
     words: [
       '☀️|sun|1', '🌙|moon|1', '⭐|star|1', '🌳|tree|1', '🌸|flower|1', '☁️|cloud|1',
       '🌈|rainbow|1', '🍂|leaf|1', '🪨|rock|1', '💧|rain|1', '⛄|snowman|1',
@@ -74,7 +74,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'vehicles', name: 'Things That Go', emoji: '🚗', color: '#2D9CFF',
+    id: 'vehicles', desc: 'Wheels, wings, and boats', name: 'Things That Go', emoji: '🚗', color: '#2D9CFF',
     words: [
       '🚗|car|1', '🚌|bus|1', '🚂|train|1', '✈️|airplane|1', '⛵|boat|1', '🚲|bike|1',
       '🚀|rocket|1', '🚒|fire truck|2', '🚑|ambulance|2', '🚁|helicopter|2', '🚜|tractor|2',
@@ -84,7 +84,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'ocean', name: 'Under the Sea', emoji: '🐳', color: '#16B8C8',
+    id: 'ocean', desc: 'Deep blue friends', name: 'Under the Sea', emoji: '🐳', color: '#16B8C8',
     words: [
       '🐟|fish|1', '🐳|whale|1', '🦀|crab|1', '🐙|octopus|1', '🐚|seashell|1',
       '⭐|starfish|1', '🦈|shark|2', '🐬|dolphin|2', '🐢|sea turtle|2', '🪼|jellyfish|2',
@@ -94,7 +94,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'space', name: 'Outer Space', emoji: '🚀', color: '#5B4BDB',
+    id: 'space', desc: 'Rockets, planets, and aliens', name: 'Outer Space', emoji: '🚀', color: '#5B4BDB',
     words: [
       '🚀|rocket|1', '🌙|moon|1', '⭐|star|1', '☀️|sun|1', '👽|alien|2', '🪐|planet|2',
       '🛸|flying saucer|2', '🧑‍🚀|astronaut|2', '☄️|comet|2', '🌍|earth|2', '🔭|telescope|3',
@@ -102,7 +102,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'pretend', name: 'Make-Believe', emoji: '🦄', color: '#E94FD1',
+    id: 'pretend', desc: 'Dragons, castles, and magic', name: 'Make-Believe', emoji: '🦄', color: '#E94FD1',
     words: [
       '🦄|unicorn|1', '👻|ghost|1', '👑|crown|1', '🏰|castle|1', '🐉|dragon|2',
       '🧚|fairy|2', '🧙|wizard|2', '🤖|robot|2', '🧜|mermaid|2', '🪄|magic wand|2',
@@ -112,7 +112,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'play', name: 'Sports & Play', emoji: '⚽', color: '#FFB800',
+    id: 'play', desc: 'Games, sports, and fun', name: 'Sports & Play', emoji: '⚽', color: '#FFB800',
     words: [
       '⚽|soccer ball|1', '🎈|balloon|1', '🪁|kite|1', '🏀|basketball|2', '🏈|football|2',
       '⚾|baseball|2', '🛝|slide|2', '🎾|tennis|2', '🏊|swimming|2', '🎳|bowling|2',
@@ -122,7 +122,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'people', name: 'People & Jobs', emoji: '👩‍🚒', color: '#FF7043',
+    id: 'people', desc: 'Jobs and heroes', name: 'People & Jobs', emoji: '👩‍🚒', color: '#FF7043',
     words: [
       '👶|baby|1', '🤡|clown|2', '👩‍🍳|chef|2', '👨‍🚒|firefighter|2', '👮|police officer|2',
       '👩‍⚕️|doctor|2', '👑|king|2', '👸|princess|2', '🥷|ninja|2', '🤠|cowboy|2',
@@ -131,7 +131,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'body', name: 'My Body', emoji: '🖐️', color: '#F26B9C',
+    id: 'body', desc: 'Faces, hands, and feet', name: 'My Body', emoji: '🖐️', color: '#F26B9C',
     words: [
       '👁️|eye|1', '👃|nose|1', '👄|mouth|1', '🖐️|hand|1', '🦶|foot|1', '👂|ear|1',
       '🦷|tooth|2', '💪|muscle|2', '🧠|brain|3', '❤️|heart|1', '😊|smile|1', '🦴|bone|2',
@@ -139,7 +139,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'actions', name: 'Act It Out', emoji: '🏃', color: '#00A88F',
+    id: 'actions', desc: 'Do, move, and be', name: 'Act It Out', emoji: '🏃', color: '#00A88F',
     words: [
       '🏃|running|2', '😴|sleeping|1', '🦘|jumping|2', '🏊|swimming|2', '💃|dancing|2',
       '🎤|singing|2', '😂|laughing|2', '🍽️|eating|2', '🧗|climbing|3', '🎣|fishing|3',
@@ -149,7 +149,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'weather', name: 'Weather & Seasons', emoji: '🌦️', color: '#4AA8FF',
+    id: 'weather', desc: 'Sun, rain, and snow', name: 'Weather & Seasons', emoji: '🌦️', color: '#4AA8FF',
     words: [
       '☀️|sunny|1', '🌧️|rainy|1', '⛄|snowman|1', '🌈|rainbow|1', '❄️|snow|1',
       '⛈️|thunderstorm|2', '🌬️|windy|2', '🌂|umbrella|2', '🧤|mittens|2', '🧣|scarf|2',
@@ -157,7 +157,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'holidays', name: 'Holidays & Parties', emoji: '🎉', color: '#FF4D4D',
+    id: 'holidays', desc: 'Parties all year', name: 'Holidays & Parties', emoji: '🎉', color: '#FF4D4D',
     words: [
       '🎂|birthday cake|1', '🎈|balloon|1', '🎁|gift|1', '🎃|pumpkin|1', '🎄|Christmas tree|2',
       '🎅|Santa|2', '⛄|snowman|1', '🦃|turkey|2', '🐣|chick|2', '🥚|Easter egg|2',
@@ -167,7 +167,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'music', name: 'Music & Art', emoji: '🎸', color: '#9C27B0',
+    id: 'music', desc: 'Sounds and colors', name: 'Music & Art', emoji: '🎸', color: '#9C27B0',
     words: [
       '🥁|drum|1', '🎸|guitar|2', '🎹|piano|2', '🎺|trumpet|3', '🎻|violin|3', '🎤|microphone|2',
       '🖍️|crayon|1', '🎨|paint|2', '🖌️|paintbrush|2', '✏️|pencil|1', '🎵|music note|2',
@@ -175,7 +175,7 @@ window.CATEGORIES = [
     ],
   },
   {
-    id: 'places', name: 'Places to Go', emoji: '🏰', color: '#8D6E63',
+    id: 'places', desc: 'Near and far', name: 'Places to Go', emoji: '🏰', color: '#8D6E63',
     words: [
       '🏠|home|1', '🏫|school|2', '🏖️|beach|2', '🏥|hospital|3', '🏰|castle|1', '⛺|tent|2',
       '🎡|ferris wheel|3', '🗼|tower|3', '🌉|bridge|3', '🏟️|stadium|3', '⛪|church|3',

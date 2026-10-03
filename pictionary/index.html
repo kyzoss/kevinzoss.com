@@ -3,26 +3,35 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>Pictionary</title>
-  <meta name="description" content="Draw it, guess it. A pass-the-phone drawing game for the whole family." />
+  <title>Pictionary · Draw, Guess, Laugh, Together</title>
+  <meta name="description" content="A pass-the-phone drawing game for the whole family. Pick a deck, draw with your finger, and guess before the timer runs out. Free, no sign-up, works offline." />
   <meta name="robots" content="noindex" />
-  <meta property="og:title" content="Pictionary" />
-  <meta property="og:description" content="Draw it, guess it. A pass-the-phone drawing game for the whole family." />
+  <link rel="canonical" href="https://pictionary.kevinzoss.com/" />
+  <meta property="og:site_name" content="Pictionary" />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://pictionary.kevinzoss.com/icon-512.png" />
+  <meta property="og:url" content="https://pictionary.kevinzoss.com/" />
+  <meta property="og:title" content="Pictionary · Draw, Guess, Laugh, Together" />
+  <meta property="og:description" content="A pass-the-phone drawing game for the whole family, ages 4 and up. Free, no sign-up, works offline." />
+  <!-- Served from the always-on Vercel host so previews work whatever DNS is doing. -->
+  <meta property="og:image" content="https://pictionary-phi.vercel.app/share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Pictionary, in green serif capitals, with an agave mark and a plaster arch with plants." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Pictionary · Draw, Guess, Laugh, Together" />
+  <meta name="twitter:description" content="A pass-the-phone drawing game for the whole family, ages 4 and up." />
+  <meta name="twitter:image" content="https://pictionary-phi.vercel.app/share.png" />
 
-  <meta name="theme-color" content="#13201A" />
+  <meta name="theme-color" content="#F3EDE3" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Pictionary" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,0..100;1,9..144,300..700,0..100&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./css/app.css?v=3" />
+  <link rel="preload" href="./fonts/marcellus.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="./css/app.css?v=4" />
 </head>
 <body>
   <!-- Line icons, used as <svg class="ic"><use href="#i-name"/></svg> -->
@@ -59,6 +68,11 @@
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
       <symbol id="i-volume" viewBox="0 0 24 24"><path d="M5 9v6h3l4 4V5L8 9z"/><path d="M15.5 9a4 4 0 0 1 0 6"/></symbol>
       <symbol id="i-mask" viewBox="0 0 24 24"><path d="M4 5c5 2 11 2 16 0v6c0 5-3.6 9-8 9s-8-4-8-9z"/><path d="M8.5 11h2M13.5 11h2"/><path d="M9.5 15c1.4 1 3.6 1 5 0"/></symbol>
+      <symbol id="i-agave" viewBox="0 0 64 48"><path d="M32 40C31 28 29 16 32 4c3 12 1 24 0 36z"/><path d="M31 40C25 30 19 22 10 14c11 5 18 14 21 26z"/><path d="M33 40c6-10 12-18 21-26-11 5-18 14-21 26z"/><path d="M30 40C22 34 13 30 3 28c11-1 21 4 27 12z"/><path d="M34 40c8-6 17-10 27-12-11-1-21 4-27 12z"/><path d="M31 40c-3-9-6-17-12-26 7 7 11 16 12 26zM33 40c3-9 6-17 12-26-7 7-11 16-12 26z"/><path d="M8 44h48"/></symbol>
+      <symbol id="i-cards" viewBox="0 0 24 24"><rect x="8" y="5" width="12" height="16" rx="2" transform="rotate(10 14 13)"/><path d="M13.5 4.2L6 3a2 2 0 0 0-2.3 1.7L2 16a2 2 0 0 0 1.7 2.3l3.3.5"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M18 14.3c2.2.7 3.5 2.8 3.5 5.7"/></symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+      <symbol id="i-homeline" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V20h-5v-6H9v6H4z"/></symbol>
     </defs>
   </svg>
 
@@ -66,30 +80,80 @@
 
     <!-- HOME -->
     <section class="screen" id="home">
+      <div class="hero" aria-hidden="true">
+        <svg viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="hwall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E9DCC8"/><stop offset="1" stop-color="#E2D2BA"/></linearGradient>
+            <linearGradient id="hopen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FBF5EA"/><stop offset="1" stop-color="#F1E4CF"/></linearGradient>
+            <linearGradient id="hfloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E7D9C3"/><stop offset="1" stop-color="#F3EDE3"/></linearGradient>
+            <filter id="hblur"><feGaussianBlur stdDeviation="7"/></filter>
+            <filter id="hsoft"><feGaussianBlur stdDeviation="1.2"/></filter>
+          </defs>
+          <rect width="400" height="600" fill="url(#hwall)"/>
+          <path d="M40 470V190a160 160 0 0 1 320 0v280z" fill="url(#hopen)"/>
+          <path d="M40 470V190a160 160 0 0 1 320 0v280" fill="none" stroke="#D3BFA2" stroke-width="18" opacity=".55"/>
+          <path d="M58 470V194a142 142 0 0 1 284 0v276" fill="none" stroke="#C9B293" stroke-width="2" opacity=".5"/>
+          <g fill="#6B5537" opacity=".13" filter="url(#hblur)">
+            <ellipse cx="300" cy="70" rx="70" ry="12" transform="rotate(-25 300 70)"/>
+            <ellipse cx="340" cy="120" rx="60" ry="10" transform="rotate(-40 340 120)"/>
+            <ellipse cx="260" cy="130" rx="50" ry="9" transform="rotate(-10 260 130)"/>
+            <ellipse cx="330" cy="190" rx="55" ry="9" transform="rotate(-55 330 190)"/>
+            <ellipse cx="90" cy="260" rx="40" ry="8" transform="rotate(30 90 260)"/>
+          </g>
+          <rect y="455" width="400" height="145" fill="url(#hfloor)"/>
+          <g stroke="#D6C6AE" stroke-width="1" opacity=".7"><path d="M0 500h400M0 540h400M60 455l-60 145M200 455v145M340 455l60 145"/></g>
+          <g filter="url(#hsoft)">
+            <path d="M330 470c0-60 10-120 40-170" stroke="#4E6B48" stroke-width="3" fill="none"/>
+            <path d="M370 300c-30-10-60 0-80 25 30 5 60-5 80-25zM350 340c25-25 55-30 70-25-15 25-45 35-70 25zM345 380c-30-15-60-8-78 15 30 8 60 2 78-15zM352 420c25-20 50-22 65-15-15 22-42 28-65 15z" fill="#5E7F55"/>
+            <path d="M20 470c5-70 0-120-25-170" stroke="#4E6B48" stroke-width="3" fill="none"/>
+            <path d="M-5 300c30-5 55 10 70 35-30 0-58-12-70-35zM10 350c-25-20-52-20-65-10 18 20 45 24 65 10zM14 395c30-8 55 5 68 28-30 2-56-10-68-28z" fill="#6E8E61"/>
+            <ellipse cx="80" cy="440" rx="70" ry="40" fill="#4F6E49"/>
+            <path d="M30 440c10-50 40-80 70-90-10 30-30 60-70 90zM70 430c0-40 20-75 55-95-5 35-20 70-55 95zM100 440c20-35 50-50 80-50-20 25-45 42-80 50z" fill="#3E5B3B"/>
+            <path d="M300 470c-5-30 0-50 15-70M320 470c5-35 20-55 40-65M290 470c-15-25-30-35-50-38" stroke="#3E5B3B" stroke-width="10" stroke-linecap="round" fill="none"/>
+          </g>
+          <path d="M250 520h110l-12 60h-86z" fill="#C9A47A"/>
+          <path d="M256 535h98M259 552h92M262 568h86" stroke="#B08A5E" stroke-width="2"/>
+          <path d="M40 525h80l-8 55H48z" fill="#D4B48C"/>
+        </svg>
+      </div>
       <div class="home-inner">
         <div class="brand">
-          <div class="brand-mark" aria-hidden="true"><svg class="ic"><use href="#i-brush"/></svg></div>
+          <svg class="agave" viewBox="0 0 64 48" aria-hidden="true"><use href="#i-agave"/></svg>
           <h1 class="logo">Pictionary</h1>
-          <p class="tagline">Draw it. Guess it. Pass the phone.</p>
+          <p class="tagline">Draw <i>\</i> Guess <i>\</i> Laugh <i>\</i> Together</p>
         </div>
         <div class="home-actions">
-          <button class="btn big ghost-gold" data-act="resume" id="resumeBtn" hidden><svg class="ic"><use href="#i-resume"/></svg>Continue game</button>
-          <button class="btn big primary" data-act="newGame"><svg class="ic"><use href="#i-play"/></svg>Play</button>
-        </div>
-        <div class="home-row">
-          <button class="tile" data-act="studio"><span class="tile-ico t1"><svg class="ic"><use href="#i-mask"/></svg></span><span>Characters</span></button>
-          <button class="tile" data-act="freeDraw"><span class="tile-ico t2"><svg class="ic"><use href="#i-pen"/></svg></span><span>Free Draw</span></button>
-          <button class="tile" data-act="gallery"><span class="tile-ico t3"><svg class="ic"><use href="#i-image"/></svg></span><span>Art Show</span></button>
-          <button class="tile" data-act="howTo"><span class="tile-ico t4"><svg class="ic"><use href="#i-help"/></svg></span><span>How to Play</span></button>
+          <button class="menu-btn gold" data-act="resume" id="resumeBtn" hidden><svg class="ic"><use href="#i-resume"/></svg><span><b>Continue</b><small>Pick up where you left off</small></span></button>
+          <button class="menu-btn dark" data-act="newGame"><svg class="ic"><use href="#i-pen"/></svg><span><b>Play</b><small>Start a new game</small></span></button>
+          <button class="menu-btn" data-act="freeDraw"><svg class="ic"><use href="#i-brush"/></svg><span><b>Free Draw</b><small>Doodle anything</small></span></button>
+          <button class="menu-btn" data-act="decks"><svg class="ic"><use href="#i-cards"/></svg><span><b>Browse Decks</b><small>Themes for every age</small></span></button>
         </div>
       </div>
+      <nav class="tabbar">
+        <button class="tab on" data-act="home"><svg class="ic"><use href="#i-homeline"/></svg>Home</button>
+        <button class="tab" data-act="decks"><svg class="ic"><use href="#i-cards"/></svg>Decks</button>
+        <button class="tab" data-act="studio"><svg class="ic"><use href="#i-users"/></svg>Characters</button>
+        <button class="tab" data-act="gallery"><svg class="ic"><use href="#i-image"/></svg>Art</button>
+        <button class="tab" data-act="howTo"><svg class="ic"><use href="#i-help"/></svg>Help</button>
+      </nav>
       <button class="corner-btn right" data-act="toggleSound" id="soundBtn" aria-label="Sound on or off"><svg class="ic"><use href="#i-sound"/></svg></button>
+    </section>
+
+    <!-- DECKS -->
+    <section class="screen" id="decks">
+      <header class="bar">
+        <button class="icon-btn plain" data-act="home" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <h1 class="bar-title">Choose a deck</h1>
+        <span class="icon-spacer"></span>
+      </header>
+      <p class="sub center">Tap to turn decks on or off. Every game uses the ones you pick.</p>
+      <div class="deck-list" id="deckList"></div>
     </section>
 
     <!-- SETUP: three short steps -->
     <section class="screen" id="setup">
       <header class="bar">
-        <button class="icon-btn" data-act="setupBack" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <button class="icon-btn plain" data-act="setupBack" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
         <div class="steps" aria-hidden="true"><i></i><i></i><i></i></div>
         <span class="icon-spacer"></span>
       </header>
@@ -110,7 +174,7 @@
           <button class="chip" data-act="catsAll">Select all</button>
           <button class="chip" data-act="catsNone">Clear</button>
         </div>
-        <div id="catGrid" class="cat-grid"></div>
+        <div id="catGrid" class="deck-list"></div>
       </div>
 
       <div class="step" data-step="2">
@@ -190,22 +254,24 @@
 
     <!-- DRAW BOARD (also Free Draw) -->
     <section class="screen" id="draw">
-      <div class="draw-head">
-        <div class="who-chip" id="drawWho"></div>
-        <div class="timer" id="timer">
-          <div class="timer-fill" id="timerFill"></div>
-          <span class="timer-num" id="timerNum"></span>
+      <header class="draw-top">
+        <button class="icon-btn plain game-only" data-act="pause" aria-label="Pause"><svg class="ic"><use href="#i-pause"/></svg></button>
+        <button class="icon-btn plain free-only" data-act="freeHome" aria-label="Home"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div class="draw-title" id="roundLabel"></div>
+        <div class="draw-top-r">
+          <button class="icon-btn plain free-only" data-act="freeNew" aria-label="New page"><svg class="ic"><use href="#i-page"/></svg></button>
+          <button class="icon-btn plain free-only" data-act="freeSave" aria-label="Save to Art Show"><svg class="ic"><use href="#i-save"/></svg></button>
+          <button class="icon-btn plain" data-act="fullscreen" aria-label="Full screen"><svg class="ic"><use href="#i-expand"/></svg></button>
         </div>
-        <button class="icon-btn" data-act="fullscreen" aria-label="Full screen"><svg class="ic"><use href="#i-expand"/></svg></button>
-        <button class="icon-btn game-only" data-act="pause" aria-label="Pause"><svg class="ic"><use href="#i-pause"/></svg></button>
-        <button class="icon-btn free-only" data-act="freeSave" aria-label="Save to Art Show"><svg class="ic"><use href="#i-save"/></svg></button>
-        <button class="icon-btn free-only" data-act="freeNew" aria-label="New page"><svg class="ic"><use href="#i-page"/></svg></button>
-        <button class="icon-btn free-only" data-act="freeHome" aria-label="Home"><svg class="ic"><use href="#i-close"/></svg></button>
-      </div>
-      <div class="hint-row game-only">
-        <div class="hint" id="hint"></div>
+      </header>
+      <div class="prompt-card game-only">
+        <div class="pc-label" id="drawWho"></div>
+        <div class="pc-hint" id="hint"></div>
+        <div class="pc-timer">
+          <span class="timer-num" id="timerNum"></span>
+          <div class="timer" id="timer"><div class="timer-fill" id="timerFill"></div></div>
+        </div>
         <button class="peek" id="peekBtn" aria-label="Hold to peek at your word"><svg class="ic"><use href="#i-eye"/></svg></button>
-        <button class="btn gotit" data-act="gotIt"><svg class="ic"><use href="#i-check"/></svg>Got it</button>
       </div>
       <div class="board" id="board">
         <canvas id="canvas"></canvas>
@@ -221,21 +287,25 @@
       </div>
       <div class="tools">
         <div class="palette" id="palette"></div>
+        <div class="size-row">
+          <span class="size-dot" id="sizeDot"></span>
+          <input type="range" id="sizeRange" min="3" max="34" value="10" aria-label="Brush size" />
+        </div>
         <div class="toolrow">
-          <button class="tool" data-tool="undo" aria-label="Undo"><svg class="ic"><use href="#i-undo"/></svg></button>
-          <button class="tool" data-tool="size" aria-label="Brush size"><span class="size-dot" id="sizeDot"></span></button>
           <button class="tool" data-tool="pen" aria-label="Brush"><svg class="ic"><use href="#i-brush"/></svg></button>
           <button class="tool" data-tool="fill" aria-label="Paint bucket"><svg class="ic"><use href="#i-fill"/></svg></button>
           <button class="tool" data-tool="eraser" aria-label="Eraser"><svg class="ic"><use href="#i-eraser"/></svg></button>
           <button class="tool" data-tool="stamp" aria-label="Characters and stickers"><svg class="ic"><use href="#i-sticker"/></svg></button>
+          <button class="tool" data-tool="undo" aria-label="Undo"><svg class="ic"><use href="#i-undo"/></svg></button>
           <button class="tool" data-tool="clear" aria-label="Clear page"><svg class="ic"><use href="#i-trash"/></svg></button>
         </div>
+        <button class="btn primary gotit game-only" data-act="gotIt">Got it</button>
       </div>
       <div class="tray" id="tray" hidden>
         <div class="tray-card">
           <div class="tray-head">
             <b>Stamps</b>
-            <button class="icon-btn" data-act="trayClose" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button>
+            <button class="icon-btn plain" data-act="trayClose" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button>
           </div>
           <div class="tray-body" id="trayBody"></div>
         </div>
@@ -245,7 +315,7 @@
     <!-- CHARACTER STUDIO -->
     <section class="screen" id="studio">
       <header class="bar">
-        <button class="icon-btn" data-act="studioBack" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <button class="icon-btn plain" data-act="studioBack" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
         <h1 class="bar-title">Character Studio</h1>
         <span class="icon-spacer"></span>
       </header>
@@ -310,7 +380,7 @@
     <!-- GALLERY -->
     <section class="screen" id="gallery">
       <header class="bar">
-        <button class="icon-btn" data-act="galleryBack" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <button class="icon-btn plain" data-act="galleryBack" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
         <h1 class="bar-title">Art Show</h1>
         <span class="icon-spacer"></span>
       </header>
@@ -320,7 +390,7 @@
     <!-- HOW TO -->
     <section class="screen" id="howto">
       <header class="bar">
-        <button class="icon-btn" data-act="home" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <button class="icon-btn plain" data-act="home" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
         <h1 class="bar-title">How to Play</h1>
         <span class="icon-spacer"></span>
       </header>
@@ -360,9 +430,9 @@
     <div class="toast" id="toast" role="status"></div>
   </div>
 
-  <script src="./js/words.js?v=2"></script>
-  <script src="./js/characters.js?v=2"></script>
-  <script src="./js/draw.js?v=3"></script>
-  <script src="./js/app.js?v=3"></script>
+  <script src="./js/words.js?v=4"></script>
+  <script src="./js/characters.js?v=4"></script>
+  <script src="./js/draw.js?v=4"></script>
+  <script src="./js/app.js?v=4"></script>
 </body>
 </html>

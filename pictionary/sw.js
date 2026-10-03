@@ -1,8 +1,9 @@
 // Offline play (car trips, planes): cache the app shell on install, then serve
 // cache-first and refresh in the background. Bump VERSION when files change.
-const VERSION = 'pict-v3';
-const SHELL = ['./', './index.html', './css/app.css?v=3', './js/words.js?v=2', './js/characters.js?v=2',
-  './js/draw.js?v=3', './js/app.js?v=3', './manifest.webmanifest', './icon.svg', './icon-192.png', './apple-touch-icon.png'];
+const VERSION = 'pict-v4';
+const SHELL = ['./', './index.html', './css/app.css?v=4', './js/words.js?v=4', './js/characters.js?v=4',
+  './js/draw.js?v=4', './js/app.js?v=4', './manifest.webmanifest', './icon.svg', './icon-192.png', './apple-touch-icon.png',
+  './fonts/marcellus.woff2', './fonts/jost-300.woff2', './fonts/jost-400.woff2', './fonts/jost-500.woff2', './fonts/jost-600.woff2'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
