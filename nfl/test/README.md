@@ -60,6 +60,10 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     own -- and a poll that changed nothing saves nothing, since
                     every open phone polls once a minute. No winner is declared
                     mid-game, where the lead means nothing
+    stuckmoney      weeks 1 and 4 over but not final, so nothing in them had
+                    paid. The Money tab names the week, names the game holding
+                    it and offers to finish it; a week still being played is
+                    not flagged. Also checks the money is itemised by game
     forfeit         every live pick busts in one week, which settles the pot
                     early and puts the field back in for the rest of the block.
                     The man who entered nothing does not come back with them,

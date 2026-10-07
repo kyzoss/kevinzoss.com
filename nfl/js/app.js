@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=b7165d12";
-import * as SC from "./scoring.js?v=b7165d12";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=b7165d12";
-import { fetchWeek } from "./espn.js?v=b7165d12";
+import * as S from "./store.js?v=ff050690";
+import * as SC from "./scoring.js?v=ff050690";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=ff050690";
+import { fetchWeek } from "./espn.js?v=ff050690";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=b7165d12";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=b7165d12";
+import { fetchSpreads } from "./odds.js?v=ff050690";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=ff050690";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -898,6 +898,58 @@ function renderStandings(state) {
 }
 
 // ---- money --------------------------------------------------------------------
+/**
+ * Weeks that are over but have not finished.
+ *
+ * Nothing settles until every game in a week is final: not the weekly pot, not
+ * LMS, not the end-of-block split. One game stuck on "in" since Sunday holds
+ * the whole week open, and the only sign of it was the word "open" in a table
+ * and nobody's money moving. A week still being played is not stuck -- the test
+ * is that every game has kicked off and some still has no result.
+ */
+function stuckWeeks(state) {
+  const out = [];
+  for (let w = 1; w <= cfg.weeks; w++) {
+    const games = state.weeks?.[w]?.games || [];
+    if (!games.length || !games.every((g) => SC.hasStarted(g))) continue;
+    const open = games.filter((g) => !SC.isFinal(g));
+    if (open.length) out.push({ week: w, open });
+  }
+  return out;
+}
+
+function renderStuck(state) {
+  const stuck = stuckWeeks(state);
+  if (!stuck.length) return "";
+  const rows = stuck.map(({ week, open }) => `<div class="stuck__row">
+    <div><b>Week ${week}</b> <span>${open.map((g) => esc(g.id)).join(", ")} ${open.length === 1 ? "has" : "have"} no final score</span></div>
+    <button class="btn btn--sm btn--px" data-action="chase" data-week="${week}">${icon("refresh")}Finish week ${week}</button>
+  </div>`).join("");
+  return `<section class="section" style="margin-top:6px"><div class="alarm">
+    <b>${stuck.length === 1 ? "A week has" : `${stuck.length} weeks have`} not settled.</b>
+    <span>Every game has to be final before a week pays anything: the weekly pot, Last man standing, and the end-of-block split all wait on it. Tap to pull the result again.${commish() ? " If ESPN has nothing for a game that was never played, open the week, tap the pencil on that row and set it final by hand or remove it." : ""}</span>
+    <div class="stuck">${rows}</div>
+  </div></section>`;
+}
+
+/**
+ * Every game the pool runs, as a money row. The tiles at the top of the tab are
+ * these added up, and until now the only one broken out was the weekly pot --
+ * so a tile reading $2 with nothing on the page to explain it was a fair
+ * question with no answer on the screen.
+ */
+const SOURCES = [
+  { key: "weeklyWon", label: "Weekly pot", wins: "weeklyWins",
+    note: () => `${SC.money(cfg.weeklyPot)} a week, most wins` },
+  { key: "lmsWon", label: "Last man standing", wins: "lmsWins",
+    note: (st) => `${SC.money(SC.lmsWeekly(st, cfg))} a week, ${cfg.lmsRoundWeeks}-week blocks` },
+  { key: "brownWon", label: "Brown of the week", wins: "brownWins",
+    note: (st) => `${SC.money(SC.brownWeekly(st, cfg))} a week, best score` },
+  { key: "betWon", label: esc(cfg.sideBet?.label || "Side bet"),
+    note: (st) => `${SC.money(SC.sideBetPot(st, cfg))}, settled at the end` },
+  { key: "adjustments", label: "Adjustments", note: () => "side action and corrections" },
+];
+
 function renderMoney(state) {
   const led = SC.ledger(state, cfg);
   const P = state.players;
@@ -916,9 +968,23 @@ function renderMoney(state) {
 
   const adj = (state.adjustments || []).map((a) => `<tr><td>${a.week || ""}</td><td style="text-align:left">${esc(nameOf(a.player))}</td><td class="${a.amount >= 0 ? "win" : "dim"}">${SC.money(a.amount)}</td><td style="text-align:left;color:var(--ink-soft)">${esc(a.note || "")}</td>${commish() ? `<td><button class="btn btn--ghost btn--sm btn--danger" data-action="adj-del" data-id="${esc(a.id)}">${icon("trash")}</button></td>` : ""}</tr>`).join("");
 
-  return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Money</h2><span class="section__sub">Season buy-in ${SC.money(led.seasonBuyIn)} across the table · ${SC.money(led.seasonBuyIn / P.length)} each</span></div><div class="moneytiles">${tiles}</div></section>
+  return `${renderStuck(state)}
+  <section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Money</h2><span class="section__sub">Season buy-in ${SC.money(led.seasonBuyIn)} across the table · ${SC.money(led.seasonBuyIn / P.length)} each</span></div><div class="moneytiles">${tiles}</div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">Weekly pot · ${SC.money(cfg.weeklyPot)}/wk</h2><span class="section__sub">Most wins. Ties roll over. Week ${cfg.weeks} splits.</span></div>
-    <div class="grid"><table class="sheet"><thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}<th></th></tr></thead><tbody>${weeklyRows || `<tr><td colspan="${P.length + 2}" class="dim">Nothing settled yet.</td></tr>`}</tbody><tfoot><tr><td>Total</td>${weeklyTotals}<td>${SC.money(P.reduce((s, p) => s + led.totals[p.id].weeklyWon, 0))}</td></tr></tfoot></table></div></section>
+    <div class="grid"><table class="sheet sheet--weekly"><thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}<th></th></tr></thead><tbody>${weeklyRows || `<tr><td colspan="${P.length + 2}" class="dim">Nothing settled yet.</td></tr>`}</tbody><tfoot><tr><td>Total</td>${weeklyTotals}<td>${SC.money(P.reduce((s, p) => s + led.totals[p.id].weeklyWon, 0))}</td></tr></tfoot></table></div></section>
+  <section class="section"><div class="section__head"><h2 class="section__title">Where it came from</h2>
+      <span class="section__sub">Every game the pool runs, in one place. The tiles above are these added up.</span></div>
+    <div class="grid"><table class="sheet sheet--src">
+      <thead><tr><th>Game</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}<th>Pot</th></tr></thead>
+      <tbody>${SOURCES.map(({ key, label, wins, note }) => `<tr>
+        <td><b>${label}</b>${note ? `<i>${note(state, led)}</i>` : ""}</td>
+        ${P.map((p) => { const v = led.totals[p.id][key]; const n = wins ? led.totals[p.id][wins] : 0;
+          return `<td class="${v > 0 ? "money" : v < 0 ? "neg" : "dim"}">${v ? SC.money(v) : "·"}${n ? `<i>${n}×</i>` : ""}</td>`; }).join("")}
+        <td class="dim">${SC.money(P.reduce((t, p) => t + led.totals[p.id][key], 0))}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><td>Won</td>${P.map((p) => `<td>${SC.money(led.totals[p.id].won)}</td>`).join("")}<td>${SC.money(P.reduce((t, p) => t + led.totals[p.id].won, 0))}</td></tr>
+        <tr><td>In</td>${P.map((p) => `<td class="dim">${SC.money(led.totals[p.id].buyIn)}</td>`).join("")}<td class="dim">${SC.money(led.seasonBuyIn)}</td></tr>
+        <tr><td>Net</td>${P.map((p) => { const nt = led.totals[p.id].net; return `<td class="${nt >= 0 ? "win" : "dim"}">${nt >= 0 ? "+" : ""}${SC.money(nt)}</td>`; }).join("")}<td></td></tr>
+      </tfoot></table></div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">Adjustments</h2><span class="section__sub">Side action, corrections, whatever needs squaring.</span>${commish() ? `<button class="btn btn--sm btn--px" data-action="adj-add">${icon("plus")}Add</button>` : ""}</div>
     ${adj ? `<div class="grid"><table class="sheet"><thead><tr><th>Wk</th><th style="text-align:left">Who</th><th>Amt</th><th style="text-align:left">Note</th>${commish() ? "<th></th>" : ""}</tr></thead><tbody>${adj}</tbody></table></div>` : `<p class="mute" style="font-size:13px;margin:0">None.</p>`}</section>`;
 }
@@ -1392,6 +1458,13 @@ document.addEventListener("click", (e) => {
       // result, so there is nothing left to flash in.
       paintPick(el);
       requestAnimationFrame(() => setPick(el.dataset.game, el.dataset.side));
+      break;
+    }
+    case "chase": {
+      const w = Number(el.dataset.week);
+      ui.week = w; ui.tab = "week"; render();
+      toast(`Reading week ${w}'s results…`);
+      refreshScores(w, false);
       break;
     }
     case "row-menu": rowMenu(el.dataset.game); break;
