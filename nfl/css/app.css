@@ -578,6 +578,27 @@ table.sheet { border-collapse: collapse; width: 100%; font-size: 13px; font-vari
   background: rgba(255,255,255,.07); color: var(--ink);
 }
 
+/* Every game the pool runs, as a money row. */
+.sheet--src td:first-child { white-space: normal; }
+.sheet--src td b { color: var(--ink); font-weight: 600; }
+.sheet--src td i {
+  font-style: normal; display: block; margin-top: 2px;
+  font-size: 10px; color: var(--ink-mute); letter-spacing: .02em;
+}
+.sheet--src td.money i, .sheet--src td.win i { color: inherit; opacity: .7; font-size: 9px; }
+.sheet--src td.neg { color: var(--loss); }
+.sheet--src tfoot tr:first-child td { border-top: 1px solid var(--line-2); }
+
+/* A week that is over but has not finished, so nothing in it has paid. */
+.stuck { display: grid; gap: 6px; margin-top: 8px; }
+.stuck__row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 6px 10px; padding: 8px 10px; border-radius: var(--r-sm);
+  background: rgba(255,255,255,.04); border: 1px solid var(--line);
+}
+.stuck__row b { color: var(--ink); }
+.stuck__row span { color: var(--ink-mute); font-size: 12px; }
+
 /* ---------- brown of the week ----------
    The result banner, once the Browns game is final. Green like a win badge,
    because that is exactly what it is reporting. */

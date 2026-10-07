@@ -108,6 +108,19 @@ if echo "$out" | grep -q "summary pulled on open : yes" \
   line "box score read after the game" "PASS"
 else line "box score read after the game" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
+out=$(timeout 115 node $SP/stuckmoney.mjs 2>&1)
+if echo "$out" | grep -q "headline : 2 weeks have not settled." \
+  && echo "$out" | grep -q "row   : Week 1 ARI@LAC has no final score Finish week 1" \
+  && echo "$out" | grep -q "weekly   : 1 open  |  4 open  |  5 open" \
+  && echo "$out" | grep -q "chased   : 1$" \
+  && echo "$out" | grep -q "weekly   : 1 · · · \$4  |  4 open  |  5 open" \
+  && echo "$out" | grep -q "still stuck: Week 4 SF@LAR has no final score" \
+  && echo "$out" | grep -q "source   : Brown of the week" \
+  && echo "$out" | grep -q "total    : Won | \$0 | \$0 | \$0 | \$4 | \$4" \
+  && echo "$out" | grep -q "page errors: none"; then
+  line "stuck weeks named, money itemised" "PASS"
+else line "stuck weeks named, money itemised" "FAIL — $(echo "$out" | tail -5 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/forfeit.mjs 2>&1)
 if echo "$out" | grep -q "JV Jim no pick, week 2 Out .*CANNOT pick" \
   && echo "$out" | grep -q "Jim can open the picker: no" \
