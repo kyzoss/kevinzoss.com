@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=ff050690";
-import * as SC from "./scoring.js?v=ff050690";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=ff050690";
-import { fetchWeek } from "./espn.js?v=ff050690";
+import * as S from "./store.js?v=bef02a6d";
+import * as SC from "./scoring.js?v=bef02a6d";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=bef02a6d";
+import { fetchWeek } from "./espn.js?v=bef02a6d";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=ff050690";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=ff050690";
+import { fetchSpreads } from "./odds.js?v=bef02a6d";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=bef02a6d";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -1357,6 +1357,32 @@ function scoreModal(gameId) {
     <p class="mute" style="font-size:12px;margin:10px 0 0">Refreshing from ESPN will overwrite this once the feed catches up.</p>
     <div class="form__actions"><button type="button" class="btn" data-action="modal-close">Cancel</button><button class="btn btn--primary" type="submit">Save</button></div></form>`);
 }
+/**
+ * Finish a week by hand: every game still without a result, in one form.
+ *
+ * This is the end of the line for a week ESPN will not close -- a game that was
+ * never played, or a row the feed has stopped carrying. Until the last game is
+ * final the week settles nothing at all, so one stuck row holds up the weekly
+ * pot, Last man standing and the end-of-block split together.
+ */
+function finishModal(week) {
+  const left = (S.getState().weeks?.[week]?.games || []).filter((g) => !SC.isFinal(g));
+  if (!left.length) return;
+  const rows = left.map((g) => `<div class="finish__row">
+    <b>${esc(g.away)} @ ${esc(g.home)}</b>
+    <div class="finish__in">
+      <label><span>${esc(g.away)}</span><input class="input" name="a:${esc(g.id)}" type="number" min="0" inputmode="numeric" value="${g.awayScore ?? ""}"></label>
+      <label><span>${esc(g.home)}</span><input class="input" name="h:${esc(g.id)}" type="number" min="0" inputmode="numeric" value="${g.homeScore ?? ""}"></label>
+    </div>
+    <label class="finish__skip"><input type="checkbox" name="skip:${esc(g.id)}"> Never played &mdash; drop it from the week</label>
+  </div>`).join("");
+  openModal(`${modalHead(`Finish week ${week}`)}
+    <p class="mute" style="margin:0 0 12px;font-size:13px">ESPN has no result for ${left.length === 1 ? "this game" : `these ${left.length} games`}. Nothing in week ${week} pays until every game is final: the weekly pot, Last man standing and the block split all wait on it. Enter the scores, or drop a game that was never played.</p>
+    <form data-form="finish" data-week="${week}"><div class="finish">${rows}</div>
+    <div class="form__actions"><button type="button" class="btn" data-action="modal-close">Cancel</button>
+    <button class="btn btn--primary" type="submit">Finish week ${week}</button></div></form>`);
+}
+
 /** The depth chart, grouped by position, with spent players greyed out. */
 function brownModal() {
   const state = S.getState();
@@ -1442,7 +1468,7 @@ function importModal() {
 }
 
 // ---- events -------------------------------------------------------------------
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-action]");
   if (!el) return;
   const a = el.dataset.action;
@@ -1464,7 +1490,15 @@ document.addEventListener("click", (e) => {
       const w = Number(el.dataset.week);
       ui.week = w; ui.tab = "week"; render();
       toast(`Reading week ${w}'s results…`);
-      refreshScores(w, false);
+      await refreshScores(w, false);
+      // ESPN is the first answer, not the only one. A game it has nothing for
+      // -- one that was never played, or a row the feed no longer carries --
+      // would otherwise hold the week open for good, so the commissioner gets
+      // the stragglers in one place instead of hunting row menus for them.
+      const left = (S.getState().weeks?.[w]?.games || []).filter((g) => !SC.isFinal(g));
+      if (!left.length) { toast(`Week ${w} is finished.`); break; }
+      if (commish()) finishModal(w);
+      else toast(`${left.length} game${left.length === 1 ? "" : "s"} still without a result. Kevin can set ${left.length === 1 ? "it" : "them"} by hand.`, { bad: true, ms: 7000 });
       break;
     }
     case "row-menu": rowMenu(el.dataset.game); break;
@@ -1518,6 +1552,37 @@ document.addEventListener("submit", (e) => {
     }
     case "score": {
       S.update((d) => { const g = d.weeks[ui.week].games.find((x) => x.id === form.dataset.game); if (!g) return false; g.awayScore = num("away"); g.homeScore = num("home"); g.status = f.get("status"); g.manualScore = true; });
+      break;
+    }
+    case "finish": {
+      const week = Number(form.dataset.week);
+      let done = 0, dropped = 0, missing = [];
+      S.update((d) => {
+        const wk = d.weeks[week];
+        if (!wk) return false;
+        const drop = new Set();
+        for (const g of wk.games) {
+          if (SC.isFinal(g)) continue;
+          if (f.get(`skip:${g.id}`)) { drop.add(g.id); dropped++; continue; }
+          const a2 = num(`a:${g.id}`), h2 = num(`h:${g.id}`);
+          // A half-entered score is worse than none: it would read as final with
+          // a blank on one side and grade every pick on that game wrong.
+          if (a2 == null || h2 == null) { missing.push(g.id); continue; }
+          g.awayScore = a2; g.homeScore = h2; g.status = "post"; g.manualScore = true;
+          done++;
+        }
+        if (drop.size) {
+          wk.games = wk.games.filter((g) => !drop.has(g.id));
+          for (const by of Object.values(wk.picks || {})) for (const id of drop) delete by[id];
+        }
+        if (!done && !dropped) return false;
+      });
+      if (missing.length) return toast(`Both scores are needed for ${missing.join(", ")}.`, { bad: true, ms: 7000 });
+      closeModal();
+      const bits = [];
+      if (done) bits.push(`${done} game${done === 1 ? "" : "s"} set final`);
+      if (dropped) bits.push(`${dropped} dropped`);
+      toast(`Week ${week}: ${bits.join(", ")}.`);
       break;
     }
     case "bet": {

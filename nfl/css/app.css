@@ -589,6 +589,18 @@ table.sheet { border-collapse: collapse; width: 100%; font-size: 13px; font-vari
 .sheet--src td.neg { color: var(--loss); }
 .sheet--src tfoot tr:first-child td { border-top: 1px solid var(--line-2); }
 
+/* Finishing a week by hand: the games ESPN will not close, in one form. */
+.finish { display: grid; gap: 10px; margin-bottom: 14px; }
+.finish__row { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg-2); }
+.finish__row > b { color: var(--ink); font-size: 13px; }
+.finish__in { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.finish__in label { display: grid; gap: 3px; }
+.finish__in span { font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-mute); }
+.finish__skip {
+  display: flex; align-items: center; gap: 6px; margin-top: 8px;
+  font-size: 11.5px; color: var(--ink-mute);
+}
+
 /* A week that is over but has not finished, so nothing in it has paid. */
 .stuck { display: grid; gap: 6px; margin-top: 8px; }
 .stuck__row {

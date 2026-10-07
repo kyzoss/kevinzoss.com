@@ -114,12 +114,18 @@ if echo "$out" | grep -q "headline : 2 weeks have not settled." \
   && echo "$out" | grep -q "weekly   : 1 open  |  4 open  |  5 open" \
   && echo "$out" | grep -q "chased   : 1$" \
   && echo "$out" | grep -q "weekly   : 1 · · · \$4  |  4 open  |  5 open" \
-  && echo "$out" | grep -q "still stuck: Week 4 SF@LAR has no final score" \
+  && echo "$out" | grep -q "still stuck: Week 4 SF@LAR, XXX@YYY have no final score" \
   && echo "$out" | grep -q "source   : Brown of the week" \
   && echo "$out" | grep -q "total    : Won | \$0 | \$0 | \$0 | \$4 | \$4" \
+  && echo "$out" | grep -q "finish modal : opened" \
+  && echo "$out" | grep -q "lists      : SF @ LAR, XXX @ YYY" \
+  && echo "$out" | grep -q "half score : refused, form still open" \
+  && echo "$out" | grep -q "week 4 now : SF@LAR post 17-24" \
+  && echo "$out" | grep -q "dropped pick gone: true" \
+  && echo "$out" | grep -q "stuck left : none" \
   && echo "$out" | grep -q "page errors: none"; then
-  line "stuck weeks named, money itemised" "PASS"
-else line "stuck weeks named, money itemised" "FAIL — $(echo "$out" | tail -5 | tr '\n' ' ')"; fails=$((fails+1)); fi
+  line "stuck weeks named and finishable" "PASS"
+else line "stuck weeks named and finishable" "FAIL — $(echo "$out" | tail -5 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
 out=$(timeout 115 node $SP/forfeit.mjs 2>&1)
 if echo "$out" | grep -q "JV Jim no pick, week 2 Out .*CANNOT pick" \
