@@ -18,7 +18,13 @@ const seed={v:1,season:2026,players:P,weeks:{
   1:{games:[fin('NO','TB',10,24,'2026-09-13T17:00Z'), stuck('ARI','LAC','2026-09-13T20:05Z')],
      picks:{hz:{'NO@TB':'home','ARI@LAC':'home'}, kz:{'NO@TB':'away'}, az:{'NO@TB':'away'}, jv:{'NO@TB':'away'}},
      lms:{},dupPrefs:{},brown:{},brownStats:{}},
-  4:{games:[stuck('SF','LAR','2026-10-04T17:00Z')],picks:{},lms:{},dupPrefs:{},brown:{},brownStats:{}},
+  // week 4: a game that kicked off and never produced a result at all
+  4:{games:[{id:'SF@LAR',away:'SF',home:'LAR',spread:-3,status:'pre',awayScore:null,homeScore:null,
+             kickoff:'2026-10-04T17:00Z',espnId:'9SF'},
+            // a row the feed stopped carrying: it was never a real game
+            {id:'XXX@YYY',away:'XXX',home:'YYY',spread:null,status:'pre',awayScore:null,homeScore:null,
+             kickoff:'2026-10-04T17:00Z',espnId:'9XX'}],
+     picks:{kz:{'XXX@YYY':'home'}},lms:{},dupPrefs:{},brown:{},brownStats:{}},
   // week 5 is being played right now: one final, one yet to kick off. Not stuck.
   5:{games:[fin('NE','SEA',10,20,'2026-10-11T17:00Z'), soon('KC','DEN','2026-10-12T20:05Z')],
      picks:{},lms:{},dupPrefs:{},brown:{},brownStats:{}},
@@ -79,5 +85,26 @@ for (const r of src) console.log('source   :', r);
 const foot = await p.locator('.sheet--src tfoot tr').evaluateAll(els => els.map(e =>
   [...e.querySelectorAll('td')].map(td => td.innerText.trim()).join(' | ')));
 for (const r of foot) console.log('total    :', r);
+
+// Week 4's game is one ESPN has nothing for. Chasing it cannot help, so the
+// commissioner gets every straggler in one form rather than hunting row menus.
+await p.locator('[data-tab="money"]:visible').first().click(); await p.waitForTimeout(400);
+await p.locator('[data-action="chase"][data-week="4"]').click();
+await p.waitForTimeout(2400);
+console.log('\nfinish modal :', await p.locator('[data-form="finish"]').count() ? 'opened' : 'MISSING');
+console.log('  lists      :', (await p.locator('.finish__row > b').allInnerTexts()).join(', '));
+// a half-entered score must be refused: final with one side blank grades wrong
+await p.locator('input[name="a:SF@LAR"]').fill('17');
+await p.locator('[data-form="finish"] button[type="submit"]').click(); await p.waitForTimeout(500);
+console.log('  half score :', await p.locator('[data-form="finish"]').count() ? 'refused, form still open' : 'ACCEPTED');
+await p.locator('input[name="h:SF@LAR"]').fill('24');
+await p.locator('input[name="skip:XXX@YYY"]').check();   // never played: drop it
+await p.locator('[data-form="finish"] button[type="submit"]').click(); await p.waitForTimeout(900);
+const g4 = await p.evaluate(() => JSON.parse(localStorage.getItem('pickem:2026')).weeks[4].games.map(g => `${g.id} ${g.status} ${g.awayScore}-${g.homeScore}`));
+console.log('  week 4 now :', g4.join(' | '));
+console.log('  dropped pick gone:', await p.evaluate(() =>
+  JSON.parse(localStorage.getItem('pickem:2026')).weeks[4].picks?.kz?.['XXX@YYY'] === undefined));
+await p.locator('[data-tab="money"]:visible').first().click(); await p.waitForTimeout(600);
+console.log('  stuck left :', (await p.locator('.stuck__row').allInnerTexts()).map(t=>t.split('\n')[0]).join(', ') || 'none');
 console.log('page errors:', errs.length ? errs[0] : 'none');
 await b.close();
