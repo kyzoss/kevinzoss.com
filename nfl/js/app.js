@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=bef02a6d";
-import * as SC from "./scoring.js?v=bef02a6d";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=bef02a6d";
-import { fetchWeek } from "./espn.js?v=bef02a6d";
+import * as S from "./store.js?v=73767eac";
+import * as SC from "./scoring.js?v=73767eac";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=73767eac";
+import { fetchWeek } from "./espn.js?v=73767eac";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=bef02a6d";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=bef02a6d";
+import { fetchSpreads } from "./odds.js?v=73767eac";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=73767eac";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -447,7 +447,7 @@ function renderWeek(state) {
     weeklyTxt = leaders.length === 1
       ? `<b>${shortOf(leaders[0])}</b> leads with ${fmtPts(best)}. ${games.length - finals} to play.`
       : `${leaders.map(shortOf).join(" & ")} tied at ${fmtPts(best)}. ${games.length - finals} to play.`;
-  } else weeklyTxt = `Most wins takes it. Ties roll over${week === cfg.weeks ? "" : " to next week"}.`;
+  } else weeklyTxt = `Best score takes it. Any tie at the top rolls the whole pot${week === cfg.weeks ? ", except in the last week, which splits" : " into next week"}.`;
 
   const lmsAlive = lrow ? lrow.aliveEntering : state.players.map((p) => p.id);
   const lmsTxt = lrow
@@ -970,7 +970,7 @@ function renderMoney(state) {
 
   return `${renderStuck(state)}
   <section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Money</h2><span class="section__sub">Season buy-in ${SC.money(led.seasonBuyIn)} across the table · ${SC.money(led.seasonBuyIn / P.length)} each</span></div><div class="moneytiles">${tiles}</div></section>
-  <section class="section"><div class="section__head"><h2 class="section__title">Weekly pot · ${SC.money(cfg.weeklyPot)}/wk</h2><span class="section__sub">Most wins. Ties roll over. Week ${cfg.weeks} splits.</span></div>
+  <section class="section"><div class="section__head"><h2 class="section__title">Weekly pot · ${SC.money(cfg.weeklyPot)}/wk</h2><span class="section__sub">Best score takes it, and a dup that comes in is worth ${fmtPts(cfg.dup.win)} &mdash; so this is points, not wins. Any tie at the top pays nobody and rolls the whole pot into next week. Week ${cfg.weeks} has nowhere to roll, so it splits.</span></div>
     <div class="grid"><table class="sheet sheet--weekly"><thead><tr><th>Wk</th>${P.map((p) => `<th class="pname" style="--c:${esc(p.color)}">${esc(p.short || p.name)}</th>`).join("")}<th></th></tr></thead><tbody>${weeklyRows || `<tr><td colspan="${P.length + 2}" class="dim">Nothing settled yet.</td></tr>`}</tbody><tfoot><tr><td>Total</td>${weeklyTotals}<td>${SC.money(P.reduce((s, p) => s + led.totals[p.id].weeklyWon, 0))}</td></tr></tfoot></table></div></section>
   <section class="section"><div class="section__head"><h2 class="section__title">Where it came from</h2>
       <span class="section__sub">Every game the pool runs, in one place. The tiles above are these added up.</span></div>
@@ -1282,7 +1282,7 @@ function renderSettings(state) {
   <section class="section"><div class="section__head"><h2 class="section__title">House rules</h2></div><div class="rules">
     <p><b>Picks.</b> Every game, straight up: pick the team you think wins. A win is 1 point and nothing else scores — a tie counts as a loss. The spread is not part of it — it only sets which dogs go up for the dup draft. Everything locks at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, and any game that kicks off before then locks at its own kickoff instead.</p>
     <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game, and it has to win outright: +${cfg.dup.win} if it does, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft closes with the picks, at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, except that a dog whose own game has already kicked off can no longer be ranked.</p>
-    <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it. A tie rolls the whole pot into next week; week ${cfg.weeks} splits.</p>
+    <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it &mdash; score, not wins, since a dup that comes in is worth ${fmtPts(cfg.dup.win)}. <b>Any tie at the top pays nobody</b>: two of you level, or all four, and the whole pot rolls into next week and keeps stacking until somebody wins outright. The only exception is week ${cfg.weeks}, which has no next week to roll to, so a tie there splits.</p>
     <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and <b>they</b> re-enter for the rest of the block. A forfeit neither shares nor comes back: enter nothing and you are out for the block, whatever everybody else&rsquo;s teams did. And if nobody picked at all, nothing is settled: the pot rolls into next week and marks no one. The week-by-week tracker is on the Standings tab.</p>
     <p><b>Brown of the week.</b> ${SC.money(cfg.brownOfWeek?.perPlayer ?? 1)} from everyone, every week &mdash; ${SC.money(SC.brownWeekly(state, cfg))} a week with ${state.players.length} playing. Name one ${esc(teamName(cfg.sideBet.team))} player and score his game on the pool's table. You may draft a <b>${esc(listOf(draftPositions(), "or"))}</b> &mdash; <b>no quarterbacks</b>, since one man throws for the whole team, so he is not a choice between Browns. Best score takes the pot and a tie splits it, so nothing rolls over. Rounds are ${cfg.brownOfWeek?.roundWeeks ?? 4} weeks like LMS: a player you have used is spent until the round resets, and only a week that actually got scored spends him. It locks when the ${esc(teamName(cfg.sideBet.team))} kick off. Every Brown's line, including the ones nobody could pick, is on the ${esc(cfg.sideBet?.label?.split(" ")[0] || "Browns")} tab.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.perPlayer ?? 0)} from everyone, so ${SC.money(SC.sideBetPot(state, cfg))} on the table. One guess each at the ${esc(teamName(cfg.sideBet.team))}' final record, in before they first take the field. The moment they kick off every guess is final &mdash; there is no commissioner edit, because the fix and the cheat are the same edit. Closest wins, points scored breaks ties.</p>

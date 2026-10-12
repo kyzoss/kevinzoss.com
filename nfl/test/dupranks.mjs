@@ -71,15 +71,23 @@ for (const [label, opts] of [['mobile', devices['iPhone 13']], ['desktop', {view
 const lost = JSON.parse(JSON.stringify(seed));
 lost.weeks[1].dupPrefs.jv = ['TB'];          // Jim ranks a dog Andrew already has
 console.log('\n== what each seat is told');
-for (const [who, board] of [['az', seed], ['kz', seed], ['jv', seed], ['hz', seed], ['jv', lost]]) {
+// One context, reloaded as each player. Seven fresh contexts took long enough
+// that the gate's per-test budget killed this suite outright, and a test that
+// times out reads exactly like a test that failed.
+{
   const c = await b.newContext({ ...devices['iPhone 13'] });
   await c.route(/site\.api\.espn\.com|the-odds-api\.com|a\.espncdn\.com|script\.google\.com/, r => r.abort());
-  await c.addInitScript(([s, t, me]) => { localStorage.setItem('pickem:me', me); localStorage.setItem('pickem:2026', s);
+  await c.addInitScript((t) => {
     const R = Date; class D extends R { constructor(...a){ super(...(a.length ? a : [t])); } static now(){ return t; } } window.Date = D;
-  }, [JSON.stringify(board), OPEN, who]);
-  const p = await c.newPage(); await p.goto(base); await p.waitForTimeout(700);
-  const tag = board === lost ? `${who} (ranked a taken dog)` : who;
-  console.log(`  ${tag.padEnd(24)} ${(await p.locator('.dupbar__note').innerText()).replace(/\s+/g,' ').trim()}`);
+  }, OPEN);
+  const p = await c.newPage();
+  for (const [who, board] of [['az', seed], ['kz', seed], ['jv', seed], ['hz', seed], ['jv', lost]]) {
+    await p.goto(base);
+    await p.evaluate(([s, me]) => { localStorage.setItem('pickem:me', me); localStorage.setItem('pickem:2026', s); }, [JSON.stringify(board), who]);
+    await p.reload(); await p.waitForTimeout(500);
+    const tag = board === lost ? `${who} (ranked a taken dog)` : who;
+    console.log(`  ${tag.padEnd(24)} ${(await p.locator('.dupbar__note').innerText()).replace(/\s+/g,' ').trim()}`);
+  }
   await c.close();
 }
 await b.close(); srv.close();

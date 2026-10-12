@@ -241,6 +241,61 @@ console.log("— weekly pot");
   led = SC.ledger(st, cfg);
   eq("rollover lands next settled week", led.weekly.rows[3].payouts, { az: 8 });
 }
+{ // The rule in full: ANY tie at the top pays nobody and rolls the lot. Two
+  // players or four, and whether or not anyone finished below them.
+  const two = [g("A","B",-7,20,30), g("C","D",-7,20,30)];   // home wins both
+  const at = (...n) => Object.fromEntries(["az","kz","jv","hz"].map((id, i) =>
+    [id, { "A@B": n[i] > 0 ? "home" : "away", "C@D": n[i] > 1 ? "home" : "away" }]));
+  const week1 = (picks) => { const st = blank(); st.weeks[1] = { games: two, picks, lms: {}, dupPrefs: {} }; return SC.ledger(st, cfg).weekly.rows[1]; };
+
+  const twoWay = week1(at(2, 2, 1, 0));
+  eq("two tied at the top: the top two", twoWay.winners.sort(), ["az", "kz"]);
+  eq("two tied at the top: nobody paid", twoWay.payouts, {});
+  eq("two tied at the top: it rolls", twoWay.rolled, true);
+
+  const threeWay = week1(at(2, 2, 2, 0));
+  eq("three tied: still nobody paid", threeWay.payouts, {});
+  eq("three tied: still rolls", threeWay.rolled, true);
+
+  const fourWay = week1(at(1, 1, 1, 1));
+  eq("everyone tied: nobody paid", fourWay.payouts, {});
+  eq("everyone tied: it rolls", fourWay.rolled, true);
+
+  // and the rolled money stacks until somebody wins outright
+  const st = blank();
+  st.weeks[1] = { games: two, picks: at(2, 2, 0, 0), lms: {}, dupPrefs: {} };
+  st.weeks[2] = { games: [g("E","F",-7,20,30), g("G","H",-7,20,30)],
+                  picks: { az: { "E@F":"home", "G@H":"home" }, kz: { "E@F":"home", "G@H":"home" } }, lms: {}, dupPrefs: {} };
+  st.weeks[3] = { games: [g("I","J",-7,20,30)], picks: { az: { "I@J":"home" } }, lms: {}, dupPrefs: {} };
+  const led3 = SC.ledger(st, cfg);
+  eq("two ties running pay nobody",
+     [led3.weekly.rows[1].payouts, led3.weekly.rows[2].payouts], [{}, {}]);
+  eq("and the third week takes all of it", led3.weekly.rows[3].payouts, { az: 12 });
+
+  // The one exception: the last week of the season has no next week to roll to.
+  const last = blank();
+  last.weeks[cfg.weeks] = { games: two, picks: at(2, 2, 0, 0), lms: {}, dupPrefs: {} };
+  const fin = SC.ledger(last, cfg).weekly.rows[cfg.weeks];
+  eq(`a tie in week ${cfg.weeks} splits, with nowhere to roll`, fin.payouts, { az: 2, kz: 2 });
+  eq("and is not flagged rolled", fin.rolled, false);
+
+  // The top is the SCORE, not the win count. A dup that comes in is worth 1.5,
+  // so two men on the same number of wins are not necessarily tied -- and the
+  // Money tab used to call this column "most wins", which would have had the
+  // table expecting a roll where somebody had actually won outright.
+  // CHI is az's dup and comes in (+1.5). kz is locked onto the favourite there,
+  // so he takes his second win in a game az got wrong: same two wins each.
+  const dup = blank();
+  dup.weeks[1] = { games: [g("CHI","GB",-10,24,22), g("LAR","SEA",-6.5,10,30), g("NE","BUF",-3,20,10)],
+    picks: { az: { "LAR@SEA":"home", "NE@BUF":"home" }, kz: { "LAR@SEA":"home", "NE@BUF":"away" } },
+    lms: {}, dupPrefs: { az: ["CHI"] } };
+  const dt = SC.weekTally(dup, 1, cfg);
+  const drow = SC.ledger(dup, cfg).weekly.rows[1];
+  eq("same two wins each", [dt.az.w, dt.kz.w], [2, 2]);
+  eq("but the dup is worth 1.5", [dt.az.points, dt.kz.points], [2.5, 2]);
+  eq("so it is not a tie, and it pays", drow.payouts, { az: 4 });
+  eq("and does not roll", drow.rolled, false);
+}
 { // the bug that hid every later week: an unloaded week must not stop the ledger
   const st = blank();
   st.weeks[1] = { games: [g("A","B",-7,20,30)], picks: { az: {"A@B":"home"} }, lms: {}, dupPrefs: {} };

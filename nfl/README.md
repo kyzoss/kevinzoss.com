@@ -162,8 +162,12 @@ API keys.
   page. Scores come from the ESPN box score, pulled by the commissioner once
   the game is final -- **verify one real game by hand before trusting it**, for
   the reason in the note at the top of `js/browns.js`.
-- **Weekly pot.** $4 a week. Best score takes it; a tie rolls the pot; week 18
-  splits.
+- **Weekly pot.** $4 a week. Best SCORE takes it, not most wins -- a dup that
+  comes in is worth 1.5, so two players on the same number of wins are not
+  necessarily level. **Any tie at the top pays nobody**: two tied or all four,
+  the whole pot rolls into the next week and keeps stacking until somebody wins
+  outright. Week 18 is the only exception, having no next week to roll into, so
+  a tie there splits.
 - **Last man standing.** The picker lists every team biggest-underdog-first with
   its own line, since the plus numbers are the whole read. **One team per
   four-week block**: once a week settles, that team is spent and shows struck
