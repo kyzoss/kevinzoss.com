@@ -90,7 +90,7 @@ test("trick resolution in every case", () => {
   assert.equal(w(["9H", "JD", "AH", "KH"], "H"), 1, "left bower beats ace of trump");
   assert.equal(w(["AS", "AD", "AC", "KS"], "H"), 0, "off suit discards lose");
   assert.equal(w(["KD", "JD", "AD", "9D"], "H"), 1, "left bower beats led diamonds");
-  assert.equal(w(["JD", "AD", "9H", "KD"], "H"), 0 + 0, "left bower leads and wins over trump 9? no, 9H trump is lower") ;
+  assert.equal(w(["JD", "AD", "9H", "KD"], "H"), 0 + 0, "left bower leads and beats a low trump");
   assert.equal(w(["9D", "AC", "KC", "QC"], "H"), 0, "led suit wins when nobody follows or trumps");
 });
 

@@ -13,12 +13,12 @@ body { min-height: 100dvh; }
 button { font: inherit; color: inherit; cursor: pointer; }
 #app { max-width: 1000px; margin: 0 auto; padding: 8px 16px 24px; }
 
-.top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 44px; }
+.top { display: flex; align-items: center; gap: 8px; min-height: 44px; }
 .back { color: var(--soft); text-decoration: none; font-size: 14px; min-height: 44px; display: inline-flex; align-items: center; padding-right: 6px; }
 .back:hover { color: var(--ink); }
-.top h1 { font-family: var(--display); font-weight: 900; font-size: 17px; letter-spacing: .02em; text-transform: uppercase; margin: 0; flex: 1; white-space: nowrap; }
+.top h1 { font-family: var(--display); font-weight: 900; font-size: 14px; letter-spacing: .02em; text-transform: uppercase; margin: 0; flex: 1; min-width: 0; white-space: nowrap; }
 .tools { display: flex; gap: 6px; }
-.tbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; min-height: 44px; font-size: 13px; font-weight: 600; }
+.tbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 0 9px; min-width: 44px; min-height: 44px; font-size: 13px; font-weight: 600; }
 .tbtn:hover { border-color: var(--soft); }
 
 .layout { display: block; }
@@ -39,7 +39,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   :root { --cw: min(94px, calc((100dvh - 250px) / 5.7)); }
 }
 
-.rowlabel { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); font-weight: 700; }
+.rowlabel { margin: 0 2px 8px; display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); font-weight: 700; }
 .rowlabel .chip { letter-spacing: 0; text-transform: none; font-weight: 500; }
 .row { display: grid; grid-template-columns: repeat(5, var(--cw)); gap: var(--gap); justify-content: space-between; }
 .zone { background: var(--felt); border: 1px solid #1b1b21; border-radius: 10px; padding: 6px 4px 6px; }
@@ -71,8 +71,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .slot.sel .card, .slot.sel { outline: 3px solid var(--hot); outline-offset: 2px; }
 .slot.sel .card { transform: translateY(-4px); }
-.slot.tgt { border-color: var(--hot); border-style: solid; animation: pulse 1.1s ease-in-out infinite; }
-.slot.tgt.dtgt { border-style: dashed; }
+.slot.tgt { border-color: var(--hot); border-style: solid; outline: 2px solid var(--hot); outline-offset: 2px; animation: pulse 1.1s ease-in-out infinite; }
+.slot.tgt.dtgt { border-color: var(--soft); border-style: dashed; outline: 2px dashed var(--soft); animation: none; }
 .slot.hl .card, .slot.hl.empty { animation: pop .7s ease-out 1; }
 .slot.hl { outline: 3px solid #ffd24a; outline-offset: 2px; }
 .slot.src { outline: 3px dashed #ffd24a; outline-offset: 2px; }

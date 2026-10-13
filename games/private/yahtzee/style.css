@@ -102,3 +102,40 @@ h2 { font-family: var(--display); font-weight: 900; font-size: 18px; text-transf
 @media (prefers-reduced-motion: reduce) {
   .die, .die.tumble { animation: none; transition: none; }
 }
+
+/* real dice mode */
+.seg.wide button { padding: 0 14px; }
+.seg.center { display: flex; margin: 0 0 10px; }
+.seg.center button { flex: 1; }
+.names { display: grid; gap: 8px; margin-bottom: 12px; }
+.names input { width: 100%; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: #0F0F13; color: var(--ink); padding: 0 12px; font: inherit; font-size: 16px; }
+.padrow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 8px; }
+.pad { min-height: 56px; border-radius: 10px; border: 1px solid var(--line); background: #1F1F26; font-family: var(--display); font-size: 24px; }
+.pad:hover { border-color: var(--soft); }
+.pad:active { background: var(--accent); }
+.entered { display: flex; justify-content: center; gap: 8px; margin: 2px 0 10px; }
+.die.mini { --ds: clamp(46px, 13vw, 58px); padding: 5px; box-shadow: 0 2px 0 #8d8d88; }
+.die.mini.sel { border-color: var(--hot); }
+.die.mini.slot { background: #25252c; border: 2px dashed #4a4a54; box-shadow: none; }
+.entrybtns { display: flex; gap: 8px; }
+.entrybtns .btn { margin: 0; min-height: 44px; }
+.board { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0; }
+.chip { flex: 1 0 auto; min-width: 84px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; text-align: center; }
+.chip.cur { border-color: var(--hot); }
+.chip .n { font-size: 12px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+.chip .t { font-family: var(--display); font-size: 20px; }
+.chip .r { font-size: 11px; color: var(--hot); }
+.rwrap { overflow-x: auto; }
+.rcard { width: auto; min-width: 100%; table-layout: fixed; }
+.rcard th, .rcard td { width: 78px; min-width: 78px; }
+.rcard th:first-child, .rcard td:first-child { position: sticky; left: 0; z-index: 2; background: var(--bg); width: 104px; min-width: 104px; box-shadow: 1px 0 0 var(--line); }
+.rcard tr.sub td:first-child { background: #101015; }
+.rcard td.edit { cursor: pointer; }
+.rcard td.edit:hover { background: #24242b; }
+.rcard tr.total td:first-child { background: var(--bg); }
+.pickgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+.pickgrid .pad { font-size: 20px; min-height: 56px; }
+.sheet h2 small { display: block; font-family: var(--body); font-size: 13px; font-weight: 400; color: var(--soft); text-transform: none; margin-top: 4px; }
+.top .back, .top .linkbtn, .round { white-space: nowrap; }
+.topbtns .linkbtn { padding: 0 6px; }
+.chip .n { max-width: none; width: 100%; }

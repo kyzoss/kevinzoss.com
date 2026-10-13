@@ -524,7 +524,7 @@ test('win detection on own turn at 10 VP', () => {
 });
 
 test('AI only plays legal actions and finishes games', () => {
-  const GAMES = 60, CAP = 400 * 4;
+  const GAMES = 150, CAP = 400 * 4;
   let finished = 0, turnsSum = 0;
   const t0 = Date.now();
   const winners = [0, 0, 0, 0];

@@ -263,3 +263,175 @@ test("no em dash in shipped yahtzee files", () => {
     assert.ok(!fs.readFileSync(path.join(dir, f), "utf8").includes(String.fromCharCode(0x2014)), f);
   }
 });
+
+// ------------------------------------------------------------ real dice scoreboard
+const range = (a, b, st = 1) => { const o = []; for (let i = a; i <= b; i += st) o.push(i); return o; };
+
+test("validScoresFor lists for every category", () => {
+  for (let f = 1; f <= 6; f++) assert.deepEqual(L.validScoresFor(f - 1), range(0, 5 * f, f));
+  const sum = [0, ...range(5, 30)];
+  assert.deepEqual(L.validScoresFor(C.threeKind), sum);
+  assert.deepEqual(L.validScoresFor(C.fourKind), sum);
+  assert.deepEqual(L.validScoresFor(C.chance), sum);
+  assert.deepEqual(L.validScoresFor(C.fullHouse), [0, 25]);
+  assert.deepEqual(L.validScoresFor(C.smStraight), [0, 30]);
+  assert.deepEqual(L.validScoresFor(C.lgStraight), [0, 40]);
+  assert.deepEqual(L.validScoresFor(C.yahtzee), [0, 50]);
+  assert.throws(() => L.validScoresFor(13));
+});
+
+test("board: entering scores advances turns and rejects bad input", () => {
+  const b = L.newBoard(["A", "B", "C"]);
+  assert.equal(b.current, 0);
+  L.boardEnter(b, C.ones, 3);
+  assert.equal(b.current, 1);
+  L.boardEnter(b, C.ones, 0);
+  L.boardEnter(b, C.chance, 22);
+  assert.equal(b.current, 0);
+  assert.equal(b.round, 2);
+  assert.throws(() => L.boardEnter(b, C.ones, 2));      // box filled
+  assert.throws(() => L.boardEnter(b, C.twos, 3));      // invalid for Twos
+  assert.throws(() => L.boardEnter(b, C.fullHouse, 30));
+  assert.equal(b.players[0].scores[C.ones], 3);
+});
+
+test("board: upper bonus at exactly 63 via entered scores", () => {
+  const b = L.newBoard(["Solo"]);
+  [3, 6, 9, 12, 15].forEach((v, i) => L.boardEnter(b, i, v));
+  assert.equal(L.bonusToGo(b.players[0]), 63 - 45);
+  L.boardEnter(b, C.sixes, 12);
+  assert.equal(L.totals(b.players[0]).upper, 57);
+  assert.equal(L.totals(b.players[0]).upperBonus, 0);
+  assert.equal(L.bonusToGo(b.players[0]), 6);
+  L.boardEdit(b, 0, C.sixes, 18);
+  assert.equal(L.totals(b.players[0]).upper, 63);
+  assert.equal(L.totals(b.players[0]).upperBonus, 35);
+  assert.equal(L.totals(b.players[0]).total, 98);
+  assert.equal(L.bonusToGo(b.players[0]), 0);
+  L.boardEdit(b, 0, C.ones, 2);
+  assert.equal(L.totals(b.players[0]).upperBonus, 0);
+});
+
+test("board: editing and clearing recalculate totals and the turn", () => {
+  const b = L.newBoard(["A", "B"]);
+  L.boardEnter(b, C.chance, 20);
+  L.boardEnter(b, C.chance, 10);
+  L.boardEdit(b, 1, C.chance, 25);
+  assert.equal(L.totals(b.players[1]).total, 25);
+  L.boardEdit(b, 0, C.chance, null);
+  assert.equal(L.totals(b.players[0]).total, 0);
+  assert.equal(b.current, 0);            // A has fewer boxes again
+  assert.equal(b.round, 1);
+  assert.throws(() => L.boardEdit(b, 0, C.twos, 3));
+  assert.throws(() => L.boardEdit(b, 5, C.twos, 2));
+});
+
+test("board: undo is multi-step and restores everything", () => {
+  const b = L.newBoard(["A", "B"]);
+  assert.equal(L.boardUndo(b), false);
+  L.boardEnter(b, C.yahtzee, 50);
+  assert.throws(() => L.boardAddBonus(b));       // B has no 50 in the box
+  L.boardEnter(b, C.ones, 1);
+  L.boardAddBonus(b);                            // A is up and has 50
+  assert.equal(b.players[0].bonus, 1);
+  L.boardEdit(b, 1, C.ones, 4);
+  L.boardEnter(b, C.twos, 6);
+  assert.equal(L.boardUndo(b), true);            // undo A twos
+  assert.equal(b.players[0].scores[C.twos], null);
+  assert.equal(b.current, 0);
+  L.boardUndo(b);                                // undo edit
+  assert.equal(b.players[1].scores[C.ones], 1);
+  L.boardUndo(b);                                // undo bonus
+  assert.equal(b.players[0].bonus, 0);
+  L.boardUndo(b); L.boardUndo(b);
+  assert.equal(b.players[0].scores[C.yahtzee], null);
+  assert.equal(b.current, 0);
+  assert.equal(L.boardUndo(b), false);
+});
+
+test("board: yahtzee bonus button and clearing the 50 drops the bonus", () => {
+  const b = L.newBoard(["A"]);
+  L.boardEnter(b, C.yahtzee, 50);
+  L.boardAddBonus(b); L.boardAddBonus(b);
+  assert.equal(L.totals(b.players[0]).yahtzeeBonus, 200);
+  assert.equal(L.totals(b.players[0]).total, 250);
+  L.boardEdit(b, 0, C.yahtzee, 0);
+  assert.equal(b.players[0].bonus, 0);
+  assert.throws(() => L.boardAddBonus(b));
+});
+
+test("board: ties share a rank, winners lists all tied", () => {
+  const b = L.newBoard(["A", "B", "C"]);
+  L.boardEnter(b, C.chance, 20); L.boardEnter(b, C.chance, 20); L.boardEnter(b, C.chance, 10);
+  const st = L.boardStandings(b);
+  assert.deepEqual(st.map((x) => x.rank), [1, 1, 3]);
+  assert.deepEqual(L.boardWinners(b), [0, 1]);
+  L.boardEdit(b, 2, C.chance, 30);
+  assert.deepEqual(L.boardWinners(b), [2]);
+  assert.deepEqual(L.boardStandings(b).map((x) => x.name), ["C", "A", "B"]);
+});
+
+test("board: entered dice use Joker rule and Yahtzee bonus", () => {
+  const b = L.newBoard(["A", "B"]);
+  assert.equal(L.boardPotentials(b, [1, 2, 3])[0], null);        // needs five dice
+  let pot = L.boardPotentials(b, [4, 4, 4, 4, 4]);
+  assert.equal(pot[C.yahtzee], 50);
+  assert.equal(pot[C.fullHouse], 0);                              // no joker yet
+  let ev = L.boardEnterDice(b, [4, 4, 4, 4, 4], C.yahtzee);
+  assert.equal(ev.points, 50); assert.equal(ev.yahtzeeBonus, false);
+  L.boardEnter(b, C.chance, 10);                                  // B
+  pot = L.boardPotentials(b, [2, 2, 2, 2, 2]);                    // A again: joker
+  assert.equal(pot[C.twos], 10);
+  assert.equal(pot.filter((x) => x !== null).length, 1);          // forced upper
+  ev = L.boardEnterDice(b, [2, 2, 2, 2, 2], C.twos);
+  assert.equal(ev.yahtzeeBonus, true); assert.equal(ev.joker, true);
+  assert.equal(b.players[0].bonus, 1);
+  L.boardEnter(b, C.ones, 0);                                     // B
+  assert.throws(() => L.boardEnterDice(b, [2, 2, 2, 2, 2], C.ones)); // twos filled: lower boxes only
+});
+
+test("board: joker falls through to lower boxes and full-value straights", () => {
+  const b = L.newBoard(["A"]);
+  b.players[0].scores[C.yahtzee] = 50;
+  b.players[0].scores[C.sixes] = 24;
+  const pot = L.boardPotentials(b, [6, 6, 6, 6, 6]);
+  assert.equal(pot[C.fullHouse], 25);
+  assert.equal(pot[C.smStraight], 30);
+  assert.equal(pot[C.lgStraight], 40);
+  assert.equal(pot[C.threeKind], 30);
+  assert.equal(pot[C.ones], null);
+  L.boardEnterDice(b, [6, 6, 6, 6, 6], C.lgStraight);
+  assert.equal(b.players[0].scores[C.lgStraight], 40);
+  assert.equal(b.players[0].bonus, 1);
+});
+
+test("board: game ends after all players fill 13 boxes; resume round-trip", () => {
+  const b = L.newBoard(["A", "B", "C", "D", "E", "F"]);
+  let n = 0;
+  while (!b.over) {
+    if (n === 20) {
+      const copy = JSON.parse(JSON.stringify(b));
+      assert.ok(L.validBoard(copy));
+      L.boardRecalc(copy);
+      assert.equal(copy.current, b.current);
+      assert.equal(copy.history.length, b.history.length);
+      L.boardUndo(copy);
+      assert.equal(copy.history.length, 19);
+    }
+    const p = b.players[b.current];
+    const cat = p.scores.findIndex((s) => s === null);
+    L.boardEnter(b, cat, L.validScoresFor(cat)[1]);
+    n++;
+  }
+  assert.equal(n, 78);
+  assert.throws(() => L.boardEnter(b, 0, 1));
+  L.boardEdit(b, 0, 0, null);
+  assert.equal(b.over, false);
+  assert.equal(b.current, 0);
+  assert.equal(L.validBoard({ v: 1, kind: "virtual" }), false);
+});
+
+test("board: one to six players only matter via validBoard", () => {
+  assert.equal(L.validBoard(L.newBoard(["A"])), true);
+  assert.equal(L.validBoard(L.newBoard(["1", "2", "3", "4", "5", "6", "7"])), false);
+});

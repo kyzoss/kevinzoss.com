@@ -29,7 +29,7 @@ button { font: inherit; color: inherit; }
 .back { color: var(--soft); text-decoration: none; font-size: 13px; padding: 12px 6px 12px 0; min-width: 64px; }
 .back:hover { color: var(--ink); }
 .tools { display: flex; align-items: center; gap: 6px; min-width: 64px; justify-content: flex-end; }
-.tally { font-size: 12px; color: var(--dim); white-space: nowrap; padding-right: 2px; }
+.tally { font-size: 11px; color: var(--dim); white-space: nowrap; padding-right: 2px; }
 .btn { appearance: none; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); border-radius: 10px; min-height: 48px; padding: 0 16px; font-weight: 700; cursor: pointer; }
 .btn:hover { border-color: #494955; }
 .btn:active { transform: translateY(1px); }
@@ -74,7 +74,7 @@ button { font: inherit; color: inherit; }
 .badge { font-size: 10px; font-weight: 800; letter-spacing: .03em; border-radius: 999px; padding: 1px 6px; background: var(--panel2); color: var(--soft); border: 1px solid var(--line); }
 .badge.d { background: #fff; color: #111; border-color: #fff; }
 .badge.m { background: var(--accent); color: #fff; border-color: var(--accent); }
-.bubble { font-size: 12px; font-weight: 700; color: var(--ink); background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 2px 6px; margin-top: 3px; display: inline-block; max-width: 100%; }
+.bubble { font-size: 11px; font-weight: 700; color: var(--ink); background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 2px 6px; margin-top: 3px; display: inline-block; max-width: 100%; }
 .bubble.call { background: var(--accent); border-color: var(--accent); }
 .backs { display: flex; justify-content: center; margin-top: 4px; height: 24px; }
 .back-card { width: 17px; height: 24px; border-radius: 3px; border: 1px solid #3a3a46; background: repeating-linear-gradient(45deg, #3b0b0b 0 3px, #5a0e0e 3px 6px); margin-left: -9px; }
@@ -126,9 +126,10 @@ button { font: inherit; color: inherit; }
 .panel .msg { color: var(--ink); font-size: 14px; text-align: center; }
 .panel .msg .dim { color: var(--soft); }
 .btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.btns .btn { flex: 1 1 96px; }
+.btns .btn { flex: 1 1 84px; padding: 0 10px; }
 .suitbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .suitbtn .pip { font-size: 22px; }
+.suitbtn.red, .suitbtn.blk { color: var(--ink); }
 .suitbtn.red .pip { color: var(--hot); }
 .suitbtn.blk .pip { color: var(--ink); }
 .chk { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 6px; cursor: pointer; font-size: 14px; }
@@ -167,6 +168,16 @@ button { font: inherit; color: inherit; }
   .card.sm { --cw: 48px; }
   .center, .trick, .upwrap { min-height: 220px; }
   .seat { padding: 4px 2px; min-width: 56px; }
+}
+@media (min-width: 600px) and (max-height: 880px) {
+  .card.sm { --cw: 54px; }
+  .center, .trick, .upwrap { min-height: 226px; }
+  .upwrap .card { --cw: 72px; }
+  .panel { min-height: 84px; }
+  .side .pts { font-size: 24px; }
+  .hand { min-height: 112px; padding-top: 10px; }
+  .hand .card { max-width: 76px; }
+  .table { padding: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }

@@ -461,5 +461,5 @@
       newGame(pf);
     }
   }
-  window.__uno = { get G() { return G; }, L };
+  window.__uno = { get G() { return G; }, L, render };
 })();

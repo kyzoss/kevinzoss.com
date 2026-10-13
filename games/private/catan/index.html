@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#0B0B0E" />
+<title>Settlers of Catan</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <a class="back" href="/play/">&lsaquo; Back to games</a>
+    <h1>Settlers of Catan</h1>
+    <div class="topbtns">
+      <button type="button" class="ghost" id="btnLog">Log</button>
+      <button type="button" class="ghost" id="btnRules">Rules</button>
+      <button type="button" class="ghost" id="btnMenu">Menu</button>
+    </div>
+  </header>
+
+  <section class="boardwrap" id="boardwrap">
+    <canvas id="board" aria-label="Game board. Tap highlighted spots to place pieces."></canvas>
+    <div class="banner" id="banner" role="status" aria-live="polite"></div>
+    <div class="zoom">
+      <button type="button" id="zin" aria-label="Zoom in">+</button>
+      <button type="button" id="zout" aria-label="Zoom out">&minus;</button>
+      <button type="button" id="zfit" aria-label="Fit board">Fit</button>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="players" id="players" aria-label="Players"></section>
+  <section class="status" id="status" aria-live="polite"></section>
+  <section class="hand" id="hand" aria-label="Your hand"></section>
+  <section class="actions" id="actions" aria-label="Actions"></section>
+  <section class="logpanel" id="logpanel" aria-label="Action log"><h2>Action log</h2><ol id="log"></ol></section>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" id="sheet"><div id="modalBody"></div></div>
+</div>
+
+<noscript><p style="padding:16px;color:#FAFAF8">This game needs JavaScript.</p></noscript>
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

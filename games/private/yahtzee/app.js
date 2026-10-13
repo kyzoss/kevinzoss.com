@@ -45,6 +45,7 @@
   }
   function renderMenu() {
     $("menu").hidden = false; $("game").hidden = true;
+    if (window.YZReal) window.YZReal.showMenu();
     var st = loadStats();
     $("stats").textContent = "Best " + st.best + " | Games " + st.played;
     var sv = loadSaved(), rb = $("resume");
@@ -340,11 +341,12 @@
       "<li><b>Yahtzee bonus.</b> Each extra Yahtzee after you scored 50 in the Yahtzee box earns 100 points. If the Yahtzee box holds 0, there is no bonus.</li>" +
       "<li><b>Joker rule (forced).</b> When you roll a Yahtzee and the Yahtzee box is already filled (50 or 0): (1) if the matching upper box is open, you must score there; (2) otherwise you may score in any open lower box, with Full House 25, Small Straight 30 and Large Straight 40 scoring in full; (3) otherwise you must score 0 in an open upper box.</li>" +
       "<li><b>Modes.</b> Solo chases a high score. Vs computer adds 1 to 3 bots that play an expected-value strategy and show what they hold and score. Pass the phone is for 2 to 4 people on one device.</li>" +
+      "<li><b>Real dice.</b> Pick Real dice on the start screen for 1 to 6 players with their own dice. Roll physical dice and the app keeps score. <b>Enter dice</b>: tap the five numbers you ended with, then tap a box; every open box shows what it would score, with the Joker rule and Yahtzee bonus applied for you. <b>Just the score</b>: tap an open box in your column and pick one of the valid scores, and use the Yahtzee bonus +100 button when it applies. Undo steps back through your entries, and tapping any scored box lets you edit or clear it. The table shows how many points each player still needs for the 63 bonus.</li>" +
       "<li><b>Keys.</b> Space or Enter rolls. 1 to 5 hold or release a die. Your game is saved on this device, so you can resume it later.</li>" +
       "<li><b>Seeds.</b> Add ?seed=N to the address to replay the same dice.</li>" +
       '</ul><button class="btn primary" id="closeRules">Got it</button></div>';
     $("closeRules").addEventListener("click", function () {
-      if (state.g && state.g.over) finishGame(); else if (state.mode && state.mode.kind === "hotseat" && !state.ready && !$("game").hidden) showPass(curPlayer().name); else closeOverlay();
+      if ($("game").hidden) { closeOverlay(); if (window.YZReal.active()) window.YZReal.afterRules(); } else if (state.g && state.g.over) finishGame(); else if (state.mode && state.mode.kind === "hotseat" && !state.ready && !$("game").hidden) showPass(curPlayer().name); else closeOverlay();
     });
     $("closeRules").focus();
   }
@@ -364,7 +366,7 @@
 
   document.addEventListener("keydown", function (e) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (!$("overlay").hidden) { if (e.key === "Escape" && !state.g.over) closeOverlay(); return; }
+    if (!$("overlay").hidden) { if (e.key === "Escape" && !(state.g && state.g.over) && !window.YZReal.active()) closeOverlay(); return; }
     if ($("game").hidden) return;
     if (e.key === " " || e.key === "Enter") {
       if (e.target && e.target.closest && e.target.closest(".pot,#newBtn,#rulesBtn,a")) return;
@@ -372,7 +374,9 @@
     } else if (e.key >= "1" && e.key <= "5") toggle(+e.key - 1);
   });
 
+  window.YZ = { store: store, loadStats: loadStats, saveStats: saveStats, esc: esc, renderMenu: renderMenu, showRules: showRules, closeOverlay: closeOverlay, $: $ };
   buildDice();
+  if (window.YZReal) window.YZReal.init();
   renderMenu();
   window.__yahtzee = { state: state, logic: L };
 })();

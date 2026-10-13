@@ -157,7 +157,7 @@
     renderCenter(st);
     renderPanel(st);
     renderHand(st);
-    $("tally").textContent = "Record " + tally.w + "-" + tally.l;
+    $("tally").textContent = "W-L " + tally.w + "-" + tally.l;
     $("tally").title = "Games won and lost";
   }
 
@@ -484,7 +484,7 @@
       // draw something behind the dialog, but do not run the clock until a choice is made
       openModal('<h2 id="modal-title">Welcome back</h2><p>A game in progress was saved: you and North ' + st.scores[0] + ", East and West " + st.scores[1] + ".</p>" +
         '<div class="row"><button class="btn primary" data-act="resume" type="button">Resume game</button><button class="btn" data-act="newgame" type="button">New game</button></div>', "start");
-      $("tally").textContent = "Record " + tally.w + "-" + tally.l;
+      $("tally").textContent = "W-L " + tally.w + "-" + tally.l;
     } else newGame();
   }
   start();

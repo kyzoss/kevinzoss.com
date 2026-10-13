@@ -16,6 +16,15 @@
     <p class="lede">Five dice, thirteen rounds, three rolls a turn.</p>
 
     <button id="resume" class="btn primary" hidden></button>
+    <button id="resumeReal" class="btn primary" hidden></button>
+
+    <div class="row">
+      <span class="hint">Dice</span>
+      <div class="seg wide" id="diceMode" role="group" aria-label="Dice mode">
+        <button data-m="virtual" class="on">Virtual dice</button><button data-m="real">Real dice</button>
+      </div>
+    </div>
+    <div id="virtualSetup">
 
     <div class="card">
       <h2>Solo</h2>
@@ -43,10 +52,48 @@
       <button class="btn" data-start="hotseat">Start hot-seat game</button>
     </div>
 
+    </div>
+    <div id="realSetup" hidden>
+      <div class="card">
+        <h2>Real dice</h2>
+        <p class="hint">You roll your own dice. The app keeps score for everyone on this phone.</p>
+        <div class="row">
+          <span class="hint">Players</span>
+          <div class="seg" id="realCount" role="group" aria-label="Number of players">
+            <button data-n="1">1</button><button data-n="2" class="on">2</button><button data-n="3">3</button><button data-n="4">4</button><button data-n="5">5</button><button data-n="6">6</button>
+          </div>
+        </div>
+        <div id="nameInputs" class="names"></div>
+        <button class="btn" id="startReal">Start scorekeeping</button>
+      </div>
+    </div>
+
     <div class="row links">
       <button class="linkbtn" id="openRules">How to play</button>
       <span id="stats" class="hint"></span>
     </div>
+  </section>
+
+  <section id="real" class="screen" hidden>
+    <header class="top">
+      <a class="back" href="/play/">&larr; games</a>
+      <span id="rRound" class="round"></span>
+      <span class="topbtns">
+        <button class="linkbtn" id="rUndo">Undo</button>
+        <button class="linkbtn" id="rRules">Rules</button>
+        <button class="linkbtn" id="rNew">New game</button>
+      </span>
+    </header>
+    <div class="tray" id="rTray">
+      <div id="rStatus" class="status" aria-live="polite"></div>
+      <div class="seg wide center" id="rPath" role="group" aria-label="Entry method">
+        <button data-p="dice" class="on">Enter dice</button><button data-p="score">Just the score</button>
+      </div>
+      <div id="rEntry"></div>
+    </div>
+    <div id="rBoard" class="board"></div>
+    <div class="cardwrap rwrap"><table id="rCard" class="scorecard rcard"></table></div>
+    <p class="foot hint" id="rHint"></p>
   </section>
 
   <section id="game" class="screen" hidden>
@@ -71,6 +118,7 @@
 
 <div id="overlay" class="modal" hidden></div>
 <script src="logic.js"></script>
+<script src="real.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

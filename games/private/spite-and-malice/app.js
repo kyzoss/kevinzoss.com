@@ -328,7 +328,7 @@
     '<li><b>Undo play</b> takes back your plays this turn. It cannot be used after you discard. Tapping a selected card again cancels the selection.</li>' +
     '<li>Keys: 1-5 pick a hand card, 0 stock, Q W E R your discard piles, A S D F build piles, U undo.</li></ul>' +
     '<h3>House rules and simplifications</h3><ul>' +
-    '<li>Wild cards are never moved after they are placed, and a wild in a pile is labelled with the number it stands for.</li>' +
+    '<li>A wild card placed in a pile is labelled with the number it stands for. Wilds are never moved once placed.</li>' +
     '<li>A game that somehow stalls (600 total turns, or repeated skipped turns) is decided by the smaller stock pile. Equal stock piles is a draw.</li>' +
     '<li>Your game is saved in this browser automatically, along with your win/loss record. Add ?seed=N to the address to replay a deal.</li></ul>' +
     '<div class="row2"><button class="btn primary" data-m="close" type="button">Got it</button></div>';

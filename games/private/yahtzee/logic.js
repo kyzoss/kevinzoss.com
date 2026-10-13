@@ -410,6 +410,124 @@
     return g;
   }
 
+  // ---------------------------------------------------------------- real dice scoreboard
+  // The players roll physical dice; the board only keeps score. It reuses the
+  // same scoring and Joker rule as the virtual game. Whose turn it is derives
+  // from the boxes filled (first player with the fewest), so edits and undo
+  // can never leave the turn pointer out of step.
+  function validScoresFor(cat) {
+    var out = [], i;
+    if (cat < 6) { for (i = 0; i <= 5; i++) out.push(i * (cat + 1)); return out; }
+    if (cat === 6 || cat === 7 || cat === 12) { out.push(0); for (i = 5; i <= 30; i++) out.push(i); return out; }
+    if (cat === 8) return [0, 25];
+    if (cat === 9) return [0, 30];
+    if (cat === 10) return [0, 40];
+    if (cat === 11) return [0, 50];
+    throw new Error("bad category " + cat);
+  }
+  function filledCount(p) {
+    var n = 0;
+    for (var i = 0; i < N_CATS; i++) if (p.scores[i] !== null) n++;
+    return n;
+  }
+  function boardRecalc(b) {
+    var min = 99, idx = 0;
+    b.players.forEach(function (p, i) { var f = filledCount(p); if (f < min) { min = f; idx = i; } });
+    b.over = min >= N_CATS;
+    b.current = b.over ? 0 : idx;
+    b.round = b.over ? ROUNDS : min + 1;
+    return b;
+  }
+  function newBoard(names) {
+    var b = { v: 1, kind: "real", players: names.map(function (n) { return newPlayer(n, "human"); }),
+      current: 0, round: 1, over: false, history: [] };
+    return boardRecalc(b);
+  }
+  function snap(b) {
+    b.history.push(JSON.stringify(b.players.map(function (p) { return { s: p.scores, b: p.bonus }; })));
+    if (b.history.length > 200) b.history.shift();
+  }
+  function boardUndo(b) {
+    if (!b.history.length) return false;
+    var prev = JSON.parse(b.history.pop());
+    b.players.forEach(function (p, i) { p.scores = prev[i].s; p.bonus = prev[i].b; });
+    boardRecalc(b);
+    return true;
+  }
+  // Score the current player's turn with a number (the "just the score" path).
+  function boardEnter(b, cat, pts) {
+    if (b.over) throw new Error("game over");
+    var p = b.players[b.current];
+    if (p.scores[cat] !== null) throw new Error("box filled");
+    if (validScoresFor(cat).indexOf(pts) < 0) throw new Error("invalid score " + pts);
+    snap(b);
+    p.scores[cat] = pts;
+    boardRecalc(b);
+    return { player: p.name, cat: cat, points: pts };
+  }
+  // The "Yahtzee bonus +100" button.
+  function boardAddBonus(b) {
+    var p = b.players[b.current];
+    if (b.over || p.scores[YAHTZEE] !== 50) throw new Error("bonus needs 50 in the Yahtzee box");
+    snap(b);
+    p.bonus = (p.bonus || 0) + 1;
+    return p.bonus;
+  }
+  // Potential scores for entered dice for the current player (null = not allowed).
+  function boardPotentials(b, dice) {
+    var out = [], i;
+    for (i = 0; i < N_CATS; i++) out.push(null);
+    if (b.over || !dice || dice.length !== 5) return out;
+    var p = b.players[b.current];
+    legalCategories(p, dice).forEach(function (k) { out[k] = scoreFor(p, dice, k); });
+    return out;
+  }
+  // Score entered dice into a category: Joker rule and Yahtzee bonus included.
+  function boardEnterDice(b, dice, cat) {
+    if (b.over) throw new Error("game over");
+    var p = b.players[b.current];
+    if (legalCategories(p, dice).indexOf(cat) < 0) throw new Error("illegal category " + cat);
+    var pts = scoreFor(p, dice, cat);
+    var bonus = isYahtzee(dice) && p.scores[YAHTZEE] === 50;
+    snap(b);
+    p.scores[cat] = pts;
+    if (bonus) p.bonus = (p.bonus || 0) + 1;
+    boardRecalc(b);
+    return { player: p.name, cat: cat, points: pts, yahtzeeBonus: bonus, joker: jokerApplies(p, dice) };
+  }
+  // Edit (pts a valid number) or clear (pts null) any box on any player.
+  function boardEdit(b, pi, cat, pts) {
+    var p = b.players[pi];
+    if (!p) throw new Error("no such player");
+    if (pts !== null && validScoresFor(cat).indexOf(pts) < 0) throw new Error("invalid score " + pts);
+    snap(b);
+    p.scores[cat] = pts;
+    if (cat === YAHTZEE && pts !== 50) p.bonus = 0;
+    boardRecalc(b);
+  }
+  // Points still needed for the upper bonus (0 once reached).
+  function bonusToGo(p) { return Math.max(0, UPPER_BONUS_AT - upperSum(p)); }
+  // Standings with shared ranks for ties (1, 1, 3).
+  function boardStandings(b) {
+    var list = b.players.map(function (p, i) { return { index: i, name: p.name, total: totals(p).total }; });
+    list.sort(function (x, y) { return y.total - x.total || x.index - y.index; });
+    list.forEach(function (x, i) { x.rank = i > 0 && x.total === list[i - 1].total ? list[i - 1].rank : i + 1; });
+    return list;
+  }
+  function boardWinners(b) {
+    return boardStandings(b).filter(function (x) { return x.rank === 1; }).map(function (x) { return x.index; });
+  }
+  function validBoard(b) {
+    try {
+      if (!b || b.v !== 1 || b.kind !== "real" || !Array.isArray(b.players) || b.players.length < 1 || b.players.length > 6) return false;
+      if (!Array.isArray(b.history)) return false;
+      return b.players.every(function (p) {
+        return typeof p.name === "string" && Array.isArray(p.scores) && p.scores.length === N_CATS &&
+          p.scores.every(function (s) { return s === null || (typeof s === "number" && s >= 0); });
+      });
+    } catch (e) { return false; }
+  }
+
   return {
     CATS: CATS, N_CATS: N_CATS, ROUNDS: ROUNDS, YAHTZEE: YAHTZEE,
     mulberry32: mulberry32, scoreCategory: scoreCategory, scoreFor: scoreFor,
@@ -418,6 +536,9 @@
     toggleHold: toggleHold, setHolds: setHolds, legal: legal, potentials: potentials, score: score,
     standings: standings, winners: winners, validGame: validGame, rolled: rolled,
     makePlanner: makePlanner, botAction: botAction, botPlayTurn: botPlayTurn, playBotGame: playBotGame,
-    heldValues: heldValues
+    heldValues: heldValues,
+    validScoresFor: validScoresFor, newBoard: newBoard, boardEnter: boardEnter, boardAddBonus: boardAddBonus,
+    boardPotentials: boardPotentials, boardEnterDice: boardEnterDice, boardEdit: boardEdit, boardUndo: boardUndo,
+    boardRecalc: boardRecalc, bonusToGo: bonusToGo, boardStandings: boardStandings, boardWinners: boardWinners, validBoard: validBoard
   };
 });

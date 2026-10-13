@@ -173,6 +173,8 @@
   }
 
   function logMsg(s, msg) {
+    // first person grammar for the human player named "You"
+    msg = msg.replace(/^You (\w+)/, (m, w) => (w !== 'must' && /s$/.test(w) ? 'You ' + w.replace(/(ch|sh|ss|x)es$/, '$1').replace(/s$/, '') : m));
     s.log.push(msg);
     if (s.log.length > 400) s.log.splice(0, s.log.length - 400);
   }
