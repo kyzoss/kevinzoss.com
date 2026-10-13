@@ -1,3 +1,0 @@
-# games/ is its own Vercel project (Root Directory: games). Its private/ folder
-# must never be served as static files by the root project.
-games/

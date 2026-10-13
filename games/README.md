@@ -31,7 +31,7 @@ the files both sit behind a function.
 
 The repo root is excluded from this folder in two places so the private files
 cannot leak through the main site: `games` in `_config.yml` (GitHub Pages) and
-`games/` in `.vercelignore` (the root Vercel project).
+a redirect of `/games/*` to `/` in the root `vercel.json` (the root Vercel project). Do not add a repo-root `.vercelignore` for this: Vercel applies it to every project cloned from the repo, including this one, and it empties the deploy.
 
 ## Run locally
 
