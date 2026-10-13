@@ -4,6 +4,9 @@ exclude:
   - build-frames.py
   - stamp.py
   - .gstack
+  # Gated games: the files under games/private must only be served through the
+  # passcode check in games/api, never as static Pages files.
+  - games
 
 # Jekyll skips dot-directories by default, which silently dropped
 # /.well-known/security.txt (the path RFC 9116 specifies).
