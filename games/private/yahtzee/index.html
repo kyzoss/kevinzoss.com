@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#0B0B0E" />
+<title>Yahtzee</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<main id="app">
+  <section id="menu" class="screen">
+    <a class="back" href="/play/">&larr; back to games</a>
+    <h1>Yahtzee</h1>
+    <p class="lede">Five dice, thirteen rounds, three rolls a turn.</p>
+
+    <button id="resume" class="btn primary" hidden></button>
+
+    <div class="card">
+      <h2>Solo</h2>
+      <p class="hint">Chase a high score.</p>
+      <button class="btn" data-start="solo">Play solo</button>
+    </div>
+    <div class="card">
+      <h2>Vs computer</h2>
+      <div class="row">
+        <span class="hint">Computer players</span>
+        <div class="seg" id="botCount" role="group" aria-label="Number of computer players">
+          <button data-n="1" class="on">1</button><button data-n="2">2</button><button data-n="3">3</button>
+        </div>
+      </div>
+      <button class="btn" data-start="bots">Play vs computer</button>
+    </div>
+    <div class="card">
+      <h2>Pass the phone</h2>
+      <div class="row">
+        <span class="hint">Human players</span>
+        <div class="seg" id="humanCount" role="group" aria-label="Number of human players">
+          <button data-n="2" class="on">2</button><button data-n="3">3</button><button data-n="4">4</button>
+        </div>
+      </div>
+      <button class="btn" data-start="hotseat">Start hot-seat game</button>
+    </div>
+
+    <div class="row links">
+      <button class="linkbtn" id="openRules">How to play</button>
+      <span id="stats" class="hint"></span>
+    </div>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <header class="top">
+      <a class="back" href="/play/">&larr; games</a>
+      <span id="roundLabel" class="round"></span>
+      <span class="topbtns">
+        <button class="linkbtn" id="rulesBtn">Rules</button>
+        <button class="linkbtn" id="newBtn">New game</button>
+      </span>
+    </header>
+    <div class="tray" id="tray">
+      <div id="status" class="status" aria-live="polite"></div>
+      <div id="dice" class="dice"></div>
+      <button id="rollBtn" class="btn primary roll"></button>
+    </div>
+    <div id="log" class="log" aria-live="polite"></div>
+    <div class="cardwrap"><table id="card" class="scorecard"></table></div>
+    <p class="foot hint" id="seedNote"></p>
+  </section>
+</main>
+
+<div id="overlay" class="modal" hidden></div>
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
