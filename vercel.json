@@ -49,5 +49,12 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/games/:path*",
+      "destination": "/",
+      "permanent": false
+    }
   ]
 }
