@@ -4,74 +4,34 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex, nofollow" />
-<meta name="theme-color" content="#0B0B0E" />
-<title>Games · Kevin Zoss</title>
-<style>
-  :root { --bg:#0B0B0E; --ink:#FAFAF8; --soft:#C9C9CE; --red:#D80707; --hot:#FF3B2F; }
-  * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100svh; background: var(--bg); color: var(--ink);
-    font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
-    padding: clamp(28px, 6vw, 72px) max(20px, 5vw); }
-  .in { max-width: 920px; margin: 0 auto; }
-  .eyebrow { display: flex; align-items: center; gap: 12px; margin: 0 0 18px;
-    font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--hot); }
-  .eyebrow::before { content: ""; width: 40px; height: 3px; background: var(--red); }
-  h1 { margin: 0 0 34px; font-family: "Archivo Black", "Arial Black", sans-serif; text-transform: uppercase;
-    font-size: clamp(44px, 11vw, 96px); line-height: .92; letter-spacing: -.02em; }
-  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  a.card { display: block; text-decoration: none; color: inherit; padding: 22px;
-    border: 1.5px solid rgba(250,250,248,.16); border-radius: 6px; background: rgba(250,250,248,.03);
-    transition: border-color .15s, transform .15s; }
-  a.card:hover { border-color: var(--hot); transform: translateY(-2px); }
-  .card h2 { margin: 0 0 6px; font-family: "Archivo Black", "Arial Black", sans-serif; text-transform: uppercase; font-size: 24px; }
-  .card .rule { margin: 0 0 14px; color: var(--soft); line-height: 1.5; font-size: 15px; }
-  .card .meta { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--hot); }
-  .out { margin-top: 40px; font-size: 13px; }
-  .out button { font: inherit; color: var(--soft); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
-</style>
+<meta name="theme-color" content="#F3EDE3" />
+<title>Play · Kevin Zoss</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+<link rel="preload" href="/fonts/marcellus.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="stylesheet" href="/home.css?v=1" />
 </head>
 <body>
-<div class="in">
-  <div class="eyebrow">Members only</div>
-  <h1>Games</h1>
-  <div class="grid">
-    <a class="card" href="/play/ballast/">
-      <h2>Ballast</h2>
-      <p class="rule">The platform has a centre of mass. Drop weights, keep it level, and don't let it tip.</p>
-      <span class="meta">Daily island · quick runs</span>
-    </a>
-    <a class="card" href="/play/spite-and-malice/">
-      <h2>Spite and Malice</h2>
-      <p class="rule">Empty your stock pile first. Build A to Q on the centre piles, discard to your own four.</p>
-      <span class="meta">You vs computer</span>
-    </a>
-    <a class="card" href="/play/uno/">
-      <h2>Uno</h2>
-      <p class="rule">Match colour, number or symbol. Shed your hand, call it at one card.</p>
-      <span class="meta">You vs 1 to 3</span>
-    </a>
-    <a class="card" href="/play/yahtzee/">
-      <h2>Yahtzee</h2>
-      <p class="rule">Five dice, three rolls, thirteen boxes. Chase the bonus.</p>
-      <span class="meta">Solo, bots or pass the phone</span>
-    </a>
-    <a class="card" href="/play/catan/">
-      <h2>Settlers of Catan</h2>
-      <p class="rule">Build roads, settlements and cities. First to 10 points wins.</p>
-      <span class="meta">You vs 2 or 3</span>
-    </a>
-    <a class="card" href="/play/euchre/">
-      <h2>Euchre</h2>
-      <p class="rule">Name trump, take three tricks, partner up. First to 10.</p>
-      <span class="meta">You and a partner vs 2</span>
-    </a>
-    <a class="card" href="https://strat-o-matic-2026.vercel.app" target="_blank" rel="noopener">
-      <h2>Strat-O-Matic</h2>
-      <p class="rule">Your 2026 Strat-O-Matic league app. Opens in its own tab.</p>
-      <span class="meta">Separate app</span>
-    </a>
-  </div>
-  <div class="out"><button id="out">Lock the room</button></div>
+<div class="page">
+  <div class="hero" aria-hidden="true"><img src="/hero.svg" alt="" /></div>
+  <main class="inner screen-in">
+    <div class="brand">
+      <svg class="agave" viewBox="0 0 64 48" aria-hidden="true"><path d="M32 40C31 28 29 16 32 4c3 12 1 24 0 36z"/><path d="M31 40C25 30 19 22 10 14c11 5 18 14 21 26z"/><path d="M33 40c6-10 12-18 21-26-11 5-18 14-21 26z"/><path d="M30 40C22 34 13 30 3 28c11-1 21 4 27 12z"/><path d="M34 40c8-6 17-10 27-12-11-1-21 4-27 12z"/><path d="M31 40c-3-9-6-17-12-26 7 7 11 16 12 26zM33 40c3-9 6-17 12-26-7 7-11 16-12 26z"/><path d="M8 44h48"/></svg>
+      <h1 class="logo">Play</h1>
+      <p class="tagline">Cards <i>\</i> Dice <i>\</i> Strategy <i>\</i> Together</p>
+    </div>
+    <div class="actions">
+      <a class="menu-btn dark" href="/play/yahtzee/"><span class="gt-e">🎲</span><span><b>Yahtzee</b><small>Roll it here, or score real dice</small></span></a>
+      <div class="game-grid">
+          <a class="game-tile" href="/play/ballast/"><span class="gt-e">⚖️</span><b>Ballast</b><small>Keep it level</small></a>
+          <a class="game-tile" href="/play/spite-and-malice/"><span class="gt-e">🃏</span><b>Spite and Malice</b><small>Empty your stock</small></a>
+          <a class="game-tile" href="/play/uno/"><span class="gt-e">🎴</span><b>Uno</b><small>Match and shed</small></a>
+          <a class="game-tile" href="/play/catan/"><span class="gt-e">🏝️</span><b>Settlers of Catan</b><small>Build to 10</small></a>
+          <a class="game-tile" href="/play/euchre/"><span class="gt-e">♠️</span><b>Euchre</b><small>Name trump</small></a>
+          <a class="game-tile" href="https://strat-o-matic-2026.vercel.app" target="_blank" rel="noopener"><span class="gt-e">⚾</span><b>Strat-O-Matic</b><small>Your league app</small></a>
+      </div>
+      <div class="foot"><button id="out" type="button">Lock the room</button></div>
+    </div>
+  </main>
 </div>
 <script>
   document.getElementById("out").onclick = () =>

@@ -31,7 +31,8 @@ function createServer() {
     if (!file.startsWith(path.join(__dirname, "public")) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
       res.statusCode = 404; return res.end("Not found");
     }
-    res.setHeader("Content-Type", file.endsWith(".html") ? "text/html" : "text/plain");
+    const types = { ".html": "text/html", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".txt": "text/plain" };
+    res.setHeader("Content-Type", types[path.extname(file)] || "application/octet-stream");
     fs.createReadStream(file).pipe(res);
   });
 }
