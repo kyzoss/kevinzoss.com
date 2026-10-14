@@ -2,19 +2,40 @@
   "outputDirectory": "public",
   "cleanUrls": true,
   "functions": {
-    "api/g.js": { "includeFiles": "private/**" }
+    "api/g.js": {
+      "includeFiles": "private/**"
+    }
   },
   "rewrites": [
-    { "source": "/play", "destination": "/api/g?p=" },
-    { "source": "/play/:path*", "destination": "/api/g?p=:path*" }
+    {
+      "source": "/play",
+      "destination": "/api/g?p=index.html"
+    },
+    {
+      "source": "/play/",
+      "destination": "/api/g?p=index.html"
+    },
+    {
+      "source": "/play/:path+",
+      "destination": "/api/g?p=:path+"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
-        { "key": "Referrer-Policy", "value": "no-referrer" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" }
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
       ]
     }
   ]

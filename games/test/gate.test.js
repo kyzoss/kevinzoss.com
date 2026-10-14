@@ -96,3 +96,32 @@ test("unconfigured passcode fails closed", async () => {
   assert.ok(!auth.isAuthed({ headers: { cookie: "kz_games=1.abc" } }));
   process.env.GAMES_PASSCODE = "open sesame";
 });
+
+test("hub and every game open with or without a trailing slash, no redirects", async () => {
+  const cookie = cookieOf(await post("open sesame"));
+  const slugs = require("node:fs").readdirSync(require("node:path").join(__dirname, "..", "private"), { withFileTypes: true })
+    .filter((e) => e.isDirectory()).map((e) => e.name);
+  assert.ok(slugs.length >= 6, "found the games: " + slugs);
+  for (const p of ["/play", "/play/", ...slugs.flatMap((s) => [`/play/${s}`, `/play/${s}/`])]) {
+    const r = await fetch(base + p, { headers: { cookie }, redirect: "manual" });
+    assert.equal(r.status, 200, `${p} -> ${r.status}`);
+    assert.match(r.headers.get("content-type"), /text\/html/, p);
+  }
+});
+
+test("every game page pins its own base path so relative files load either way", () => {
+  const fs = require("node:fs"), path = require("node:path");
+  const root = path.join(__dirname, "..", "private");
+  for (const e of fs.readdirSync(root, { withFileTypes: true }).filter((x) => x.isDirectory())) {
+    const html = fs.readFileSync(path.join(root, e.name, "index.html"), "utf8");
+    assert.ok(html.includes(`<base href="/play/${e.name}/"`), `${e.name} is missing its <base href>`);
+  }
+});
+
+test("vercel.json routes /play, /play/ and /play/<path> to the file function", () => {
+  const rw = require("../vercel.json").rewrites;
+  const dest = (src) => (rw.find((r) => r.source === src) || {}).destination;
+  assert.equal(dest("/play"), "/api/g?p=index.html");
+  assert.equal(dest("/play/"), "/api/g?p=index.html");
+  assert.equal(dest("/play/:path+"), "/api/g?p=:path+");
+});

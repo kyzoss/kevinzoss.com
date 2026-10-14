@@ -44,11 +44,11 @@ module.exports = function handler(req, res) {
   if (!file) { res.statusCode = 404; return res.end("Not found"); }
   let st = null;
   try { st = fs.statSync(file); } catch {}
+  // A folder serves its index.html. No redirects: the games set <base href>, so
+  // their relative URLs resolve the same with or without a trailing slash.
   if (st && st.isDirectory()) {
-    // /play/ballast -> /play/ballast/ so relative URLs inside the game resolve.
-    res.statusCode = 302;
-    res.setHeader("Location", req.url.split("?")[0].replace(/\/?$/, "/"));
-    return res.end();
+    file = path.join(file, "index.html");
+    try { st = fs.statSync(file); } catch { st = null; }
   }
   if (!st) { res.statusCode = 404; return res.end("Not found"); }
   res.setHeader("Content-Type", TYPES[path.extname(file).toLowerCase()] || "application/octet-stream");
