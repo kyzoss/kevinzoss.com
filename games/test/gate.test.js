@@ -124,4 +124,12 @@ test("vercel.json routes /play, /play/ and /play/<path> to the file function", (
   assert.equal(dest("/play"), "/api/g?p=index.html");
   assert.equal(dest("/play/"), "/api/g?p=index.html");
   assert.equal(dest("/play/:path+"), "/api/g?p=:path+");
+  assert.equal(dest("/play/:path+/"), "/api/g?p=:path+", "game folders with a trailing slash need their own rule");
+});
+
+test("hub links use the slashless form that Vercel routes", () => {
+  const hub = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "private", "index.html"), "utf8");
+  const links = [...hub.matchAll(/href="(\/play\/[^"]+)"/g)].map((m) => m[1]);
+  assert.ok(links.length >= 6, "found game links");
+  for (const l of links) assert.ok(!l.endsWith("/"), `${l} should not end with a slash`);
 });

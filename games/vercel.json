@@ -16,6 +16,10 @@
       "destination": "/api/g?p=index.html"
     },
     {
+      "source": "/play/:path+/",
+      "destination": "/api/g?p=:path+"
+    },
+    {
       "source": "/play/:path+",
       "destination": "/api/g?p=:path+"
     }
