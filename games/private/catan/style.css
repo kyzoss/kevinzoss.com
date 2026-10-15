@@ -58,10 +58,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; text-transform: uppe
 .chip { flex: 1; min-width: 0; border-radius: 12px; padding: 4px 4px; text-align: center; color: #2B2622; font-weight: 500; font-size: 11px; line-height: 1.15; border: 1px solid rgba(43,38,34,.22); }
 .chip b { display: block; font-family: var(--body); font-size: 20px; font-weight: 500; }
 .chip small { display: block; font-size: 10px; font-weight: 500; }
-.chip.dim { opacity: .7; }
-.r-brick { background: var(--brick); color: #fff; } .r-lumber { background: #3F7A4A; color: #fff; } .r-wool { background: var(--wool); } .r-grain { background: var(--grain); } .r-ore { background: #8D95A3; color: #1f1c19; }
+.chip.dim { opacity: .62; }
+.r-brick { background: #DB8A6C; } .r-lumber { background: #86B58B; } .r-wool { background: #B5D58A; } .r-grain { background: #EBCB6A; } .r-ore { background: #B4B9C0; }
 .lt { display: inline-block; min-width: 1.5em; text-align: center; border-radius: 4px; padding: 0 3px; font-weight: 600; font-size: .85em; margin: 0 1px; }
-.lt.r-brick, .lt.r-lumber { color: #fff; }
 
 .actions { grid-area: actions; padding: 4px 8px; padding-bottom: max(8px, env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .actions .full { grid-column: 1 / -1; }
@@ -73,7 +72,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; text-transform: uppe
 .btn.primary small { color: #cfd8c9; }
 .btn.primary:hover, .btn.primary:active { background: var(--forest-hi); border-color: var(--forest-hi); }
 .btn.on { outline: 3px solid var(--gold); background: #FFF6DF; }
-.btn[aria-disabled="true"] { opacity: .45; }
+.btn[aria-disabled="true"] { opacity: .5; }
 .btn:focus-visible, .ghost:focus-visible, .zoom button:focus-visible, .back:focus-visible { outline: 3px solid var(--clay); outline-offset: 1px; }
 .btn.small { min-height: 44px; }
 
@@ -106,8 +105,6 @@ ol#log li:last-child, ol.biglog li:last-child { color: var(--ink); font-weight: 
 .tabs .btn { flex: 1; min-height: 44px; }
 .pick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 6px 0; }
 .pick .chip { cursor: pointer; min-height: 56px; display: flex; flex-direction: column; justify-content: center; font: inherit; font-weight: 500; font-size: 11px; }
-.pick .chip.r-brick, .pick .chip.r-lumber { color: #fff; }
-.pick .chip.r-wool, .pick .chip.r-grain { color: #2B2622; }
 .pick .chip small { font-weight: 500; font-size: 10px; }
 .pick .chip.sel { outline: 3px solid var(--ink); outline-offset: 1px; }
 .pick .chip[aria-disabled="true"] { opacity: .4; }
