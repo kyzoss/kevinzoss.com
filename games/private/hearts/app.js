@@ -171,7 +171,7 @@
     var turn = (st.phase === "play" && st.turn === s) || (st.phase === "trickdone" && st.trickWinner === s);
     var sub = "";
     if (st.phase === "pass") sub = st.passSel[s] ? "passed" : "choosing";
-    else if (st.leader === s && st.trickNo === 0 && st.phase !== "handdone") sub = "has 2 of clubs";
+    else if (st.leader === s && st.trickNo === 0 && st.phase !== "handdone") sub = "leads";
     el.className = "seat s-" + ["", "w", "n", "e"][s] + (turn ? " turn" : "");
     el.innerHTML = '<div class="nm">' + NAMES[s] + '</div><div class="sub">' + sub + "</div>" + backsHTML(st.hands[s].length);
   }
@@ -273,7 +273,8 @@
     $("sheet").innerHTML = html;
     $("modal").hidden = false;
     var f = $("sheet").querySelector("button");
-    if (f) f.focus();
+    if (f) f.focus({ preventScroll: true });
+    $("sheet").scrollTop = 0;
   }
   function closeModal() { $("modal").hidden = true; modalKind = ""; }
 

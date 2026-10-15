@@ -306,7 +306,7 @@
   }
 
   // ------------------------------------------------------------ modal
-  function openModal(html) { $("sheet").innerHTML = html; $("modal").hidden = false; var b = $("sheet").querySelector("button"); if (b) b.focus(); }
+  function openModal(html) { $("sheet").innerHTML = html; $("modal").hidden = false; $("sheet").setAttribute("tabindex", "-1"); $("sheet").scrollTop = 0; try { $("sheet").focus({ preventScroll: true }); } catch (e) {} }
   function closeModal() { $("modal").hidden = true; $("sheet").innerHTML = ""; }
 
   function rulesHtml() {

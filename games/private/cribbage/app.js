@@ -324,7 +324,8 @@
     $("modal").hidden = false;
     ui.modal = true;
     var b = $("sheet").querySelector("button");
-    if (b) b.focus();
+    if (b) b.focus({ preventScroll: true });
+    $("sheet").scrollTop = 0;
   }
   function closeModal() { $("modal").hidden = true; ui.modal = null; }
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(); });

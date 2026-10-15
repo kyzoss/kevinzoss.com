@@ -230,7 +230,7 @@
       dw = bd ? bd.dw : best.dw;
       note = "after best discard";
     } else dw = best.dw;
-    var small = best.melds.length + " meld" + (best.melds.length === 1 ? "" : "s") + ", " + (hand.length - best.dead.length ? "" : "") + best.deadwood.length + " unmatched";
+    var small = best.melds.length + " meld" + (best.melds.length === 1 ? "" : "s") + ", " + best.deadwood.length + " unmatched";
     $("meTop").innerHTML = '<div class="dw' + (dw <= L.KNOCK_MAX ? " ok" : "") + '">Deadwood<strong>' + dw + "</strong></div><div class=\"sm\">" + (note ? note + "<br>" : "") + small + "</div>";
   }
 

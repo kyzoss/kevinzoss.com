@@ -23,6 +23,8 @@ body { min-height: 100vh; min-height: 100dvh; font-size: 15px; line-height: 1.35
 button { font: inherit; color: inherit; }
 svg.pip { width: 1em; height: 1em; fill: currentColor; display: inline-block; vertical-align: -0.12em; }
 
+.cols, .col-l, .col-r { display: contents; }
+.logbox { order: 10; }
 .app { max-width: 640px; margin: 0 auto; padding: 8px 14px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; }
 
 /* header */
@@ -45,7 +47,7 @@ svg.pip { width: 1em; height: 1em; fill: currentColor; display: inline-block; ve
 .boardwrap { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 8px 6px; }
 .scores { display: flex; justify-content: space-between; align-items: baseline; padding: 0 6px 4px; font-size: 13px; }
 .scores .sc { display: flex; align-items: baseline; gap: 6px; }
-.scores .sc b { font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1; }
+.scores .sc b { font-family: var(--body); font-weight: 500; font-size: 26px; line-height: 1; }
 .scores .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; align-self: center; }
 .scores .me .dot { background: var(--green); }
 .scores .cpu .dot { background: var(--clay); }
@@ -82,7 +84,7 @@ svg.pip { width: 1em; height: 1em; fill: currentColor; display: inline-block; ve
 .cribstack .back-card:nth-child(1) { transform: rotate(-5deg); }
 .cribstack .back-card:nth-child(2) { transform: rotate(4deg) translate(3px, -2px); }
 .pilecol { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 150px; }
-.total { font-family: var(--display); font-size: 40px; line-height: 1; letter-spacing: .04em; }
+.total { font-family: var(--body); font-weight: 500; font-size: 40px; line-height: 1; letter-spacing: .04em; }
 .total small { display: block; font-family: var(--body); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .85; margin-top: 2px; }
 .pile { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding-top: 4px; }
 .pile .card { --cw: 50px; }
@@ -165,8 +167,13 @@ svg.pip { width: 1em; height: 1em; fill: currentColor; display: inline-block; ve
   .hand { min-height: 130px; }
   .mid { grid-template-columns: 110px 1fr; }
 }
-@media (min-width: 900px) and (min-height: 700px) {
-  .app { max-width: 760px; }
+@media (min-width: 900px) {
+  .app { max-width: 1060px; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .col-l, .col-r { display: flex; flex-direction: column; gap: 10px; }
+  .logbox { order: 0; }
+  .logbox ol { max-height: 300px; }
+  .hand { min-height: 116px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
