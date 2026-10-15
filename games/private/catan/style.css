@@ -18,7 +18,7 @@ button { font-family: inherit; color: inherit; }
 h1, h2, h3 { font-family: var(--display); font-weight: 400; text-transform: uppercase; letter-spacing: .14em; }
 .app { height: 100vh; height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(200px, 1fr) auto auto auto; grid-template-areas: "top" "players" "board" "status" "hand" "actions"; gap: 0; }
 .top { grid-area: top; display: flex; align-items: center; gap: 8px; padding: 4px 10px; padding-top: max(4px, env(safe-area-inset-top)); }
-.top h1 { min-width: 0; font-size: 14px; letter-spacing: .16em; margin: 0; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.top h1 { min-width: 0; font-size: 14px; letter-spacing: .16em; margin: 0; flex: 1; text-align: center; line-height: 1.15; overflow-wrap: anywhere; color: var(--ink); }
 .back { color: var(--forest); font-weight: 500; font-size: 14px; flex: none; text-decoration: none; white-space: nowrap; min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; }
 .back:hover { color: var(--forest-hi); text-decoration: underline; }
 .topbtns { display: flex; gap: 4px; }
@@ -58,7 +58,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; text-transform: uppe
 .chip { flex: 1; min-width: 0; border-radius: 12px; padding: 4px 4px; text-align: center; color: #2B2622; font-weight: 500; font-size: 11px; line-height: 1.15; border: 1px solid rgba(43,38,34,.22); }
 .chip b { display: block; font-family: var(--body); font-size: 20px; font-weight: 500; }
 .chip small { display: block; font-size: 10px; font-weight: 500; }
-.chip.dim { opacity: .55; }
+.chip.dim { opacity: .7; }
 .r-brick { background: var(--brick); color: #fff; } .r-lumber { background: #3F7A4A; color: #fff; } .r-wool { background: var(--wool); } .r-grain { background: var(--grain); } .r-ore { background: #8D95A3; color: #1f1c19; }
 .lt { display: inline-block; min-width: 1.5em; text-align: center; border-radius: 4px; padding: 0 3px; font-weight: 600; font-size: .85em; margin: 0 1px; }
 .lt.r-brick, .lt.r-lumber { color: #fff; }
@@ -117,7 +117,7 @@ ol#log li:last-child, ol.biglog li:last-child { color: var(--ink); font-weight: 
 @media (min-width: 900px) {
   .app { grid-template-columns: minmax(0, 1fr) 400px; grid-template-rows: auto auto auto auto auto minmax(0, 1fr); grid-template-areas: "top top" "board players" "board status" "board hand" "board actions" "board log"; }
   .top { padding: 8px 16px 4px; }
-  .top h1 { text-align: left; flex: 1; font-size: 20px; }
+  .top h1 { text-align: left; flex: 1; font-size: 20px; white-space: nowrap; }
   .logpanel { display: block; }
   #btnLog { display: none; }
   .boardwrap { margin: 4px 8px 12px 12px; }
