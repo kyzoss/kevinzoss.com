@@ -107,17 +107,16 @@
     [0, 1].forEach(function (i) {
       h += '<div class="who"><span class="nm">' + (i === 0 ? "You" : "Computer") + (st.turn === i && st.phase !== "handover" && st.phase !== "gameover" ? ' <span class="turnmark">&bull;</span>' : "") + '</span><span class="pts">' + s[i] + "</span></div>";
     });
-    h += '<div class="sub">Boxes won: ' + b[0] + " (+" + b[0] * L.BOX_BONUS + ")</div>";
-    h += '<div class="sub" style="text-align:right">Boxes won: ' + b[1] + " (+" + b[1] * L.BOX_BONUS + ")</div>";
-    h += '<div class="rule"><span>Hand ' + st.handNo + " &middot; first to " + L.GAME_TO + "</span><span>Game +" + L.GAME_BONUS + ", box +" + L.BOX_BONUS + " each hand won</span><span>Record " + tally.w + "-" + tally.l + "</span></div>";
+    h += '<div class="sub">Boxes: ' + b[0] + " (+" + b[0] * L.BOX_BONUS + ")</div>";
+    h += '<div class="sub" style="text-align:right">Boxes: ' + b[1] + " (+" + b[1] * L.BOX_BONUS + ")</div>";
+    h += '<div class="rule"><span>Hand ' + st.handNo + " &middot; first to " + L.GAME_TO + " (+" + L.GAME_BONUS + ")</span><span>Each hand won: box +" + L.BOX_BONUS + "</span><span>Record " + tally.w + "-" + tally.l + "</span></div>";
     $("score").innerHTML = h;
   }
 
   function renderOpp() {
     var n = st.hands[1].length, h = "";
-    var step = Math.min(22, 200 / Math.max(1, n));
     var backs = "";
-    for (var i = 0; i < n; i++) backs += '<span class="back-card" style="left:' + Math.round(i * step) + 'px"></span>';
+    for (var i = 0; i < n; i++) backs += '<span class="back-card"></span>';
     h += '<div class="lab"><b>Computer</b>' + n + " cards" + (st.taken[1].length ? ", took " + st.taken[1].length + " from discards" : "") + '</div><div class="backs">' + backs + "</div>";
     $("opp").innerHTML = h;
   }
@@ -216,10 +215,12 @@
       if (ph === "layoff" && L.layoffTarget(st, c) >= 0) cls += " canlay";
       if (c === forbid && st.turn === 0) cls += " locked";
       h += '<div class="' + cls + '" role="button" tabindex="0" data-i="' + i + '" aria-label="' + label(c) + (isSel ? ", selected" : "") + '" style="left:' + left + "px;z-index:" + (i + 1) + '"><span class="r">' + rankLabel(c) + "</span>" + pip(c[1], "pip p") + pip(c[1], "big") + "</div>";
-      var tag;
-      if (c in group) tag = '<i style="background:' + GROUP[group[c] % GROUP.length] + '"></i>';
-      else tag = L.points(c);
-      h += '<div class="tag" style="left:' + left + 'px">' + tag + "</div>";
+      var tag, tw = i === hand.length - 1 ? geom.w : Math.max(10, Math.floor(geom.step));
+      if (c in group) {
+        var g = group[c], prevSame = i > 0 && group[hand[i - 1]] === g, nextSame = i < hand.length - 1 && group[hand[i + 1]] === g;
+        tag = '<i style="background:' + GROUP[g % GROUP.length] + ";margin-left:" + (prevSame ? 0 : 2) + "px;margin-right:" + (nextSame ? 0 : 2) + "px;border-radius:" + (prevSame ? 0 : 3) + "px " + (nextSame ? 0 : 3) + "px " + (nextSame ? 0 : 3) + "px " + (prevSame ? 0 : 3) + 'px"></i>';
+      } else tag = L.points(c);
+      h += '<div class="tag" style="left:' + left + "px;width:" + tw + 'px">' + tag + "</div>";
     }
     $("hand").innerHTML = h;
 
@@ -432,8 +433,9 @@
     lastFocus = document.activeElement;
     sheet.innerHTML = html;
     modal.hidden = false;
+    sheet.scrollTop = 0;
     var f = sheet.querySelector("button, input");
-    if (f) f.focus();
+    if (f) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } }
   }
   function closeModal() { modal.hidden = true; sheet.innerHTML = ""; if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} } }
   modal.addEventListener("click", function (e) { if (e.target === modal && !modal.dataset.lock) closeModal(); });
@@ -507,8 +509,9 @@
   wireHand();
 
   var saved = loadSave();
-  if (urlSeed !== null) startGame(urlSeed);
-  else if (saved && saved.st.phase !== "gameover") {
+  var resumable = saved && saved.st.phase !== "gameover";
+  if (urlSeed !== null && !(resumable && saved.st.seed === (urlSeed >>> 0))) startGame(urlSeed);
+  else if (resumable) {
     st = saved.st; tallied = !!saved.tallied; sel = null;
     render();
     openResume(saved);

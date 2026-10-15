@@ -226,8 +226,9 @@
     var vp = s.phase === "over" ? 0 : (app.mode === "2p" ? p : 0);
     for (var j = 0; j < 24; j++) {
       var gg = pointGeom(j);
-      var tx = gg.base + gg.dir * (G.len - 7);
-      h += '<text x="' + tx + '" y="' + (gg.y + G.rowH / 2 + 4) + '" text-anchor="' + (gg.left ? "end" : "start") + '" font-size="11" font-weight="500" fill="#2B2622" opacity="0.62">' + L.pointNo(vp, j) + "</text>";
+      var tx = gg.base + gg.dir * (G.len - 15), ty = gg.y + G.rowH / 2;
+      h += '<rect x="' + (tx - 11) + '" y="' + (ty - 8) + '" width="22" height="16" rx="8" fill="#FBF8F2" opacity="0.88"/>' +
+        '<text x="' + tx + '" y="' + (ty + 4) + '" text-anchor="middle" font-size="11" font-weight="500" fill="#2B2622">' + L.pointNo(vp, j) + "</text>";
     }
     // destination highlights
     Object.keys(info.dests).forEach(function (key) {

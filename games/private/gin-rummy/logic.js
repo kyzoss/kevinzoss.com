@@ -172,6 +172,8 @@
 
   // ---------------------------------------------------------------- state
 
+  function who(p, base, third) { return NAMES[p] + " " + (p === 0 ? base : third); }
+
   function log(st, text) {
     st.log.push(text);
     if (st.log.length > 60) st.log.splice(0, st.log.length - 60);
@@ -225,14 +227,14 @@
   function pass(st) {
     if (st.phase !== "first") return bad("Not the first turn");
     st.firstPass[st.turn] = true;
-    log(st, NAMES[st.turn] + " passes on the upcard.");
+    log(st, who(st.turn, "pass", "passes") + " on the upcard.");
     if (st.turn === 1 - st.dealer) {
       st.turn = st.dealer;
     } else {
       st.phase = "draw";
       st.turn = 1 - st.dealer;
       st.mustStock = true;
-      log(st, "Both pass. " + NAMES[st.turn] + (st.turn === 0 ? " must draw" : " must draw") + " from the stock.");
+      log(st, "Both pass. " + who(st.turn, "must", "must") + " draw from the stock.");
     }
     return OK;
   }
@@ -248,13 +250,13 @@
       st.hands[p].push(c);
       st.taken[p].push(c);
       st.drawn = { card: c, from: "discard" };
-      log(st, NAMES[p] + " draws from the discard pile (" + cardName(c) + ").");
+      log(st, who(p, "draw", "draws") + " from the discard pile (" + cardName(c) + ").");
     } else if (source === "stock") {
       if (!st.stock.length) return bad("Stock is empty");
       var d = st.stock.pop();
       st.hands[p].push(d);
       st.drawn = { card: d, from: "stock" };
-      log(st, NAMES[p] + " draws from the stock" + (p === 0 ? " (" + cardName(d) + ")." : "."));
+      log(st, who(p, "draw", "draws") + " from the stock" + (p === 0 ? " (" + cardName(d) + ")." : "."));
     } else return bad("Unknown source");
     st.mustStock = false;
     st.phase = "discard";
@@ -271,7 +273,7 @@
     h.splice(i, 1);
     st.discard.push(card);
     st.drawn = null;
-    log(st, NAMES[p] + " discards " + cardName(card) + ".");
+    log(st, who(p, "discard", "discards") + " " + cardName(card) + ".");
     if (st.stock.length <= 2) {
       st.phase = "handover";
       st.result = { type: "draw", knocker: -1, winner: -1, points: 0, text: "The stock is down to " + st.stock.length + " cards. The hand is a draw." };
@@ -315,7 +317,7 @@
       by: p, melds: b.melds.map(function (m) { return m.slice(); }), dead: b.deadwood.slice(),
       dw: b.dw, gin: gin, big: !!chk.big, laid: []
     };
-    log(st, NAMES[p] + (chk.big ? " goes big gin!" : gin ? " goes gin!" : " knocks with " + b.dw + "."));
+    log(st, chk.big ? who(p, "go", "goes") + " big gin!" : gin ? who(p, "go", "goes") + " gin!" : who(p, "knock", "knocks") + " with " + b.dw + ".");
     var opp = 1 - p;
     if (gin) { finishHand(st); return OK; }
     st.phase = "layoff";
@@ -334,7 +336,7 @@
     m.push(card);
     m.sort(byRank);
     k.laid.push({ card: card, meld: meldIdx });
-    log(st, NAMES[p] + " lays off " + cardName(card) + ".");
+    log(st, who(p, "lay", "lays") + " off " + cardName(card) + ".");
     return OK;
   }
 

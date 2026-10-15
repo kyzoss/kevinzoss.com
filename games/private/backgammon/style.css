@@ -120,7 +120,7 @@ select { min-height: 44px; border: 1px solid var(--line); border-radius: 10px; b
 @media (min-width: 980px) {
   #app { max-width: 1080px; }
   .layout { display: grid; grid-template-columns: minmax(420px, 520px) 1fr; gap: 28px; align-items: start; }
-  #board { max-height: calc(100vh - 230px); }
+  #board { max-height: calc(100vh - 320px); min-height: 380px; }
   .side { margin-top: 0; }
   .log { max-height: 280px; }
 }
