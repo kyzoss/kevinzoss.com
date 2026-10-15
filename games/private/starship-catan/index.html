@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<base href="/play/starship-catan/" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#F3EDE3" />
+<title>Starship Catan</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <a class="back" href="/play/">&lsaquo; Games</a>
+    <div class="titleblock">
+      <h1>Starship Catan</h1>
+      <p class="sub">House rules edition, inspired by the Catan family</p>
+    </div>
+    <div class="topbtns">
+      <button type="button" class="ghost" id="btnLog">Log</button>
+      <button type="button" class="ghost" id="btnRules">Rules</button>
+      <button type="button" class="ghost" id="btnMenu">Menu</button>
+    </div>
+  </header>
+
+  <section class="galaxy" id="galaxy">
+    <canvas id="board" aria-label="The galaxy. Drag to pan, pinch or use the zoom buttons. Tap a ship, then a highlighted sector to fly."></canvas>
+    <div class="banner" id="banner" role="status" aria-live="polite"></div>
+    <div class="zoom">
+      <button type="button" id="zin" aria-label="Zoom in">+</button>
+      <button type="button" id="zout" aria-label="Zoom out">&minus;</button>
+      <button type="button" id="zfit" aria-label="Show the whole galaxy">All</button>
+      <button type="button" id="zhome" aria-label="Centre on my homeworld">Home</button>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="players" id="players" aria-label="Players"></section>
+  <section class="status" id="status" aria-live="polite"></section>
+  <section class="hand" id="hand" aria-label="Your resources"></section>
+  <section class="ctx" id="ctx" aria-label="Ships and selection"></section>
+  <section class="actions" id="actions" aria-label="Actions"></section>
+  <section class="logpanel" id="logpanel" aria-label="Action log"><h2>Action log</h2><ol id="log"></ol></section>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" id="sheet"><div id="modalBody"></div></div>
+</div>
+
+<noscript><p style="padding:16px">This game needs JavaScript.</p></noscript>
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
