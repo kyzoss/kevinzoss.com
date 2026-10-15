@@ -260,7 +260,7 @@ test("single game win, gammon and backgammon scoring", () => {
   // white point 1 is index 0, which is in Black's home? Black home is indices 18..23, so this is a gammon only
   L.move(s, L.legalMoves(s).find((m) => m.to === "off"));
   assert.deepEqual([s.result.winner, s.result.kind], [1, "gammon"]);
-  s = L.custom({ black: { 1: 1 }, off: [0, 14], white: { 24: 2, 10: 13 }, turn: 1, dice: [1, 2] });
+  s = L.custom({ black: { 2: 1 }, off: [0, 14], white: { 24: 2, 10: 13 }, turn: 1, dice: [2, 1] });
   L.move(s, L.legalMoves(s).find((m) => m.to === "off"));
   assert.deepEqual([s.result.winner, s.result.kind, s.result.points], [1, "backgammon", 3]);
 });
@@ -406,14 +406,26 @@ test("AI beats a random player in at least 85% of 200 seeded games", () => {
   assert.ok(wins >= 170, "AI won only " + wins + " of 200");
 });
 
-test("AI prefers hitting and making points to leaving blots", () => {
-  // White to play 6-5 would like to hit; check evaluate prefers safe position
-  const s = L.custom({ white: { 6: 3, 8: 3, 13: 5, 24: 2, 7: 1, 4: 1 }, black: { 24: 2, 13: 5, 8: 3, 6: 3 }, dice: [3, 1] });
-  const moves = L.chooseTurn(s);
-  assert.ok(L.playMoves(s, moves));
-  // the best play makes the 4 point or covers the blot on the bar point
-  const blotsLeft = s.pts.filter((v) => v === 1).length;
-  assert.ok(blotsLeft <= 1);
+test("evaluation prefers safety, made points and hits", () => {
+  const base = { white: { 24: 2, 13: 5, 8: 3, 6: 5 }, black: { 24: 2, 13: 5, 8: 3, 6: 5 } };
+  const safe = L.custom(Object.assign({}, base, { white: { 24: 2, 13: 5, 8: 3, 6: 4, 5: 1 } }));
+  const safe2 = L.custom(Object.assign({}, base, { white: { 24: 2, 13: 4, 8: 3, 6: 5, 5: 1 } }));
+  // blot on the 7 point is exposed to the back checkers, a stack on 6 is not
+  const exposed = L.custom(Object.assign({}, base, { white: { 24: 2, 13: 5, 8: 3, 7: 1, 6: 4 } }));
+  const stacked = L.custom(Object.assign({}, base, { white: { 24: 2, 13: 5, 8: 2, 7: 2, 6: 4 } }));
+  assert.ok(L.evaluate(L.posOf(stacked), 0) > L.evaluate(L.posOf(exposed), 0));
+  assert.ok(L.shotProb(L.posOf(exposed), 0, 6) > 0.1);
+  // a hit is worth a lot
+  const hit = L.custom(Object.assign({}, base, { bar: [0, 1], black: { 24: 1, 13: 5, 8: 3, 6: 5 } }));
+  const nohit = L.custom(base);
+  assert.ok(L.evaluate(L.posOf(hit), 0) > L.evaluate(L.posOf(nohit), 0) + 10);
+  assert.ok(L.evaluate(L.posOf(safe), 0) !== L.evaluate(L.posOf(safe2), 0));
+});
+
+test("AI makes the 5 point on a 3-1 opening", () => {
+  const g = L.custom({ white: { 24: 2, 13: 5, 8: 3, 6: 5 }, black: { 24: 2, 13: 5, 8: 3, 6: 5 }, dice: [3, 1] });
+  L.playMoves(g, L.chooseTurn(g));
+  assert.equal(g.pts[4], 2, "makes the 5 point with 8/5 6/5: " + g.pts.join());
 });
 
 test("AI cube decisions follow pip lead", () => {

@@ -261,10 +261,6 @@
     // compute the whole hand now (AI never sees other hands), then reveal it in beats
     L.aiCalls(G);
     L.resolve(G);
-    const lines = resultLines(G.last);
-    G.history = (G.history || []);
-    G.history.unshift('Hand ' + G.last.hand + ': ' + lines.join(' '));
-    G.history = G.history.slice(0, 5);
     save();
     render();
     const n = G.players.length - 1;
@@ -290,7 +286,16 @@
     }, 1100);
   }
 
+  function addHistory() {
+    if (!G.last || G.histHand === G.last.hand) return;
+    G.histHand = G.last.hand;
+    G.history = G.history || [];
+    G.history.unshift('Hand ' + G.last.hand + ': ' + resultLines(G.last).join(' '));
+    G.history = G.history.slice(0, 5);
+  }
+
   function finish() {
+    addHistory();
     V.phase = 'done'; render(); save();
   }
 
@@ -329,7 +334,7 @@
     clearTimers();
     G = saved.g;
     lastPot = null;
-    if (G.phase === 'result' || G.phase === 'over') makeView(true);
+    if (G.phase === 'result' || G.phase === 'over') { makeView(true); addHistory(); }
     else makeView(false);
     // a save taken mid-hand (after the call was locked) always has phase result, so we only land here at call or done
     render();
@@ -389,7 +394,7 @@
       '<h3>Keys</h3><p>I stay in, O fold, Enter or N for the next hand.</p>' +
       (G ? '<p>Deal seed: <b>' + G.seed + '</b>. Add <b>?seed=' + G.seed + '</b> to the address to replay it.</p>' : '');
     modal('How to play', html, [{ label: 'Close', cls: 'btn primary', fn: closeModal }], { dismiss: true });
-    $('mBody').scrollTop = 0;
+    $('modal').querySelector('.sheet').scrollTop = 0;
   }
 
   // ---- wiring

@@ -46,7 +46,7 @@ button { font: inherit; color: inherit; }
 .score { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .pl { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 5px 4px; text-align: center; min-width: 0; }
 .pl .lbl { font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
-.pl .pts { font-family: var(--display); font-size: 28px; line-height: 1.05; }
+.pl .pts { font-family: var(--body); font-weight: 500; font-size: 28px; line-height: 1.1; }
 .pl .hp { font-size: 11px; color: var(--muted); min-height: 14px; }
 .pl.you { border-color: var(--forest); }
 .pl.low .pts { color: var(--forest); }
@@ -129,7 +129,7 @@ button { font: inherit; color: inherit; }
 .sheet .row .btn { flex: 1 1 120px; }
 .sheet .opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); min-height: 48px; }
 .sheet .opt small { display: block; color: var(--muted); font-size: 12px; }
-.sheet .big { font-family: var(--display); font-size: 26px; margin: 4px 0 10px; }
+.sheet .big { font-family: var(--body); font-weight: 500; font-size: 22px; margin: 4px 0 10px; }
 
 @media (min-width: 700px) {
   .modal { align-items: center; padding: 20px; }
@@ -157,4 +157,9 @@ button { font: inherit; color: inherit; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
+}
+@media (min-width: 800px) {
+  .app { max-width: 860px; }
+  .hand { grid-template-columns: repeat(13, 1fr); gap: 6px; max-width: 840px; }
+  .hand .card.sel { transform: translateY(-8px); }
 }
