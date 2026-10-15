@@ -180,18 +180,24 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  const DISPLAY = '"Archivo Black","Arial Black",Impact,sans-serif';
-  const BODY = 'Inter,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif';
-  const COLORS = ["#F0A93C", "#FF7A5C", "#FF4FA3", "#8B5CF6", "#3FA9F5"];
-  const colorFor = (w) => COLORS[w <= 1 ? 0 : w <= 2 ? 1 : w <= 3 ? 2 : w <= 4 ? 3 : 4];
+  // Mesa palette: linen, plaster, forest green, gold and clay.
+  const DISPLAY = '"Marcellus",Georgia,serif';
+  const BODY = '"Jost","Avenir Next",system-ui,-apple-system,"Segoe UI",sans-serif';
+  const INK = "#2B2622", MUTED = "#7B7064", GREEN = "#2F4B35", CLAY = "#D9663A", CREAM = "#FBF8F2";
+  const COLORS = ["#E3B23C", "#D9663A", "#B8527A", "#5E7F55", "#4C78A8"];
+  const INKS = [INK, INK, CREAM, CREAM, CREAM]; // readable number colour on each block colour
+  const idx = (w) => (w <= 1 ? 0 : w <= 2 ? 1 : w <= 3 ? 2 : w <= 4 ? 3 : 4);
+  const colorFor = (w) => COLORS[idx(w)];
+  const inkFor = (w) => INKS[idx(w)];
 
   const cloudRng = mulberry32(99);
   const CLOUDS = Array.from({ length: 8 }, () => ({
     x: cloudRng(), y: 0.08 + cloudRng() * 0.55, s: 0.6 + cloudRng() * 1.2, v: 4 + cloudRng() * 10,
   }));
 
-  function text(str, x, y, size, color, align = "left", font = BODY, weight = "700") {
-    ctx.font = `${font === DISPLAY ? "900" : weight} ${size}px ${font}`;
+  function text(str, x, y, size, color, align = "left", font = BODY, weight = "500") {
+    ctx.font = `${font === DISPLAY ? "400" : weight} ${size}px ${font}`;
+    if ("letterSpacing" in ctx) ctx.letterSpacing = font === DISPLAY ? Math.round(size * 0.12) + "px" : "0px";
     ctx.textAlign = align; ctx.fillStyle = color; ctx.fillText(str, x, y);
   }
 
@@ -204,11 +210,16 @@
 
     // sky
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#0B0B0E"); g.addColorStop(0.55, "#2a1b4d"); g.addColorStop(1, "#ff7a5c");
+    g.addColorStop(0, "#F3EDE3"); g.addColorStop(0.6, "#EADFCB"); g.addColorStop(1, "#E2D2BA");
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // plaster arch behind the platform, like the Mesa hero
+    const aw = Math.min(W * 0.46, 330), ay = H * 0.12, ab = py + 10;
+    ctx.beginPath(); ctx.moveTo(px - aw, ab); ctx.lineTo(px - aw, ay + aw); ctx.arc(px, ay + aw, aw, Math.PI, 0); ctx.lineTo(px + aw, ab); ctx.closePath();
+    ctx.fillStyle = "#FBF5EA"; ctx.fill();
+    ctx.lineWidth = 12 * k; ctx.strokeStyle = "rgba(211,191,162,.55)"; ctx.stroke();
 
     // clouds
-    ctx.fillStyle = "rgba(250,250,248,.045)";
+    ctx.fillStyle = "rgba(107,85,55,.07)";
     for (const c of CLOUDS) {
       const x = ((c.x * (W + 240) + s.t * c.v) % (W + 240)) - 120, y = c.y * H, r = 60 * c.s * k * 2;
       for (const [dx, dy, rr] of [[0, 0, 1], [0.7, 0.15, 0.75], [-0.7, 0.18, 0.7]]) {
@@ -217,23 +228,24 @@
     }
 
     // pillar and pivot
-    ctx.fillStyle = "#15151c";
+    ctx.fillStyle = "#D9C7AA";
     ctx.beginPath(); ctx.moveTo(px - 16 * k, py); ctx.lineTo(px + 16 * k, py); ctx.lineTo(px + 60 * k, H + 10); ctx.lineTo(px - 60 * k, H + 10); ctx.fill();
-    ctx.fillStyle = "#D80707"; ctx.beginPath(); ctx.arc(px, py, 14 * k, 0, 7); ctx.fill();
+    ctx.fillStyle = GREEN; ctx.beginPath(); ctx.arc(px, py, 14 * k, 0, 7); ctx.fill();
 
     // platform and its blocks
     ctx.save();
     ctx.translate(px, py); ctx.rotate(rad);
     const danger = Math.abs(s.angle) > LIMIT;
-    ctx.fillStyle = "#E8E1D4"; ctx.fillRect(-P, -th, 2 * P, th * 2);
-    ctx.fillStyle = danger ? "#FF3B2F" : "#D80707";
+    ctx.fillStyle = CREAM; ctx.fillRect(-P, -th, 2 * P, th * 2);
+    ctx.strokeStyle = "#C9B293"; ctx.lineWidth = 1.5; ctx.strokeRect(-P, -th, 2 * P, th * 2);
+    ctx.fillStyle = danger ? CLAY : GREEN;
     ctx.fillRect(-P, -th, 14 * k, th * 2); ctx.fillRect(P - 14 * k, -th, 14 * k, th * 2);
     for (const b of s.blocks) {
       const w = bw(b.w), x = b.u * P - w / 2;
       const y0 = -th - (b.level + 1) * bh;
       ctx.fillStyle = colorFor(b.w); ctx.fillRect(x, y0, w, bh - 1);
-      ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.fillRect(x, y0 + bh * 0.65, w, bh * 0.35 - 1);
-      text(String(b.w), x + w / 2, y0 + bh * 0.68, 13 * k + 2, "#0B0B0E", "center");
+      ctx.fillStyle = "rgba(43,38,34,.16)"; ctx.fillRect(x, y0 + bh * 0.65, w, bh * 0.35 - 1);
+      text(String(b.w), x + w / 2, y0 + bh * 0.68, 13 * k + 2, inkFor(b.w), "center");
     }
     ctx.restore();
 
@@ -251,59 +263,59 @@
       const e = c.fall < 0 ? 0 : (c.fall / FALL_T) ** 2;
       const y = topY + (surf - topY) * e;
       if (c.fall < 0) {
-        ctx.setLineDash([4, 7]); ctx.strokeStyle = "rgba(250,250,248,.25)"; ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 7]); ctx.strokeStyle = "rgba(74,56,36,.28)"; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.moveTo(x, y + bh); ctx.lineTo(x, surf + bh); ctx.stroke(); ctx.setLineDash([]);
-        ctx.strokeStyle = "rgba(250,250,248,.5)";
+        ctx.strokeStyle = "rgba(74,56,36,.5)";
         ctx.beginPath(); ctx.moveTo(x - w * 0.3, y); ctx.lineTo(x, y - 46 * k); ctx.lineTo(x + w * 0.3, y); ctx.stroke();
-        ctx.fillStyle = "#D80707"; ctx.beginPath(); ctx.ellipse(x, y - 64 * k, 22 * k, 26 * k, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = CLAY; ctx.beginPath(); ctx.ellipse(x, y - 64 * k, 22 * k, 26 * k, 0, 0, 7); ctx.fill();
       }
       ctx.fillStyle = colorFor(c.w); ctx.fillRect(x - w / 2, y, w, bh);
-      text(String(c.w), x, y + bh * 0.7, 13 * k + 2, "#0B0B0E", "center");
+      text(String(c.w), x, y + bh * 0.7, 13 * k + 2, inkFor(c.w), "center");
     }
 
     // HUD: score and lives
     const pad = Math.max(16, W * 0.04);
-    text("BLOCKS", pad, pad + 10, 11, "rgba(250,250,248,.6)");
-    text(String(s.placed), pad, pad + 54, 46, "#FAFAF8", "left", DISPLAY);
+    text("BLOCKS", pad, pad + 10, 11, MUTED);
+    text(String(s.placed), pad, pad + 54, 46, INK, "left", BODY, "500");
     for (let i = 0; i < MAX_LOST; i++) {
-      ctx.fillStyle = i < s.lost ? "#FF3B2F" : "rgba(250,250,248,.22)";
+      ctx.fillStyle = i < s.lost ? CLAY : "rgba(74,56,36,.18)";
       ctx.fillRect(pad + i * 18, pad + 68, 12, 12);
     }
 
     // next card
     const nx = W - pad - 64;
-    ctx.fillStyle = "rgba(250,250,248,.08)"; ctx.fillRect(nx, pad, 64, 78);
-    text("NEXT", nx + 32, pad + 18, 11, "rgba(250,250,248,.6)", "center");
+    ctx.fillStyle = "rgba(251,248,242,.92)"; ctx.fillRect(nx, pad, 64, 78); ctx.strokeStyle = "rgba(74,56,36,.16)"; ctx.lineWidth = 1; ctx.strokeRect(nx + .5, pad + .5, 63, 77);
+    text("NEXT", nx + 32, pad + 18, 11, MUTED, "center");
     ctx.fillStyle = colorFor(s.next); ctx.fillRect(nx + 32 - bw(s.next) * 0.5 * 0.9, pad + 32, bw(s.next) * 0.9, 26 * 0.9);
-    text(String(s.next), nx + 32, pad + 52, 13, "#0B0B0E", "center");
+    text(String(s.next), nx + 32, pad + 52, 13, inkFor(s.next), "center");
 
     // tilt gauge
     const gw = Math.min(220, W * 0.34), gx = W / 2 - gw / 2, gy = pad + 14, sc = gw / 60;
-    ctx.fillStyle = "rgba(250,250,248,.12)"; ctx.fillRect(gx, gy, gw, 8);
-    ctx.fillStyle = "rgba(120,220,140,.55)"; ctx.fillRect(gx + gw / 2 - LIMIT * sc, gy, LIMIT * 2 * sc, 8);
-    ctx.fillStyle = danger ? "#FF3B2F" : "#FAFAF8";
+    ctx.fillStyle = "rgba(74,56,36,.12)"; ctx.fillRect(gx, gy, gw, 8);
+    ctx.fillStyle = "rgba(94,127,85,.5)"; ctx.fillRect(gx + gw / 2 - LIMIT * sc, gy, LIMIT * 2 * sc, 8);
+    ctx.fillStyle = danger ? CLAY : INK;
     ctx.fillRect(gx + gw / 2 + clamp(s.angle, -30, 30) * sc - 2, gy - 5, 4, 18);
-    text(`TILT ${Math.abs(s.angle).toFixed(1)}°`, W / 2, gy + 34, 12, danger ? "#FF3B2F" : "rgba(250,250,248,.7)", "center");
+    text(`TILT ${Math.abs(s.angle).toFixed(1)}°`, W / 2, gy + 34, 12, danger ? CLAY : MUTED, "center");
 
-    text(`${MODE}  ·  best ${best}`, pad, H - pad, 12, "rgba(250,250,248,.6)");
+    text(`${MODE}  ·  best ${best}`, pad, H - pad, 12, MUTED);
 
     if (s.flash > 0 && !REDUCED) {
-      ctx.fillStyle = `rgba(255,59,47,${s.flash * 0.35})`; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = `rgba(217,102,58,${s.flash * 0.3})`; ctx.fillRect(0, 0, W, H);
     }
-    if (danger && !s.over) text("HOLD ON!", W / 2, H * 0.86, Math.min(48, W * 0.11), "#FF3B2F", "center", DISPLAY);
+    if (danger && !s.over) text("HOLD ON!", W / 2, H * 0.86, Math.min(48, W * 0.11), CLAY, "center", DISPLAY);
 
     if (!s.started || s.over) {
-      ctx.fillStyle = "rgba(11,11,14,.72)"; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "rgba(243,237,227,.88)"; ctx.fillRect(0, 0, W, H);
       const big = Math.min(64, W * 0.15);
       if (!s.started) {
-        text("BALLAST", W / 2, H * 0.38, big, "#FAFAF8", "center", DISPLAY);
-        text("The platform has a centre of mass.", W / 2, H * 0.38 + big * 0.7, 16, "#C9C9CE", "center");
-        text("Move to aim, tap to drop. Past 15° the rim slides.", W / 2, H * 0.38 + big * 0.7 + 26, 14, "#C9C9CE", "center");
-        text("TAP TO START", W / 2, H * 0.38 + big * 0.7 + 78, 15, "#FF3B2F", "center");
+        text("BALLAST", W / 2, H * 0.38, big, GREEN, "center", DISPLAY);
+        text("The platform has a centre of mass.", W / 2, H * 0.38 + big * 0.7, 16, MUTED, "center");
+        text("Move to aim, tap to drop. Past 15° the rim slides.", W / 2, H * 0.38 + big * 0.7 + 26, 14, MUTED, "center");
+        text("TAP TO START", W / 2, H * 0.38 + big * 0.7 + 78, 15, GREEN, "center", BODY, "600");
       } else {
-        text("IT TIPPED", W / 2, H * 0.38, big, "#FF3B2F", "center", DISPLAY);
-        text(`${s.placed} blocks  ·  best ${Math.max(best, s.placed)}`, W / 2, H * 0.38 + big * 0.7, 18, "#FAFAF8", "center");
-        text("TAP TO GO AGAIN", W / 2, H * 0.38 + big * 0.7 + 52, 15, "#FF3B2F", "center");
+        text("IT TIPPED", W / 2, H * 0.38, big, CLAY, "center", DISPLAY);
+        text(`${s.placed} blocks  ·  best ${Math.max(best, s.placed)}`, W / 2, H * 0.38 + big * 0.7, 18, INK, "center");
+        text("TAP TO GO AGAIN", W / 2, H * 0.38 + big * 0.7 + 52, 15, GREEN, "center", BODY, "600");
       }
     }
   }
@@ -352,6 +364,7 @@
       draw(s, 0);
     };
     draw(s, 0);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => draw(s, 0));
   } else {
     let last = null, acc = 0;
     const frame = (ts) => {
