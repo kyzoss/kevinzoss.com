@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<base href="/play/stratego/" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#F3EDE3" />
+<title>Stratego</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<main id="app">
+
+  <section id="menu" class="screen">
+    <a class="back" href="/play/">&larr; back to games</a>
+    <h1>Stratego</h1>
+    <p class="lede">Hidden armies on a ten by ten field. Find the enemy flag before they find yours. You play Red against the computer.</p>
+
+    <button id="resume" class="btn primary" hidden></button>
+
+    <div class="card">
+      <h2>New game</h2>
+      <p class="hint">You arrange all 40 Red pieces first, then play. Starting a new game replaces any saved one.</p>
+      <button id="startBtn" class="btn primary">Set up my army</button>
+    </div>
+
+    <div class="card" id="tallyCard">
+      <h2>Your record</h2>
+      <div id="tally" class="tally"></div>
+      <button id="resetTally" class="linkbtn">Reset record</button>
+    </div>
+
+    <div class="rules-slot"></div>
+  </section>
+
+  <section id="setup" class="screen" hidden>
+    <div class="top">
+      <a class="back" href="/play/">&larr; games</a>
+      <h1 class="small">Stratego</h1>
+      <button id="setupMenu" class="linkbtn">Menu</button>
+    </div>
+    <div class="layout">
+      <div class="play">
+        <div id="setupStatus" class="status" role="status" aria-live="polite"></div>
+        <div class="boardwrap"><svg id="setupBoard" class="board" viewBox="0 0 400 400" role="group" aria-label="Setup board"></svg></div>
+        <div id="tray" class="tray" role="group" aria-label="Piece tray"></div>
+        <p id="trayHint" class="hint trayhint"></p>
+        <div class="setupbtns">
+          <button id="sRandom" class="btn">Random</button>
+          <button id="sDef" class="btn">Defensive</button>
+          <button id="sAgg" class="btn">Aggressive</button>
+          <button id="sClear" class="btn">Clear</button>
+        </div>
+        <button id="sReturn" class="btn" hidden>Return selected piece to tray</button>
+        <button id="sStart" class="btn primary wide" disabled>Start game</button>
+      </div>
+      <div class="side">
+        <div class="rules-slot"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="top">
+      <a class="back" href="/play/">&larr; games</a>
+      <h1 class="small">Stratego</h1>
+      <button id="menuBtn" class="linkbtn">Menu</button>
+    </div>
+    <div class="layout">
+      <div class="play">
+        <div id="score" class="score" aria-live="polite"></div>
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+        <div class="boardwrap"><svg id="board" class="board" viewBox="0 0 400 400" role="group" aria-label="Stratego board"></svg></div>
+        <div class="controls">
+          <button id="undoBtn" class="btn">Undo</button>
+          <button id="revealBtn" class="btn" hidden>Reveal opponent</button>
+          <button id="resignBtn" class="btn">Resign</button>
+          <button id="againBtn" class="btn primary" hidden>New game</button>
+        </div>
+        <p id="undoNote" class="hint seednote"></p>
+      </div>
+      <div class="side">
+        <div class="card" id="combatCard" hidden>
+          <h2>Last battle</h2>
+          <div id="combat" class="combat"></div>
+        </div>
+        <div class="card">
+          <h2>Graveyard</h2>
+          <div class="gy-lab">Blue pieces you captured</div>
+          <div id="gyBlue" class="gy"></div>
+          <div class="gy-lab">Your lost Red pieces</div>
+          <div id="gyRed" class="gy"></div>
+        </div>
+        <div class="card">
+          <h2>Move log</h2>
+          <ol id="log" class="log"></ol>
+        </div>
+        <div class="rules-slot"></div>
+        <p id="seedNote" class="hint seednote"></p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div id="modalBtns" class="modal-btns"></div>
+  </div>
+</div>
+
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

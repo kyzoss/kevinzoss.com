@@ -8,26 +8,31 @@ const path = require("node:path");
 function createServer() {
   const unlock = require("./api/unlock");
   const g = require("./api/g");
+  const admin = require("./api/admin");
   const wrap = (res) => {
     res.status = (c) => { res.statusCode = c; return res; };
     res.json = (o) => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(o)); };
     const set = res.setHeader.bind(res);
-    res.setHeader = (k, v) => set(k, k.toLowerCase() === "set-cookie" ? String(v).replace("; Secure", "") : v);
+    const strip = (s) => String(s).replace("; Secure", "");
+    res.setHeader = (k, v) => set(k, k.toLowerCase() === "set-cookie" ? (Array.isArray(v) ? v.map(strip) : strip(v)) : v);
     return res;
   };
   return http.createServer((req, res) => {
     wrap(res);
     const url = new URL(req.url, "http://localhost");
-    if (url.pathname === "/api/unlock" || url.pathname === "/api/g") return collect(req, (body) => {
+    const apis = { "/api/unlock": unlock, "/api/g": g, "/api/admin": admin };
+    if (apis[url.pathname]) return collect(req, (body) => {
       req.body = body; req.query = Object.fromEntries(url.searchParams);
-      (url.pathname === "/api/g" ? g : unlock)(req, res);
+      Promise.resolve(apis[url.pathname](req, res)).catch((e) => { res.statusCode = 500; res.end(String(e)); });
     });
     if (url.pathname === "/play" || url.pathname.startsWith("/play/")) {
       req.query = { p: decodeURIComponent(url.pathname.slice("/play/".length) || "") };
       req.url = url.pathname;
-      return g(req, res);
+      return Promise.resolve(g(req, res)).catch((e) => { res.statusCode = 500; res.end(String(e)); });
     }
-    const file = path.join(__dirname, "public", url.pathname === "/" ? "index.html" : url.pathname);
+    let rel = url.pathname === "/" ? "index.html" : url.pathname;
+    if (!path.extname(rel)) rel += ".html"; // cleanUrls: /admin -> admin.html
+    const file = path.join(__dirname, "public", rel);
     if (!file.startsWith(path.join(__dirname, "public")) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
       res.statusCode = 404; return res.end("Not found");
     }

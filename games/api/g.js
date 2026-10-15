@@ -3,6 +3,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { isAuthed } = require("../lib/auth");
+const { isAdmin } = require("../lib/admin");
+const { track } = require("../lib/track");
 
 const ROOT = path.join(__dirname, "..", "private");
 const TYPES = {
@@ -30,7 +32,7 @@ function resolveFile(p) {
   return full;
 }
 
-module.exports = function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   if (!isAuthed(req)) {
@@ -51,6 +53,11 @@ module.exports = function handler(req, res) {
     try { st = fs.statSync(file); } catch { st = null; }
   }
   if (!st) { res.statusCode = 404; return res.end("Not found"); }
+  // Count a game or hub open once per page load (the index page, not every asset).
+  if (path.basename(file) === "index.html" && !isAdmin(req)) {
+    const rel = path.relative(ROOT, file).split(path.sep);
+    await track("open", req, { game: rel.length > 1 ? rel[0] : "hub" });
+  }
   res.setHeader("Content-Type", TYPES[path.extname(file).toLowerCase()] || "application/octet-stream");
   res.statusCode = 200;
   fs.createReadStream(file).pipe(res);
