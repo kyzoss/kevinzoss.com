@@ -451,7 +451,7 @@ test("page contract: base href first in head, no em dash, relative assets", () =
   assert.ok(!/(src|href)="https?:/.test(html));
   for (const f of fs.readdirSync(dir)) {
     const text = fs.readFileSync(path.join(dir, f), "utf8");
-    assert.ok(!text.includes("—"), f + " contains an em dash");
+    assert.ok(!text.includes(String.fromCharCode(8212)), f + " contains an em dash");
   }
-  assert.ok(!fs.readFileSync(__filename, "utf8").includes("—"));
+  assert.ok(!fs.readFileSync(__filename, "utf8").includes(String.fromCharCode(8212)));
 });

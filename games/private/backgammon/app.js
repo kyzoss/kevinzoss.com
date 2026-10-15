@@ -343,7 +343,7 @@
         '<div class="st">Pips ' + pipsOf(p) + " | Off " + s.off[p] + (s.bar[p] ? " | Bar " + s.bar[p] : "") + "</div></div>";
       if (p === 0) {
         var mid = "";
-        if (s.cube.on) mid += '<span class="cube own' + (s.cube.owner === null ? "x" : s.cube.owner) + '" title="Doubling cube">' + (s.cube.value === 1 && s.cube.owner === null ? 64 : s.cube.value) + "</span>";
+        if (s.cube.on) mid += '<span class="cube" title="Doubling cube">' + (s.cube.value === 1 && s.cube.owner === null ? 64 : s.cube.value) + '</span><span class="cown">' + (s.cube.owner === null ? "centre" : nameOf(s.cube.owner)) + "</span>";
         if (s.match) mid += "<span>To " + s.match.target + "<br>" + s.match.score[0] + " : " + s.match.score[1] + (s.crawfordGame ? "<br>Crawford" : "") + "</span>";
         else if (!s.cube.on) mid += "<span>Single<br>game</span>";
         h += '<div class="mid">' + mid + "</div>";
@@ -576,5 +576,5 @@
 
   // ---------- boot ----------
   renderMenu();
-  window.__bg = { app: app, L: L };
+  window.__bg = { app: app, L: L, commit: commit };
 })();
