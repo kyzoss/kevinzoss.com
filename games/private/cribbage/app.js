@@ -209,7 +209,9 @@
     t.className = "table" + (st.phase === "count" || st.phase === "over" ? " counting" : "");
     if (st.phase === "count" || st.phase === "over") {
       var cur = st.count.current;
-      if (!cur) {
+      if (!cur && st.phase === "over") {
+        h += '<div class="countbox"><h3>Game over</h3><div class="note">' + (st.winner === 0 ? "You reached 121 first." : "The computer reached 121 first.") + "</div></div>";
+      } else if (!cur) {
         h += '<div class="countbox"><h3>Pegging is over</h3><div class="countcards">' + cardHtml(st.starter) + '</div><div class="note">Starter card. Next, hands are counted: ' + (st.dealer === 0 ? "the computer's, yours, then your crib." : "yours, the computer's, then the computer's crib.") + "</div></div>";
       } else {
         var title = cur.kind === "crib" ? (cur.who === 0 ? "Your crib" : "Computer's crib") : (cur.who === 0 ? "Your hand" : "Computer's hand");
@@ -379,7 +381,7 @@
     openModal(
       '<h2 id="modal-title">' + (won ? "You win" : "Computer wins") + "</h2>" +
       '<div class="big">' + st.scores[0] + " &ndash; " + st.scores[1] + "</div>" + (sk ? "<p>" + sk + "</p>" : "") +
-      "<p>Record: " + tally.w + " wins, " + tally.l + " losses.</p>" +
+      "<p>Record: " + tally.w + (tally.w === 1 ? " win, " : " wins, ") + tally.l + (tally.l === 1 ? " loss." : " losses.") + "</p>" +
       '<div class="row"><button class="btn primary" id="m-new" type="button">Play again</button><button class="btn" id="m-close" type="button">Close</button></div>');
     $("m-new").onclick = function () { newGame(); };
     $("m-close").onclick = closeModal;
