@@ -5,10 +5,11 @@
   const $ = (id) => document.getElementById(id);
   const RES = C.RES;
   const LET = { brick: 'B', lumber: 'L', wool: 'W', grain: 'G', ore: 'O' };
-  const RCOL = { brick: '#C9694A', lumber: '#4E9F5E', wool: '#9CCB63', grain: '#E3C34F', ore: '#8D95A3' };
-  const TCOL = { hill: '#C9694A', forest: '#4E9F5E', pasture: '#9CCB63', field: '#E3C34F', mountain: '#8D95A3', desert: '#D9C9A0' };
+  const RCOL = { brick: '#C9694A', lumber: '#5A9560', wool: '#A8CC7A', grain: '#E6C760', ore: '#9AA0A8' };
+  const TCOL = { hill: '#C9694A', forest: '#5A9560', pasture: '#A8CC7A', field: '#E6C760', mountain: '#9AA0A8', desert: '#E3D3A6' };
+  const INK = '#2B2622', CREAM = '#FBF8F2', SANS = "Jost, system-ui, 'Segoe UI', Arial, sans-serif", HL = '#2F4B35';
   const TWORD = { hill: 'BRICK', forest: 'LUMBER', pasture: 'WOOL', field: 'GRAIN', mountain: 'ORE', desert: 'DESERT' };
-  const PCOL = ['#FF3B2F', '#4DA3FF', '#F2F2F2', '#B07CFF'];
+  const PCOL = ['#C8372D', '#2F6DB5', '#3A3632', '#8A4FC0'];
   const SAVE_KEY = 'catan.save.v1';
   const TALLY_KEY = 'catan.tally.v1';
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -165,7 +166,7 @@
 
   function drawIcon(kind, x, y, k) {
     ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
-    ctx.fillStyle = 'rgba(12,16,20,.82)'; ctx.strokeStyle = 'rgba(12,16,20,.82)'; ctx.lineWidth = 0.1;
+    ctx.fillStyle = 'rgba(43,38,34,.72)'; ctx.strokeStyle = 'rgba(43,38,34,.72)'; ctx.lineWidth = 0.1;
     if (kind === 'forest') {
       poly([[0, -1], [0.62, -0.1], [-0.62, -0.1]]); ctx.fill();
       poly([[0, -0.55], [0.8, 0.5], [-0.8, 0.5]]); ctx.fill();
@@ -197,25 +198,25 @@
       const hx = G.hexes[i];
       poly(h.verts.map((v) => [sx(VERT[v].x), sy(VERT[v].y)]));
       ctx.fillStyle = TCOL[hx.terrain]; ctx.fill();
-      ctx.lineWidth = Math.max(1.5, S * 0.05); ctx.strokeStyle = '#0B0B0E'; ctx.stroke();
+      ctx.lineWidth = Math.max(1.5, S * 0.05); ctx.strokeStyle = '#F3EDE3'; ctx.lineJoin = 'round'; ctx.stroke();
     });
     const sum = G.dice ? G.dice[0] + G.dice[1] : 0;
     HEX.forEach((h, i) => {
       const hx = G.hexes[i];
       const cx = sx(h.x), cy = sy(h.y), k = S * ui.view.z;
       drawIcon(hx.terrain, cx, cy - 0.5 * k, 0.25 * k);
-      ctx.font = '800 ' + Math.max(7, Math.round(0.19 * k)) + 'px Inter, Arial, sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(12,16,20,.85)';
+      ctx.font = '500 ' + Math.max(7, Math.round(0.19 * k)) + 'px ' + SANS;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(43,38,34,.85)';
       ctx.fillText(TWORD[hx.terrain], cx, cy - 0.17 * k);
       if (hx.num) {
         const ty = cy + 0.28 * k;
-        ctx.beginPath(); ctx.arc(cx, ty, 0.33 * k, 0, 7); ctx.fillStyle = '#F4EBD2'; ctx.fill();
-        ctx.lineWidth = 1.5; ctx.strokeStyle = sum && sum === hx.num && sum !== 7 ? '#FF3B2F' : '#2a2a2a';
+        ctx.beginPath(); ctx.arc(cx, ty, 0.33 * k, 0, 7); ctx.fillStyle = CREAM; ctx.fill();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = sum && sum === hx.num && sum !== 7 ? '#D9663A' : 'rgba(43,38,34,.55)';
         if (sum && sum === hx.num) ctx.lineWidth = 3;
         ctx.stroke();
         const hot = hx.num === 6 || hx.num === 8;
-        ctx.fillStyle = hot ? '#C4161C' : '#151515';
-        ctx.font = '900 ' + Math.round(0.3 * k) + 'px Inter, Arial, sans-serif';
+        ctx.fillStyle = hot ? '#B3321F' : INK;
+        ctx.font = '600 ' + Math.round(0.3 * k) + 'px ' + SANS;
         ctx.fillText(String(hx.num), cx, ty - 0.04 * k);
         const pips = C.pipsOf(hx.num);
         for (let p = 0; p < pips; p++) {
@@ -232,15 +233,15 @@
       const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       const d = Math.hypot(mx, my) || 1;
       const px = mx + (mx / d) * 0.78, py = my + (my / d) * 0.78;
-      ctx.strokeStyle = '#d8d2b8'; ctx.lineWidth = Math.max(2, k * 0.06);
+      ctx.strokeStyle = '#FBF8F2'; ctx.lineWidth = Math.max(2, k * 0.06);
       ctx.beginPath(); ctx.moveTo(sx(a.x), sy(a.y)); ctx.lineTo(sx(px), sy(py)); ctx.lineTo(sx(b.x), sy(b.y)); ctx.stroke();
       ctx.beginPath(); ctx.arc(sx(px), sy(py), 0.4 * k, 0, 7);
-      ctx.fillStyle = p.type === 'any' ? '#EDE6CF' : RCOL[p.type]; ctx.fill();
-      ctx.lineWidth = 2; ctx.strokeStyle = '#0B0B0E'; ctx.stroke();
-      ctx.fillStyle = '#0B0B0E'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = '900 ' + Math.max(8, Math.round(0.24 * k)) + 'px Inter, Arial, sans-serif';
+      ctx.fillStyle = p.type === 'any' ? '#F3EDE3' : RCOL[p.type]; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(43,38,34,.7)'; ctx.stroke();
+      ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '600 ' + Math.max(8, Math.round(0.24 * k)) + 'px ' + SANS;
       ctx.fillText(p.type === 'any' ? '3:1' : '2:1', sx(px), sy(py) - (p.type === 'any' ? 0.07 : 0.1) * k);
-      ctx.font = '800 ' + Math.max(7, Math.round(0.2 * k)) + 'px Inter, Arial, sans-serif';
+      ctx.font = '500 ' + Math.max(7, Math.round(0.2 * k)) + 'px ' + SANS;
       ctx.fillText(p.type === 'any' ? 'ANY' : LET[p.type], sx(px), sy(py) + 0.17 * k);
     });
   }
@@ -251,7 +252,7 @@
       if (o < 0) return;
       const a = VERT[EDGE[e].a], b = VERT[EDGE[e].b];
       ctx.lineCap = 'round';
-      ctx.strokeStyle = '#0B0B0E'; ctx.lineWidth = k * 0.3;
+      ctx.strokeStyle = CREAM; ctx.lineWidth = k * 0.3;
       ctx.beginPath(); ctx.moveTo(sx(a.x), sy(a.y)); ctx.lineTo(sx(b.x), sy(b.y)); ctx.stroke();
       ctx.strokeStyle = PCOL[o]; ctx.lineWidth = k * 0.17;
       ctx.beginPath(); ctx.moveTo(sx(a.x), sy(a.y)); ctx.lineTo(sx(b.x), sy(b.y)); ctx.stroke();
@@ -268,7 +269,8 @@
       if (b.city) poly([[-0.32, 0.2], [0.32, 0.2], [0.32, -0.04], [0.1, -0.04], [0.1, -0.2], [-0.08, -0.36], [-0.26, -0.2], [-0.26, -0.04], [-0.32, -0.04]]);
       else poly([[-0.22, 0.18], [0.22, 0.18], [0.22, -0.06], [0, -0.28], [-0.22, -0.06]]);
       ctx.fillStyle = PCOL[b.p]; ctx.fill();
-      ctx.lineWidth = 0.07; ctx.strokeStyle = '#0B0B0E'; ctx.stroke();
+      ctx.lineWidth = 0.07; ctx.strokeStyle = CREAM; ctx.stroke();
+      if (k >= 34) { ctx.fillStyle = CREAM; ctx.font = '600 0.27px ' + SANS; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(b.p + 1), b.city ? -0.08 : 0, b.city ? 0.08 : 0.07); }
       ctx.restore();
     });
   }
@@ -278,7 +280,7 @@
     const k = S * ui.view.z;
     const x = sx(h.x) + 0.5 * k, y = sy(h.y) + 0.25 * k;
     ctx.save(); ctx.translate(x, y); ctx.scale(k * 0.5, k * 0.5);
-    ctx.fillStyle = '#17171b'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.08;
+    ctx.fillStyle = '#2B2622'; ctx.strokeStyle = CREAM; ctx.lineWidth = 0.08;
     poly([[-0.5, 0.7], [0.5, 0.7], [0.28, -0.2], [-0.28, -0.2]]); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.arc(0, -0.45, 0.32, 0, 7); ctx.fill(); ctx.stroke();
     ctx.restore();
@@ -294,19 +296,19 @@
         const x = sx(VERT[id].x), y = sy(VERT[id].y);
         const r = Math.max(9, 0.24 * k) + pulse * 2;
         ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
-        ctx.fillStyle = 'rgba(255,59,47,.35)'; ctx.fill(); ctx.strokeStyle = '#FF3B2F'; ctx.stroke();
+        ctx.fillStyle = 'rgba(255,252,244,.6)'; ctx.fill(); ctx.strokeStyle = HL; ctx.stroke();
       } else if (t.kind === 'e') {
         const a = VERT[EDGE[id].a], b = VERT[EDGE[id].b];
         const x = sx((a.x + b.x) / 2), y = sy((a.y + b.y) / 2);
-        ctx.strokeStyle = 'rgba(255,59,47,.55)'; ctx.lineWidth = Math.max(6, k * 0.17); ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(255,252,244,.8)'; ctx.lineWidth = Math.max(6, k * 0.17); ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(sx(a.x) + (b.x - a.x) * k * 0.2, sy(a.y) + (b.y - a.y) * k * 0.2); ctx.lineTo(sx(b.x) - (b.x - a.x) * k * 0.2, sy(b.y) - (b.y - a.y) * k * 0.2); ctx.stroke(); ctx.lineCap = 'butt';
         ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(x, y, Math.max(9, 0.22 * k) + pulse * 2, 0, 7); ctx.fillStyle = 'rgba(255,59,47,.4)'; ctx.fill(); ctx.strokeStyle = '#FF3B2F'; ctx.stroke();
+        ctx.beginPath(); ctx.arc(x, y, Math.max(9, 0.22 * k) + pulse * 2, 0, 7); ctx.fillStyle = 'rgba(255,252,244,.6)'; ctx.fill(); ctx.strokeStyle = HL; ctx.stroke();
       } else if (t.kind === 'h') {
         const h = HEX[id];
         poly(h.verts.map((v) => [sx(VERT[v].x), sy(VERT[v].y)]));
-        ctx.fillStyle = 'rgba(255,59,47,' + (0.18 + pulse * 0.12) + ')'; ctx.fill();
-        ctx.strokeStyle = '#FF3B2F'; ctx.stroke();
+        ctx.fillStyle = 'rgba(255,252,244,' + (0.3 + pulse * 0.15) + ')'; ctx.fill();
+        ctx.strokeStyle = HL; ctx.stroke();
       }
     });
   }
@@ -314,11 +316,11 @@
   function draw(now) {
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#0d1620'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#A9CBCB'; ctx.fillRect(0, 0, W, H);
     if (!G) return;
     // sea
     const k = S * ui.view.z;
-    ctx.beginPath(); ctx.arc(sx(0), sy(0), 5.45 * k, 0, 7); ctx.fillStyle = '#143049'; ctx.fill();
+    ctx.beginPath(); ctx.arc(sx(0), sy(0), 5.45 * k, 0, 7); ctx.fillStyle = '#C3DDDA'; ctx.fill(); ctx.lineWidth = Math.max(1.5, k * 0.05); ctx.strokeStyle = 'rgba(255,252,244,.8)'; ctx.stroke();
     drawHexes(); drawPorts(); drawRoads(); drawBuildings(); drawRobber();
     drawTargets(targets(), now);
   }
@@ -400,7 +402,7 @@
       const pub = C.publicVP(G, i), hid = i === 0 ? C.hiddenVp(pl) : 0;
       const badges = (G.longest.owner === i ? '<span class="badge">LONGEST ROAD</span>' : '') + (G.army.owner === i ? '<span class="badge">ARMY</span>' : '');
       return '<div class="pcard' + (G.current === i && G.phase !== 'gameover' ? ' active' : '') + '" style="--pc:' + PCOL[i] + '">' +
-        '<div class="nm">' + esc(pl.name) + (i === 0 ? '' : '') + '</div>' +
+        '<div class="nm"><span class="pn" aria-hidden="true">' + (i + 1) + '</span>' + esc(pl.name) + '</div>' +
         '<div class="vp">' + pub + '<small>VP' + (hid ? ' (+' + hid + ')' : '') + '</small></div>' +
         '<div class="st">Cards <b>' + C.handSize(pl) + '</b> Dev <b>' + C.devCount(pl) + '</b></div>' +
         '<div class="st" title="Longest road length / knights played">Road <b>' + G.roadLen[i] + '</b> Kn <b>' + pl.knights + '</b></div>' +
@@ -811,6 +813,7 @@
     },
   };
   resize();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { ui.dirty = true; });
   requestAnimationFrame(loop);
 
   (function boot() {
