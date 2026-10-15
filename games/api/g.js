@@ -36,6 +36,7 @@ module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   if (!isAuthed(req)) {
+    console.log("g.js signed-out request", JSON.stringify({ p: req.query && req.query.p }));
     res.statusCode = 302;
     res.setHeader("Location", "/");
     return res.end();

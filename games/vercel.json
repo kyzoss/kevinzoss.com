@@ -16,12 +16,24 @@
       "destination": "/api/g?p=index.html"
     },
     {
-      "source": "/play/:path+/",
-      "destination": "/api/g?p=:path+"
+      "source": "/play/:a",
+      "destination": "/api/g?p=:a"
     },
     {
-      "source": "/play/:path+",
-      "destination": "/api/g?p=:path+"
+      "source": "/play/:a/",
+      "destination": "/api/g?p=:a"
+    },
+    {
+      "source": "/play/:a/:b",
+      "destination": "/api/g?p=:a/:b"
+    },
+    {
+      "source": "/play/:a/:b/",
+      "destination": "/api/g?p=:a/:b"
+    },
+    {
+      "source": "/play/:a/:b/:c",
+      "destination": "/api/g?p=:a/:b/:c"
     }
   ],
   "headers": [

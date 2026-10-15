@@ -4,6 +4,7 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const { applyRewrites } = require("./lib/rewrite");
 
 function createServer() {
   const unlock = require("./api/unlock");
@@ -26,9 +27,10 @@ function createServer() {
       req.body = body; req.query = Object.fromEntries(url.searchParams);
       Promise.resolve(apis[url.pathname](req, res)).catch((e) => { res.statusCode = 500; res.end(String(e)); });
     });
-    if (url.pathname === "/play" || url.pathname.startsWith("/play/")) {
-      req.query = { p: decodeURIComponent(url.pathname.slice("/play/".length) || "") };
-      req.url = url.pathname;
+    const rewritten = applyRewrites(require("./vercel.json").rewrites || [], url.pathname);
+    if (rewritten && rewritten.pathname === "/api/g") {
+      req.query = rewritten.query;
+      req.url = "/api/g?" + new URLSearchParams(rewritten.query);
       return Promise.resolve(g(req, res)).catch((e) => { res.statusCode = 500; res.end(String(e)); });
     }
     let rel = url.pathname === "/" ? "index.html" : url.pathname;

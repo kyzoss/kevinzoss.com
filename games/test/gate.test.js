@@ -118,13 +118,32 @@ test("every game page pins its own base path so relative files load either way",
   }
 });
 
-test("vercel.json routes /play, /play/ and /play/<path> to the file function", () => {
+test("vercel.json routes every real game URL to the right file, with and without a slash", () => {
+  const fs = require("node:fs"), path = require("node:path");
+  const { applyRewrites } = require("../lib/rewrite");
   const rw = require("../vercel.json").rewrites;
-  const dest = (src) => (rw.find((r) => r.source === src) || {}).destination;
-  assert.equal(dest("/play"), "/api/g?p=index.html");
-  assert.equal(dest("/play/"), "/api/g?p=index.html");
-  assert.equal(dest("/play/:path+"), "/api/g?p=:path+");
-  assert.equal(dest("/play/:path+/"), "/api/g?p=:path+", "game folders with a trailing slash need their own rule");
+  const root = path.join(__dirname, "..", "private");
+  const hit = (u) => applyRewrites(rw, u);
+  assert.deepEqual(hit("/play"), { pathname: "/api/g", query: { p: "index.html" } });
+  assert.deepEqual(hit("/play/"), { pathname: "/api/g", query: { p: "index.html" } });
+  let checked = 0;
+  for (const e of fs.readdirSync(root, { withFileTypes: true }).filter((x) => x.isDirectory())) {
+    for (const u of [`/play/${e.name}`, `/play/${e.name}/`]) {
+      const r = hit(u);
+      assert.ok(r && r.pathname === "/api/g", `${u} is not routed to the function`);
+      assert.equal(r.query.p, e.name, `${u} should request "${e.name}", got "${r.query.p}"`);
+      assert.ok(fs.existsSync(path.join(root, r.query.p, "index.html")), `${u} has no index.html`);
+      checked++;
+    }
+    for (const f of fs.readdirSync(path.join(root, e.name))) {
+      const r = hit(`/play/${e.name}/${f}`);
+      assert.equal(r && r.query.p, `${e.name}/${f}`, `asset /play/${e.name}/${f}`);
+      assert.ok(fs.existsSync(path.join(root, r.query.p)), `missing ${r.query.p}`);
+      checked++;
+    }
+  }
+  assert.ok(checked > 60, "checked many URLs: " + checked);
+  assert.equal(hit("/api/unlock"), null, "API routes are untouched");
 });
 
 test("hub links use the slashless form that Vercel routes", () => {
