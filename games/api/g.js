@@ -43,7 +43,7 @@ module.exports = async function handler(req, res) {
   let file;
   try { file = resolveFile(req.query ? req.query.p : new URL(req.url, "http://x").searchParams.get("p")); }
   catch { file = null; }
-  if (!file) { res.statusCode = 404; return res.end("Not found"); }
+  if (!file) { console.error("g.js 404 unresolved", JSON.stringify({ p: req.query && req.query.p, url: req.url })); res.statusCode = 404; res.setHeader("Content-Type", "text/plain; charset=utf-8"); return res.end("Not found"); }
   let st = null;
   try { st = fs.statSync(file); } catch {}
   // A folder serves its index.html. No redirects: the games set <base href>, so
@@ -52,7 +52,7 @@ module.exports = async function handler(req, res) {
     file = path.join(file, "index.html");
     try { st = fs.statSync(file); } catch { st = null; }
   }
-  if (!st) { res.statusCode = 404; return res.end("Not found"); }
+  if (!st) { console.error("g.js 404 missing file", JSON.stringify({ p: req.query && req.query.p, file, url: req.url })); res.statusCode = 404; res.setHeader("Content-Type", "text/plain; charset=utf-8"); return res.end("Not found"); }
   // Count a game or hub open once per page load (the index page, not every asset).
   if (path.basename(file) === "index.html" && !isAdmin(req)) {
     const rel = path.relative(ROOT, file).split(path.sep);
@@ -62,3 +62,4 @@ module.exports = async function handler(req, res) {
   res.statusCode = 200;
   fs.createReadStream(file).pipe(res);
 };
+module.exports.ROOT = ROOT;

@@ -9,6 +9,7 @@ function createServer() {
   const unlock = require("./api/unlock");
   const g = require("./api/g");
   const admin = require("./api/admin");
+  const health = require("./api/health");
   const wrap = (res) => {
     res.status = (c) => { res.statusCode = c; return res; };
     res.json = (o) => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(o)); };
@@ -20,7 +21,7 @@ function createServer() {
   return http.createServer((req, res) => {
     wrap(res);
     const url = new URL(req.url, "http://localhost");
-    const apis = { "/api/unlock": unlock, "/api/g": g, "/api/admin": admin };
+    const apis = { "/api/unlock": unlock, "/api/g": g, "/api/admin": admin, "/api/health": health };
     if (apis[url.pathname]) return collect(req, (body) => {
       req.body = body; req.query = Object.fromEntries(url.searchParams);
       Promise.resolve(apis[url.pathname](req, res)).catch((e) => { res.statusCode = 500; res.end(String(e)); });
