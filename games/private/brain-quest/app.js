@@ -29,11 +29,12 @@
   var seedUses = 0;
   function pickSeed() { return seedFromUrl !== null ? (seedFromUrl + seedUses++) | 0 : (Date.now() & 0x7fffffff); }
 
-  var CAT_ICON = { count: "🔢", letters: "🔤", shapes: "🔷", animals: "🦉", life: "🏡", think: "💡", math: "➕", language: "📚", science: "🔬", social: "🌍", brain: "🧩" };
+  var CAT_ICON = { count: "🔢", letters: "🔤", shapes: "🔷", animals: "🦉", life: "🏡", think: "💡", math: "➕", language: "📚", science: "🔬", social: "🌍", brain: "🧩", history: "🏛️", nature: "🌿", geo: "🧭", arts: "🎭", sports: "🏆", food: "🍽️", words: "✒️", logic: "🧮" };
+  var SAVE_V = 2;
   var KEYS = ["A", "B", "C", "D"];
 
   var app = { s: null, pref: jget(KEY_PREF, { level: 5, count: 10 }), screen: "menu", speaking: false, lastResult: null, recorded: false, thinkTimer: 0 };
-  if (app.pref.level !== 8) app.pref.level = 5;
+  app.pref.level = L.normLevel(app.pref.level);
   if (app.pref.count !== 20) app.pref.count = 10;
 
   // ---------- owl mascot (SVG, pose swaps) ----------
@@ -89,12 +90,13 @@
     if (name !== "game") stopSpeaking();
   }
   function savePref() { jset(KEY_PREF, app.pref); }
-  function levelName(lv) { return "Age " + lv; }
+  function levelName(lv) { return L.LEVEL_NAMES[L.normLevel(lv)]; }
+  function parseLevel(v) { return L.normLevel(v === "adult" ? "adult" : parseInt(v, 10)); }
 
   // ---------- menu ----------
   function renderMenu() {
     document.querySelectorAll("[data-level]").forEach(function (b) {
-      var on = parseInt(b.getAttribute("data-level"), 10) === app.pref.level;
+      var on = parseLevel(b.getAttribute("data-level")) === app.pref.level;
       b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false");
     });
     document.querySelectorAll("[data-count]").forEach(function (b) {
@@ -106,34 +108,44 @@
     if (sv) {
       var s = sv.s, lab = s.mode === "two" ? "two player game" : s.mode === "practice" ? "practice" : "quiz";
       r.hidden = false;
-      r.textContent = "Resume " + lab + " (" + levelName(s.level) + ", question " + (s.i + 1) + (s.count ? " of " + s.count : "") + ")";
+      r.textContent = "Resume " + lab + " (" + (s.mode === "two" ? s.players.length + " players" : levelName(s.level)) + ", question " + (s.i + 1) + (s.count ? " of " + s.count : "") + ")";
     } else r.hidden = true;
     renderRecord();
     $("seedNote").textContent = seedFromUrl !== null ? "Fixed seed " + seedFromUrl : "";
   }
-  function record() { var t = jget(KEY_RECORD, null); return t && typeof t.runs === "number" ? t : { runs: 0, stars: 0, three: 0, correct: 0, answered: 0 }; }
+  function blankRec() { return { runs: 0, stars: 0, three: 0, correct: 0, answered: 0 }; }
+  // Record is kept per level: {5: {...}, 8: {...}, adult: {...}}. An older
+  // single-object record is folded into Age 5.
+  function record() {
+    var t = jget(KEY_RECORD, null), out = {};
+    if (t && typeof t.runs === "number") t = { 5: t };
+    L.LEVELS.forEach(function (lv) { out[lv] = (t && t[lv] && typeof t[lv].runs === "number") ? t[lv] : blankRec(); });
+    return out;
+  }
   function renderRecord() {
     var t = record();
-    var pct = t.answered ? Math.round(100 * t.correct / t.answered) : 0;
-    $("record").innerHTML = "<div><b>" + t.runs + "</b>quizzes</div><div><b>" + t.stars + "</b>stars</div><div><b>" + t.three + "</b>perfect</div><div><b>" + pct + "%</b>right</div>";
+    $("record").innerHTML = L.LEVELS.map(function (lv) {
+      var r = t[lv], pct = r.answered ? Math.round(100 * r.correct / r.answered) : 0;
+      return '<div class="recrow"><span class="rl">' + levelName(lv) + "</span><div><b>" + r.runs + "</b>quizzes</div><div><b>" + r.stars + "</b>stars</div><div><b>" + r.three + "</b>perfect</div><div><b>" + pct + "%</b>right</div></div>";
+    }).join("");
   }
 
   // ---------- seen tracking ----------
-  function seenFor(level) { var all = jget(KEY_SEEN, {}); return Array.isArray(all[level]) ? all[level] : []; }
-  function saveSeen(level, list) { var all = jget(KEY_SEEN, {}); if (typeof all !== "object" || !all) all = {}; all[level] = list; jset(KEY_SEEN, all); }
+  function seenAll() { var all = jget(KEY_SEEN, {}); return all && typeof all === "object" && !Array.isArray(all) ? all : {}; }
+  function saveSeenAll(map) { jset(KEY_SEEN, map); }
 
   // ---------- save/resume ----------
   function save() { if (app.s && !app.s.done) jset(KEY_SAVE, { s: app.s, recorded: app.recorded }); else store("del", KEY_SAVE); }
   function loadSave() {
     var sv = jget(KEY_SAVE, null);
-    if (!sv || !sv.s || sv.s.v !== 1 || !Array.isArray(sv.s.qs) || sv.s.done) return null;
+    if (!sv || !sv.s || sv.s.v !== SAVE_V || !Array.isArray(sv.s.qs) || sv.s.done) return null;
     return sv;
   }
 
   // ---------- starting runs ----------
   function startRun(opts) {
     opts.seed = pickSeed();
-    opts.seen = seenFor(opts.level);
+    opts.seen = seenAll();
     app.s = L.newRun(opts);
     app.recorded = false;
     app.lastResult = null;
@@ -144,35 +156,55 @@
   function startQuiz() { startRun({ level: app.pref.level, mode: "quiz", count: app.pref.count }); }
   function startPractice(cat) { startRun({ level: app.pref.level, mode: "practice", category: cat }); }
   function startTwo() {
-    var ps = app.two.players.map(function (p, k) { return { name: ($("name" + (k + 1)).value || "").trim() || ("Player " + (k + 1)), emoji: p.emoji }; });
+    var ps = app.two.players.map(function (p, k) { return { name: (p.name || "").trim() || ("Player " + (k + 1)), emoji: p.emoji, level: p.level }; });
     jset(KEY_PLAYERS, ps);
     startRun({ level: app.pref.level, mode: "two", count: app.two.count, players: ps });
   }
 
-  // ---------- two player setup ----------
-  app.two = { players: [{ emoji: L.AVATARS[0] }, { emoji: L.AVATARS[1] }], count: 10 };
+  // ---------- two player setup (2 to 4 players, each with a level) ----------
+  app.two = { players: [], count: 10 };
+  function freeAvatar(k) {
+    var used = app.two.players.map(function (p, j) { return j === k ? null : p.emoji; });
+    for (var i = 0; i < L.AVATARS.length; i++) if (used.indexOf(L.AVATARS[i]) < 0) return L.AVATARS[i];
+    return L.AVATARS[0];
+  }
   function openTwo() {
     var saved = jget(KEY_PLAYERS, null);
-    if (Array.isArray(saved) && saved.length === 2) {
-      saved.forEach(function (p, k) { if (p && L.AVATARS.indexOf(p.emoji) >= 0) app.two.players[k].emoji = p.emoji; $("name" + (k + 1)).value = (p && p.name) || ""; });
+    app.two.players = [];
+    if (Array.isArray(saved) && saved.length >= 2) {
+      saved.slice(0, L.MAX_PLAYERS).forEach(function (p, k) {
+        app.two.players.push({ name: String((p && p.name) || ""), emoji: (p && L.AVATARS.indexOf(p.emoji) >= 0) ? p.emoji : null, level: L.normLevel(p && p.level !== undefined ? p.level : app.pref.level) });
+      });
+    } else {
+      app.two.players.push({ name: "", emoji: null, level: app.pref.level }, { name: "", emoji: null, level: app.pref.level });
     }
+    app.two.players.forEach(function (p, k) { if (!p.emoji) p.emoji = freeAvatar(k); });
     app.two.count = app.pref.count;
-    $("twoLevel").textContent = levelName(app.pref.level);
     renderTwo();
     show("setupTwo");
   }
   function renderTwo() {
-    [0, 1].forEach(function (k) {
-      var other = app.two.players[1 - k].emoji;
-      $("av" + (k + 1)).innerHTML = L.AVATARS.map(function (e) {
-        var on = e === app.two.players[k].emoji;
-        return '<button type="button" data-av="' + k + '" data-e="' + e + '" class="' + (on ? "on" : "") + '" aria-pressed="' + on + '" aria-label="' + e + (e === other ? " (taken)" : "") + '"' + (e === other ? ' disabled style="opacity:.35"' : "") + ">" + e + "</button>";
-      }).join("");
-    });
+    var n = app.two.players.length;
+    $("roster").innerHTML = app.two.players.map(function (p, k) {
+      var taken = app.two.players.map(function (o, j) { return j === k ? null : o.emoji; });
+      return '<div class="card prow" data-p="' + k + '"><div class="phead"><h2>Player ' + (k + 1) + "</h2>" + (n > 2 ? '<button type="button" class="removeP" data-rm="' + k + '">Remove</button>' : "") + "</div>" +
+        '<label class="field"><span>Name</span><input data-name="' + k + '" maxlength="16" placeholder="Player ' + (k + 1) + '" autocomplete="off" value="' + esc(p.name) + '" /></label>' +
+        '<div class="lvlpick" role="group" aria-label="Player ' + (k + 1) + ' level">' + L.LEVELS.map(function (lv) {
+          var on = lv === p.level;
+          return '<button type="button" data-lv="' + lv + '" data-lp="' + k + '" class="' + (on ? "on" : "") + '" aria-pressed="' + on + '">' + levelName(lv) + "</button>";
+        }).join("") + "</div>" +
+        '<div class="avatars" role="group" aria-label="Player ' + (k + 1) + ' animal">' + L.AVATARS.map(function (e) {
+          var on = e === p.emoji, busy = taken.indexOf(e) >= 0;
+          return '<button type="button" data-av="' + k + '" data-e="' + e + '" class="' + (on ? "on" : "") + '" aria-pressed="' + on + '" aria-label="' + e + (busy ? " (taken)" : "") + '"' + (busy ? ' disabled style="opacity:.35"' : "") + ">" + e + "</button>";
+        }).join("") + "</div></div>";
+    }).join("");
+    $("addPlayer").hidden = n >= L.MAX_PLAYERS;
     document.querySelectorAll("[data-count2]").forEach(function (b) {
       var on = parseInt(b.getAttribute("data-count2"), 10) === app.two.count;
       b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false");
     });
+    var per = Math.ceil(app.two.count / n);
+    $("twoHint").textContent = n + " players take turns, " + per + " questions each" + (per * n !== app.two.count ? " (" + per * n + " in total so turns come out even)" : "") + ". Each player's cards come from their own level.";
   }
 
   // ---------- category setup ----------
@@ -180,7 +212,7 @@
     var cats = L.CATS[app.pref.level], counts = L.counts(app.pref.level), i = 0, html = "";
     $("catLevel").textContent = levelName(app.pref.level);
     Object.keys(cats).forEach(function (k) {
-      html += '<button type="button" class="catbtn tint' + (i % 6) + '" data-cat="' + k + '"><span class="ci">' + CAT_ICON[k] + "</span><span>" + esc(cats[k]) + "</span><small>" + counts[k] + (k === "count" || k === "math" ? "+ questions" : " questions") + "</small></button>";
+      html += '<button type="button" class="catbtn tint' + (i % 6) + '" data-cat="' + k + '"><span class="ci">' + CAT_ICON[k] + "</span><span>" + esc(cats[k]) + "</span><small>" + counts[k] + (k === { 5: "count", 8: "math", adult: "logic" }[app.pref.level] ? "+ questions" : " questions") + "</small></button>";
       i++;
     });
     $("catGrid").innerHTML = html;
@@ -188,7 +220,7 @@
   }
 
   // ---------- game rendering ----------
-  function catName(s, k) { return (L.CATS[s.level] && L.CATS[s.level][k]) || k; }
+  function catName(s, k, lv) { var t = L.CATS[lv || s.level]; return (t && t[k]) || k; }
   function isEmojiOnly(t) { return !/[A-Za-z0-9]/.test(t); }
   // Runs of two or more emoji become a wrapping flex group so counting
   // questions break into tidy rows instead of splitting mid-sentence.
@@ -206,9 +238,12 @@
     var i, html;
     // players
     if (s.mode === "two") {
-      $("players").hidden = false;
-      $("players").innerHTML = s.players.map(function (p, k) {
-        return '<div class="pl' + (L.turnOf(s) === k && !s.done ? " turn" : "") + '"><span class="av">' + p.emoji + '</span><div><div class="nm">' + esc(p.name) + '</div><div class="sc">' + p.score + " right</div></div></div>";
+      var pe = $("players");
+      pe.hidden = false;
+      pe.className = "players n" + s.players.length;
+      pe.style.setProperty("--n", s.players.length);
+      pe.innerHTML = s.players.map(function (p, k) {
+        return '<div class="pl' + (L.turnOf(s) === k && !s.done ? " turn" : "") + '"><span class="av">' + p.emoji + '</span><div><div class="nm">' + esc(p.name) + '</div><span class="lv">' + levelName(p.level) + '</span><div class="sc">' + p.score + " right</div></div></div>";
       }).join("");
     } else $("players").hidden = true;
     // progress
@@ -231,7 +266,12 @@
     if (s.mode === "practice") $("status").textContent = esc(catName(s, s.cat)) + " practice" + (s.streak >= 3 ? ". Streak " + s.streak + "!" : "");
     else $("status").textContent = who + "Question " + (s.i + 1) + " of " + s.count + (s.mode !== "two" && s.streak >= 3 ? ". Streak " + s.streak + "!" : "");
     // card
-    $("qcat").textContent = catName(s, q.cat);
+    $("qcat").textContent = catName(s, q.cat, q.level);
+    if (s.mode === "two") {
+      var cp = s.players[L.turnOf(s)];
+      $("qwho").hidden = false;
+      $("qwho").textContent = cp.emoji + " " + cp.name + " \u00b7 " + levelName(cp.level);
+    } else $("qwho").hidden = true;
     var qt = $("qtext");
     qt.innerHTML = questionHtml(q.q);
     qt.classList.toggle("big", q.q.length <= 24 && /[\u{1F300}-\u{1FAFF}]/u.test(q.q));
@@ -302,12 +342,21 @@
     var s = app.s;
     if (!s.done) L.finishPractice(s);
     // seen memory
-    saveSeen(s.level, L.seenAfter(s, seenFor(s.level)));
-    // record
+    saveSeenAll(L.seenAfter(s, seenAll()));
+    // record, per level
     if (!app.recorded && s.history.length) {
       var t = record();
-      if (s.mode !== "practice") { t.runs++; var st = L.stars(s); t.stars += st; if (st === 3) t.three++; }
-      t.correct += s.score; t.answered += s.history.length;
+      if (s.mode === "two") {
+        s.players.forEach(function (p, k) {
+          var r = t[p.level], n = 0;
+          for (var i = 0; i < s.history.length; i++) if (L.turnOf(s, i) === k) n++;
+          r.correct += p.score; r.answered += n;
+        });
+      } else {
+        var r = t[s.level];
+        if (s.mode === "quiz") { r.runs++; var st = L.stars(s); r.stars += st; if (st === 3) r.three++; }
+        r.correct += s.score; r.answered += s.history.length;
+      }
       jset(KEY_RECORD, t);
       app.recorded = true;
     }
@@ -322,18 +371,19 @@
     $("stars").innerHTML = [1, 2, 3].map(function (k) { return '<span class="st' + (k <= st ? " lit" : "") + '">&#9733;</span>'; }).join("");
     $("stars").setAttribute("aria-label", st + " of 3 stars");
     $("stars").hidden = s.mode === "two";
+    $("resOwl").innerHTML = "";
     if (s.mode === "two") {
-      var w = L.winner(s);
+      var w = L.winner(s), lead = L.leaders(s);
       $("resTitle").textContent = w < 0 ? "It is a tie!" : s.players[w].name + " wins!";
       html = s.players.map(function (p, k) {
-        return '<div class="pline' + (k === w ? " win" : "") + '"><span class="av">' + p.emoji + "</span><span>" + esc(p.name) + "</span><b>" + p.score + "</b><span>of " + Math.ceil((s.count - k) / 2) + "</span></div>";
+        return '<div class="pline' + (lead.indexOf(k) >= 0 ? " win" : "") + '"><span class="av">' + p.emoji + "</span><span>" + esc(p.name) + " <small>" + levelName(p.level) + "</small></span><b>" + p.score + "</b><span>of " + L.questionsFor(s, k) + "</span></div>";
       }).join("");
       $("resOwl").innerHTML = owl(w < 0 ? "think" : "happy", "r");
     } else {
       $("resTitle").textContent = st === 3 ? "Amazing!" : st === 2 ? "Well done!" : n ? "Good try!" : "No questions answered";
       html = "<p>You got <b>" + s.score + "</b> of <b>" + n + "</b> right" + (s.best >= 2 ? ", best streak <b>" + s.best + "</b>" : "") + ".</p>";
       if (s.mode === "practice") html += '<p class="hint">' + esc(catName(s, s.cat)) + " practice, " + levelName(s.level) + "</p>";
-      else html += '<p class="hint">' + levelName(s.level) + (s.seenReset ? ". You have seen every card at this level, so the deck was shuffled fresh." : "") + "</p>";
+      else html += '<p class="hint">' + levelName(s.level) + (s.seenReset && s.seenReset[s.level] ? ". You have seen every card at this level, so the deck was shuffled fresh." : "") + "</p>";
       $("resOwl").innerHTML = owl(st === 3 ? "happy" : st === 1 ? "oops" : "idle", "r");
     }
     $("resBody").innerHTML = html;
@@ -396,7 +446,7 @@
   // ---------- events ----------
   function bind() {
     document.querySelectorAll("[data-level]").forEach(function (b) {
-      b.addEventListener("click", function () { app.pref.level = parseInt(b.getAttribute("data-level"), 10); savePref(); renderMenu(); });
+      b.addEventListener("click", function () { app.pref.level = parseLevel(b.getAttribute("data-level")); savePref(); renderMenu(); });
     });
     document.querySelectorAll("[data-count]").forEach(function (b) {
       b.addEventListener("click", function () { app.pref.count = parseInt(b.getAttribute("data-count"), 10); savePref(); renderMenu(); });
@@ -421,12 +471,23 @@
       app.s = sv.s; app.recorded = !!sv.recorded;
       show("game"); renderGame(true);
     });
-    $("av1").addEventListener("click", avClick); $("av2").addEventListener("click", avClick);
-    function avClick(ev) {
-      var b = ev.target.closest("[data-av]"); if (!b || b.disabled) return;
-      app.two.players[parseInt(b.getAttribute("data-av"), 10)].emoji = b.getAttribute("data-e");
+    $("roster").addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b || b.disabled) return;
+      if (b.hasAttribute("data-av")) { app.two.players[parseInt(b.getAttribute("data-av"), 10)].emoji = b.getAttribute("data-e"); renderTwo(); }
+      else if (b.hasAttribute("data-lp")) { app.two.players[parseInt(b.getAttribute("data-lp"), 10)].level = parseLevel(b.getAttribute("data-lv")); renderTwo(); }
+      else if (b.hasAttribute("data-rm") && app.two.players.length > 2) { app.two.players.splice(parseInt(b.getAttribute("data-rm"), 10), 1); renderTwo(); }
+    });
+    $("roster").addEventListener("input", function (ev) {
+      var i = ev.target.closest("[data-name]"); if (!i) return;
+      app.two.players[parseInt(i.getAttribute("data-name"), 10)].name = i.value;
+    });
+    $("addPlayer").addEventListener("click", function () {
+      if (app.two.players.length >= L.MAX_PLAYERS) return;
+      app.two.players.push({ name: "", emoji: null, level: app.pref.level });
+      app.two.players[app.two.players.length - 1].emoji = freeAvatar(app.two.players.length - 1);
       renderTwo();
-    }
+      try { $("roster").querySelector('[data-name="' + (app.two.players.length - 1) + '"]').focus(); } catch (e) {}
+    });
     $("startTwo").addEventListener("click", startTwo);
     $("catGrid").addEventListener("click", function (ev) {
       var b = ev.target.closest("[data-cat]"); if (!b) return;
@@ -447,7 +508,7 @@
     $("againBtn").addEventListener("click", function () {
       var s = app.s;
       if (!s) { show("menu"); renderMenu(); return; }
-      if (s.mode === "two") startRun({ level: s.level, mode: "two", count: s.count, players: s.players.map(function (p) { return { name: p.name, emoji: p.emoji }; }) });
+      if (s.mode === "two") startRun({ level: s.level, mode: "two", count: s.count > 10 ? 20 : 10, players: s.players.map(function (p) { return { name: p.name, emoji: p.emoji, level: p.level }; }) });
       else if (s.mode === "practice") startRun({ level: s.level, mode: "practice", category: s.cat });
       else startRun({ level: s.level, mode: "quiz", count: s.count });
     });

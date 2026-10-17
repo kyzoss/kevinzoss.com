@@ -18,17 +18,18 @@
       <div id="heroOwl" class="heroowl"></div>
       <div class="herotxt">
         <h1>Brain Quest</h1>
-        <p class="lede">Flip the cards, pick an answer, collect stars. Hundreds of questions for curious kids.</p>
+        <p class="lede">Flip the cards, pick an answer, collect stars. Hundreds of questions for curious kids and grown-ups.</p>
       </div>
     </div>
 
     <button id="resume" class="btn primary wide" hidden></button>
 
     <div class="card">
-      <h2>Who is playing?</h2>
-      <div class="seg" role="group" aria-label="Age level">
+      <h2>Pick a level</h2>
+      <div class="seg three" role="group" aria-label="Level">
         <button class="segbtn on" data-level="5" aria-pressed="true"><b>Age 5</b><span>Preschool and kindergarten</span></button>
         <button class="segbtn" data-level="8" aria-pressed="false"><b>Age 8</b><span>2nd and 3rd grade</span></button>
+        <button class="segbtn" data-level="adult" aria-pressed="false"><b>Adult</b><span>Pub quiz level</span></button>
       </div>
     </div>
 
@@ -46,7 +47,7 @@
         </div>
         <button class="mode" data-mode="two">
           <span class="micon">🤝</span>
-          <span class="mtxt"><b>Two players</b><small>Pass the phone and take turns</small></span>
+          <span class="mtxt"><b>Two players</b><small>2 to 4 players pass the phone, each at their own level</small></span>
         </button>
         <button class="mode" data-mode="practice">
           <span class="micon">🎯</span>
@@ -67,7 +68,7 @@
         <h3>Quiz run</h3>
         <p>10 or 20 questions. The game remembers which cards you have seen so they do not come back until you have played them all. Score 60 percent for two stars and 90 percent for three.</p>
         <h3>Two players</h3>
-        <p>Pick names and animal friends, then take turns answering. The player with more right answers wins.</p>
+        <p>Two to four players pick a name, an animal friend and their own level, then take turns answering. Each player's cards come from their own level. The player with the most right answers wins.</p>
         <h3>Practice</h3>
         <p>Pick one topic and keep going as long as you like. Stop whenever you want to see your score.</p>
         <p class="hint">Tap the speaker to have the question read out loud, if your device can speak.</p>
@@ -79,27 +80,19 @@
   <section id="setupTwo" class="screen" hidden>
     <div class="top">
       <button class="linkbtn" data-go="menu">&larr; Back</button>
-      <h1 class="small">Two players</h1>
+      <h1 class="small">Players</h1>
       <span class="spacer"></span>
     </div>
-    <div class="card">
-      <h2>Player 1</h2>
-      <label class="field"><span>Name</span><input id="name1" maxlength="16" placeholder="Player 1" autocomplete="off" /></label>
-      <div id="av1" class="avatars" role="group" aria-label="Player 1 animal"></div>
-    </div>
-    <div class="card">
-      <h2>Player 2</h2>
-      <label class="field"><span>Name</span><input id="name2" maxlength="16" placeholder="Player 2" autocomplete="off" /></label>
-      <div id="av2" class="avatars" role="group" aria-label="Player 2 animal"></div>
-    </div>
+    <div id="roster"></div>
+    <button id="addPlayer" class="btn wide addbtn">+ Add a player</button>
     <div class="card">
       <h2>Deck</h2>
       <div class="countrow" role="group" aria-label="How many questions">
-        <span>Questions</span>
+        <span>Questions in total</span>
         <button class="chip on" data-count2="10" aria-pressed="true">10</button>
         <button class="chip" data-count2="20" aria-pressed="false">20</button>
       </div>
-      <p class="hint">Players take turns, one question each. Level: <b id="twoLevel"></b></p>
+      <p class="hint" id="twoHint"></p>
     </div>
     <button id="startTwo" class="btn primary wide">Start</button>
   </section>
@@ -130,7 +123,7 @@
     <div class="stage">
       <div id="mascot" class="mascot" aria-hidden="true"></div>
       <div id="qcard" class="qcard">
-        <div class="qmeta"><span id="qcat" class="tag"></span><button id="speakBtn" class="speak" aria-label="Read the question aloud" hidden>🔊</button></div>
+        <div class="qmeta"><span class="tags"><span id="qwho" class="tag who" hidden></span><span id="qcat" class="tag"></span></span><button id="speakBtn" class="speak" aria-label="Read the question aloud" hidden>🔊</button></div>
         <p id="qtext" class="qtext"></p>
       </div>
     </div>

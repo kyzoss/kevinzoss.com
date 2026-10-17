@@ -26,7 +26,8 @@ const never = (q) => (q.c + 1) % q.a.length;
 // ------------------------------------------------------------ question bank
 test("bank: every question is well formed, categories allowed, counts met, no duplicates, no em dash", () => {
   let fun = 0;
-  for (const lv of [5, 8]) {
+  const funBy = {};
+  for (const lv of [5, 8, "adult"]) {
     const bank = Q.BANK[lv];
     const allowed = Object.keys(Q.CATS[lv]);
     const optLen = lv === 5 ? 3 : 4;
@@ -44,19 +45,24 @@ test("bank: every question is well formed, categories allowed, counts met, no du
       texts.add(x.q);
       const blob = x.q + x.a.join("") + (x.fun || "");
       assert.ok(!blob.includes(DASH), `em dash in "${x.q}"`);
-      if (x.fun) { assert.equal(typeof x.fun, "string"); fun++; }
+      if (x.fun) { assert.equal(typeof x.fun, "string"); fun++; funBy[lv] = (funBy[lv] || 0) + 1; }
       perCat[x.cat] = (perCat[x.cat] || 0) + 1;
     }
     for (const c of allowed) assert.ok(perCat[c] >= 30, `age ${lv} category ${c} has only ${perCat[c]}`);
   }
   assert.ok(fun >= 120, "fun facts: " + fun);
-  assert.ok(Q.BANK[5].length >= 220 && Q.BANK[8].length >= 260);
+  assert.ok(funBy.adult >= 60, "adult fun facts: " + funBy.adult);
+  assert.ok(Q.BANK[5].length >= 220 && Q.BANK[8].length >= 260 && Q.BANK.adult.length >= 320);
   assert.equal(Q.CATS[5].count, "Counting and numbers");
   assert.equal(Object.keys(Q.CATS[8]).length, 5);
+  assert.deepEqual(Object.keys(Q.CATS.adult), ["history", "nature", "geo", "arts", "sports", "food", "words", "logic"]);
+  // adult questions never duplicate a kids' question
+  const kids = new Set([...Q.BANK[5], ...Q.BANK[8]].map((x) => x.q));
+  for (const x of Q.BANK.adult) assert.ok(!kids.has(x.q), "adult repeats kids question " + x.q);
 });
 
 test("counts() reports per-category totals that add up", () => {
-  for (const lv of [5, 8]) {
+  for (const lv of [5, 8, "adult"]) {
     const c = L.counts(lv);
     const sum = Object.keys(Q.CATS[lv]).reduce((a, k) => a + c[k], 0);
     assert.equal(sum, c.total);
@@ -94,6 +100,25 @@ function evalGen(q) {
     }
     return cents + " cents";
   }
+  if ((m = /^What is (\d+) percent of (\d+)\?$/.exec(t))) return String(m[1] * m[2] / 100);
+  if ((m = /^A train travels at (\d+) km\/h for (\d+) hours?, then at (\d+) km\/h for (\d+) hours?\./.exec(t))) return (m[1] * m[2] + m[3] * m[4]) + " km";
+  if ((m = /^You buy (\d+) items at \$(\d+) each and pay with \$(\d+)\./.exec(t))) return "$" + (m[3] - m[1] * m[2]);
+  if ((m = /^How many (\w+) are there in (\d+) (\w+)\?$/.exec(t))) {
+    const f = { "km>m": 1000, "m>cm": 100, "kg>g": 1000, "hours>minutes": 60, "minutes>seconds": 60, "feet>inches": 12, "yards>feet": 3, "days>hours": 24, "weeks>days": 7, "litres>millilitres": 1000 }[m[3] + ">" + m[1]];
+    assert.ok(f, "known conversion " + t);
+    return String(m[2] * f);
+  }
+  if ((m = /^Solve for x: (\d+)x ([+-]) (\d+) = (\d+)$/.exec(t))) return String((m[2] === "+" ? m[4] - m[3] : +m[4] + +m[3]) / m[1]);
+  if (PROB_ANSWERS[t]) return PROB_ANSWERS[t];
+  if ((m = /^What comes next\? ([\d, ]+), \?$/.exec(t))) {
+    const seq = m[1].split(", ").map(Number);
+    const d = seq.map((v, i) => (i ? v - seq[i - 1] : null)).slice(1);
+    if (d.every((v) => v === d[0])) return String(seq[3] + d[0]);
+    if (seq[1] / seq[0] === seq[2] / seq[1] && seq[2] / seq[1] === seq[3] / seq[2]) return String(seq[3] * (seq[1] / seq[0]));
+    const dd = d.map((v, i) => (i ? v - d[i - 1] : null)).slice(1);
+    assert.ok(dd.every((v) => v === dd[0]), "second differences constant: " + t);
+    return String(seq[3] + d[2] + dd[0]);
+  }
   if ((m = /^How many (.+)\?$/.exec(t))) return String(Array.from(m[1]).length);
   if ((m = /^What time is (.+) after (\d+):(\d\d)\?$/.exec(t))) {
     const add = m[1] === "1 hour" ? 60 : m[1] === "1 hour 30 minutes" ? 90 : parseInt(m[1], 10);
@@ -109,16 +134,43 @@ function evalGen(q) {
   throw new Error("unknown template: " + t);
 }
 
+// Independent answer key for the fixed probability questions.
+const PROB_ANSWERS = {
+  "You roll one fair die. What is the probability of an even number?": "1/2",
+  "You roll one fair die. What is the probability of a number greater than 4?": "1/3",
+  "You roll one fair die. What is the probability of a 1 or a 2?": "1/3",
+  "You roll one fair die. What is the probability of a number less than 6?": "5/6",
+  "You roll two fair dice. What is the probability that the total is 7?": "1/6",
+  "You roll two fair dice. What is the probability that the total is 2?": "1/36",
+  "You roll two fair dice. What is the probability that the total is 12?": "1/36",
+  "You roll two fair dice. What is the probability that the total is 11?": "1/18",
+  "You roll two fair dice. What is the probability that the total is 10?": "1/12",
+  "You roll two fair dice. What is the probability that the total is 8?": "5/36",
+  "You roll two fair dice. What is the probability of a double?": "1/6",
+  "You draw one card from a standard 52-card deck. What is the probability it is a heart?": "1/4",
+  "You draw one card from a standard 52-card deck. What is the probability it is an ace?": "1/13",
+  "You draw one card from a standard 52-card deck. What is the probability it is a face card (jack, queen or king)?": "3/13",
+  "You draw one card from a standard 52-card deck. What is the probability it is a black queen?": "1/26",
+  "You draw one card from a standard 52-card deck. What is the probability it is a spade or a club?": "1/2",
+  "You draw one card from a standard 52-card deck. What is the probability it is the ace of spades?": "1/52",
+  "You draw one card from a standard 52-card deck. What is the probability it is a red king?": "1/26",
+  "You flip three fair coins. What is the probability that all three show heads?": "1/8",
+  "You flip two fair coins. What is the probability of at least one head?": "3/4",
+  "You flip two fair coins. What is the probability of exactly one head?": "1/2"
+};
+const MATH_CAT = { 5: "count", 8: "math", adult: "logic" };
+
 test("procedural math: 1,000 generated questions per level are correct with distinct, plausible distractors", () => {
-  for (const lv of [5, 8]) {
-    const st = { rng: 12345 + lv };
+  assert.equal(L.PROB.length, Object.keys(PROB_ANSWERS).length, "every probability template has an independent answer");
+  for (const lv of [5, 8, "adult"]) {
+    const st = { rng: 12345 + (lv === "adult" ? 99 : lv) };
     const templates = new Set();
     for (let i = 0; i < 1000; i++) {
       const q = L.genMath(lv, st);
       assert.equal(q.a.length, lv === 5 ? 3 : 4);
       assert.equal(new Set(q.a).size, q.a.length, "distinct options: " + q.q);
       assert.ok(q.c >= 0 && q.c < q.a.length);
-      assert.equal(q.cat, lv === 5 ? "count" : "math");
+      assert.equal(q.cat, MATH_CAT[lv]);
       const want = evalGen(q);
       assert.equal(q.a[q.c], want, "correct answer for " + q.q);
       templates.add(q.q.replace(/\d+/g, "N").slice(0, 20));
@@ -126,14 +178,22 @@ test("procedural math: 1,000 generated questions per level are correct with dist
         if (k === q.c) return;
         assert.notEqual(o, want);
         const n = parseInt(o, 10), w = parseInt(want, 10);
-        if (!isNaN(n) && !isNaN(w) && /^\d+( cents)?$/.test(o)) {
-          assert.ok(n >= 0, "negative distractor in " + q.q);
-          assert.ok(Math.abs(n - w) <= Math.max(120, w), `implausible distractor ${o} for ${q.q} = ${want}`);
+        const nn = parseInt(o.replace("$", ""), 10), ww = parseInt(want.replace("$", ""), 10);
+        if (!isNaN(nn) && !isNaN(ww) && /^\$?\d+( cents| km)?$/.test(o)) {
+          assert.ok(nn >= 0, "negative distractor in " + q.q);
+          assert.ok(Math.abs(nn - ww) <= Math.max(120, ww * 10), `implausible distractor ${o} for ${q.q} = ${want}`);
         }
       });
     }
     assert.ok(templates.size >= 5, "variety of templates");
   }
+  // adult templates cover the required families
+  const st = { rng: 7 }, fam = new Set();
+  for (let i = 0; i < 400; i++) {
+    const q = L.genMath("adult", st).q;
+    fam.add(/percent/.test(q) ? "pct" : /train|items at/.test(q) ? "word" : /are there in/.test(q) ? "conv" : /Solve for x/.test(q) ? "alg" : /probability/.test(q) ? "prob" : /comes next/.test(q) ? "seq" : "?");
+  }
+  assert.deepEqual([...fam].sort(), ["alg", "conv", "pct", "prob", "seq", "word"]);
 });
 
 test("procedural math is deterministic from the rng state", () => {
@@ -143,7 +203,7 @@ test("procedural math is deterministic from the rng state", () => {
 
 // ------------------------------------------------------------ runs
 test("newRun picks the requested count, level, option length, and no repeats within a run", () => {
-  for (const lv of [5, 8]) for (const count of [10, 20]) {
+  for (const lv of [5, 8, "adult"]) for (const count of [10, 20]) {
     const s = L.newRun({ level: lv, mode: "quiz", count, seed: 7 });
     assert.equal(s.qs.length, count);
     assert.equal(s.count, count);
@@ -155,6 +215,7 @@ test("newRun picks the requested count, level, option length, and no repeats wit
       assert.equal(q.a.length, lv === 5 ? 3 : 4);
       assert.ok(Q.CATS[lv][q.cat], "category " + q.cat);
       if (!q.gen) {
+        assert.equal(q.level, lv);
         const src = Q.BANK[lv][parseInt(q.id.split(":")[1], 10)];
         assert.equal(src.q, q.q);
         assert.equal(q.a[q.c], src.a[src.c], "shuffled options keep the right answer");
@@ -237,18 +298,26 @@ test("star thresholds: 90% three, 60% two, else one, none before any answer", ()
   assert.equal(L.stars(t), 3);
 });
 
-test("seen tracking: a run never repeats questions seen before, and seenAfter accumulates", () => {
-  let seen = [];
+test("seen tracking: a run never repeats questions seen before, and seenAfter accumulates per level", () => {
+  let seen = {};
   const all = new Set();
   for (let round = 0; round < 5; round++) {
     const s = L.newRun({ level: 8, mode: "quiz", count: 20, seed: 100 + round, seen });
-    assert.equal(s.seenReset, false);
-    for (const q of s.qs) if (!q.gen) { assert.ok(!seen.includes(q.id), "repeat " + q.id); assert.ok(!all.has(q.id)); all.add(q.id); }
+    assert.equal(s.seenReset[8], false);
+    for (const q of s.qs) if (!q.gen) { assert.ok(!(seen[8] || []).includes(q.id), "repeat " + q.id); assert.ok(!all.has(q.id)); all.add(q.id); }
     playThrough(s, always);
     seen = L.seenAfter(s, seen);
   }
-  assert.equal(seen.length, 5 * 16);
-  assert.ok(seen.every((id) => !id.startsWith("g")), "procedural questions are not remembered");
+  assert.equal(seen[8].length, 5 * 16);
+  assert.equal(seen[5], undefined, "other levels untouched");
+  assert.ok(seen[8].every((id) => !id.startsWith("g")), "procedural questions are not remembered");
+  // adult level has its own memory
+  const a = L.newRun({ level: "adult", mode: "quiz", count: 10, seed: 3, seen });
+  playThrough(a, always);
+  const after = L.seenAfter(a, seen);
+  assert.equal(after[8].length, 80);
+  assert.equal(after.adult.length, 8);
+  assert.ok(after.adult.every((id) => id.startsWith("adult:")));
 });
 
 test("seen tracking resets when a level or category is exhausted", () => {
@@ -256,19 +325,19 @@ test("seen tracking resets when a level or category is exhausted", () => {
   const seen = [];
   for (let i = 0; i < Q.BANK[5].length; i++) if (Q.BANK[5][i].cat === "letters" && seen.length < total - 3) seen.push(L.qid(5, i));
   const s = L.newRun({ level: 5, mode: "quiz", count: 10, category: "letters", seed: 9, seen });
-  assert.equal(s.seenReset, true);
+  assert.equal(s.seenReset[5], true, "a plain array of ids is accepted for the run's level");
   assert.ok(s.qs.every((q) => q.cat === "letters"));
   // the 3 unseen ones come first, then old ones
   const fresh = s.qs.filter((q) => !seen.includes(q.id));
   assert.equal(fresh.length, 3);
   playThrough(s, always);
   const after = L.seenAfter(s, seen);
-  assert.equal(after.length, 10, "memory restarts from this run");
+  assert.equal(after[5].length, 10, "memory restarts from this run");
   // partial progress only remembers answered cards
   const t = L.newRun({ level: 8, mode: "quiz", count: 10, seed: 2 });
   L.answer(t, 0); L.next(t); L.answer(t, 0);
-  const part = L.seenAfter(t, []);
-  assert.equal(part.length, t.qs.slice(0, 2).filter((q) => !q.gen).length);
+  const part = L.seenAfter(t, {});
+  assert.equal(part[8].length, t.qs.slice(0, 2).filter((q) => !q.gen).length);
 });
 
 test("practice mode is endless with a running score and can be finished", () => {
@@ -312,18 +381,91 @@ test("two player: alternating turns, per-player scores, winner and ties", () => 
   assert.equal(u.players[0].emoji, L.AVATARS[0], "unknown avatar falls back");
   assert.equal(u.players[1].name.length, 16, "names are capped");
   assert.equal(L.winner(L.newRun({ level: 5, mode: "quiz", count: 10, seed: 1 })), -1);
+  assert.ok(s.players.every((p) => p.level === 5), "players default to the menu level");
+  assert.deepEqual(L.leaders(t), [0, 1]);
+});
+
+test("mixed levels: each player draws from their own level, turns rotate, no repeats, JSON round trip", () => {
+  const players = [{ name: "Kid", avatar: "🐸", level: 5 }, { name: "Mid", avatar: "🐼", level: 8 }, { name: "Grown", avatar: "🦊", level: "adult" }];
+  const s = L.newRun({ level: 8, mode: "two", count: 10, seed: 21, players });
+  assert.equal(s.players.length, 3);
+  assert.equal(s.count, 12, "count rounds up so every player gets the same number of turns");
+  assert.deepEqual(s.levels, [5, 8, "adult"]);
+  assert.deepEqual(s.players.map((p) => p.level), [5, 8, "adult"]);
+  assert.equal(s.players[0].emoji, "🐸", "avatar alias accepted");
+  assert.deepEqual([0, 1, 2].map((k) => L.questionsFor(s, k)), [4, 4, 4]);
+  const ids = new Set();
+  s.qs.forEach((q, i) => {
+    const k = L.turnOf(s, i), lv = s.players[k].level;
+    assert.equal(k, i % 3);
+    assert.equal(q.level, lv, "question " + i + " belongs to the player's level");
+    assert.equal(q.a.length, lv === 5 ? 3 : 4);
+    assert.ok(Q.CATS[lv][q.cat], "category " + q.cat + " exists at level " + lv);
+    if (!q.gen) {
+      assert.ok(q.id.startsWith(lv + ":"));
+      assert.equal(Q.BANK[lv][parseInt(q.id.split(":")[1], 10)].q, q.q);
+    }
+    assert.ok(!ids.has(q.id), "repeat " + q.id);
+    ids.add(q.id);
+  });
+  // JSON round trip mid-run, then both copies continue identically
+  L.answer(s, s.qs[0].c); L.next(s);
+  const copy = JSON.parse(JSON.stringify(s));
+  assert.deepEqual(copy, s);
+  assert.deepEqual(copy.players.map((p) => p.level), [5, 8, "adult"], "levels survive the save");
+  const r1 = L.answer(copy, 0), r2 = L.answer(s, 0);
+  assert.deepEqual(r1, r2);
+  L.next(copy); L.next(s);
+  assert.deepEqual(JSON.parse(JSON.stringify(copy)), JSON.parse(JSON.stringify(s)));
+  // play out: player 1 (age 8) always right, others always wrong
+  while (!copy.done) { const q = L.current(copy); L.answer(copy, L.turnOf(copy) === 1 ? q.c : (q.c + 1) % q.a.length); L.next(copy); }
+  assert.equal(copy.players[1].score, 3 + (r1.correct ? 1 : 0), "player 1 wins all remaining turns");
+  assert.equal(copy.players[0].score, 1);
+  assert.equal(copy.players[2].score, 0);
+  assert.equal(L.winner(copy), 1);
+  assert.equal(copy.score, copy.players.reduce((a, p) => a + p.score, 0));
+  // seen memory lands in each level's own list
+  const seen = L.seenAfter(copy, { 8: ["8:0"] });
+  assert.ok(seen[5].length >= 1 && seen[8].length >= 2 && seen.adult.length >= 1);
+  assert.ok(seen[8].includes("8:0"));
+  for (const lv of [5, 8, "adult"]) assert.ok(seen[lv].every((id) => id.startsWith(lv + ":")));
+});
+
+test("mixed levels across many seeds and 2 to 4 players never repeat a card and honour levels", () => {
+  for (let seed = 1; seed <= 30; seed++) {
+    const n = 2 + (seed % 3);
+    const players = [];
+    for (let k = 0; k < n; k++) players.push({ name: "P" + k, level: L.LEVELS[(seed + k) % 3] });
+    const s = L.newRun({ level: 5, mode: "two", count: 20, seed, players });
+    assert.equal(s.players.length, n);
+    assert.equal(s.count % n, 0);
+    const ids = new Set();
+    s.qs.forEach((q, i) => {
+      assert.equal(q.level, s.players[i % n].level);
+      assert.ok(!ids.has(q.id)); ids.add(q.id);
+    });
+    playThrough(s, always);
+    assert.equal(s.history.length, s.count);
+    s.players.forEach((p, k) => assert.equal(p.score, L.questionsFor(s, k)));
+  }
+  const five = L.newRun({ level: 5, mode: "two", count: 10, seed: 1, players: [{}, {}, {}, {}, {}] });
+  assert.equal(five.players.length, 4, "capped at four players");
+  assert.equal(new Set(five.players.map((p) => p.emoji)).size, 4, "distinct default avatars");
 });
 
 test("newRun sanitises odd inputs", () => {
   const s = L.newRun({ level: 12, mode: "nonsense", count: 99, category: "pirates", seed: "x" });
   assert.equal(s.level, 5); assert.equal(s.mode, "quiz"); assert.equal(s.count, 10); assert.equal(s.cat, null); assert.equal(s.seed, 0);
+  assert.equal(L.newRun({ level: "adult" }).level, "adult");
+  assert.equal(L.newRun({ level: "8" }).level, 8);
+  assert.equal(s.v, 2, "saved shape version");
   const t = L.newRun();
   assert.equal(t.qs.length, 10);
 });
 
 test("many seeds: full runs in every mode terminate with consistent bookkeeping", () => {
   for (let seed = 1; seed <= 60; seed++) {
-    for (const mode of ["quiz", "two"]) for (const lv of [5, 8]) {
+    for (const mode of ["quiz", "two"]) for (const lv of [5, 8, "adult"]) {
       const s = L.newRun({ level: lv, mode, count: seed % 2 ? 10 : 20, seed });
       let k = 0;
       playThrough(s, (q) => (k++ % 3 === 0 ? (q.c + 1) % q.a.length : q.c));
@@ -346,6 +488,7 @@ test("page contract: base href, noindex, relative assets, no em dash, no externa
   assert.ok(html.includes('href="/play/"'));
   assert.ok(/back to games|games/.test(html));
   assert.ok(html.includes("<title>Brain Quest</title>"));
+  assert.ok(html.includes('data-level="adult"') && html.includes("Pick a level"));
   assert.ok(html.includes('href="style.css"') && html.includes('src="app.js"') && html.includes('src="logic.js"') && html.includes('src="questions.js"'));
   const css = fs.readFileSync(path.join(dir, "style.css"), "utf8");
   for (const f of ["/fonts/marcellus.woff2", "/fonts/jost-400.woff2", "/fonts/jost-500.woff2", "/fonts/jost-600.woff2"]) assert.ok(css.includes(f), f);

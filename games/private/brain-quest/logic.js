@@ -9,7 +9,11 @@
   "use strict";
 
   var CATS = Q.CATS;
-  var MATH_CAT = { 5: "count", 8: "math" };
+  var LEVELS = [5, 8, "adult"];
+  var LEVEL_NAMES = { 5: "Age 5", 8: "Age 8", adult: "Adult" };
+  var MATH_CAT = { 5: "count", 8: "math", adult: "logic" };
+  var MAX_PLAYERS = 4;
+  function normLevel(v) { return v === 8 || v === "8" ? 8 : v === "adult" ? "adult" : 5; }
   var AVATARS = ["🦊", "🐸", "🐼", "🦄", "🐯", "🐙", "🦖", "🐨"];
   var EMOJI5 = ["🍎", "🐶", "⭐", "🎈", "🚗", "🐟", "🍪", "🦆", "🌼", "🐞", "🍌", "🦋", "🐸", "🧁", "🐱", "🚀"];
 
@@ -40,12 +44,13 @@
     if (c <= 12) { offs = [1, -1, 2, -2, 3, -3]; w = 4; }
     else if (c < 100) { offs = [1, -1, 2, -2, 10, -10, 5, -5, 3, -3]; w = 12; }
     else { offs = [1, -1, 10, -10, 100, -100, 2, -2, 20, -20, 50, -50]; w = 60; }
-    var cand = (extra || []).slice(), seen = {}, i, v;
+    var cand = [], seen = {}, i, v;
     seen[c] = true;
     offs.forEach(function (o) { cand.push(c + o); });
     var s = String(c);
     if (s.length >= 2 && s[0] !== s[1]) cand.push(parseInt(s[1] + s[0] + s.slice(2), 10));
-    cand = shuffle(st, cand);
+    // Template-specific near misses (neighbouring facts) are tried first.
+    cand = shuffle(st, extra || []).concat(shuffle(st, cand));
     var out = [];
     for (i = 0; i < cand.length && out.length < n; i++) {
       v = cand[i];
@@ -193,9 +198,91 @@
     return numQ(st, "A rectangle is " + a + " units long and " + b + " units wide. What is its area in square units?", a * b, 3, 1, 150, "math");
   }
 
+
+  // Probability questions with fixed, checkable answers.
+  var PROB = [
+    ["You roll one fair die. What is the probability of an even number?", "1/2"],
+    ["You roll one fair die. What is the probability of a number greater than 4?", "1/3"],
+    ["You roll one fair die. What is the probability of a 1 or a 2?", "1/3"],
+    ["You roll one fair die. What is the probability of a number less than 6?", "5/6"],
+    ["You roll two fair dice. What is the probability that the total is 7?", "1/6"],
+    ["You roll two fair dice. What is the probability that the total is 2?", "1/36"],
+    ["You roll two fair dice. What is the probability that the total is 12?", "1/36"],
+    ["You roll two fair dice. What is the probability that the total is 11?", "1/18"],
+    ["You roll two fair dice. What is the probability that the total is 10?", "1/12"],
+    ["You roll two fair dice. What is the probability that the total is 8?", "5/36"],
+    ["You roll two fair dice. What is the probability of a double?", "1/6"],
+    ["You draw one card from a standard 52-card deck. What is the probability it is a heart?", "1/4"],
+    ["You draw one card from a standard 52-card deck. What is the probability it is an ace?", "1/13"],
+    ["You draw one card from a standard 52-card deck. What is the probability it is a face card (jack, queen or king)?", "3/13"],
+    ["You draw one card from a standard 52-card deck. What is the probability it is a black queen?", "1/26"],
+    ["You draw one card from a standard 52-card deck. What is the probability it is a spade or a club?", "1/2"],
+    ["You draw one card from a standard 52-card deck. What is the probability it is the ace of spades?", "1/52"],
+    ["You draw one card from a standard 52-card deck. What is the probability it is a red king?", "1/26"],
+    ["You flip three fair coins. What is the probability that all three show heads?", "1/8"],
+    ["You flip two fair coins. What is the probability of at least one head?", "3/4"],
+    ["You flip two fair coins. What is the probability of exactly one head?", "1/2"]
+  ];
+  var FRACS = ["1/2", "1/3", "1/4", "1/6", "1/8", "1/12", "1/13", "1/18", "1/26", "1/36", "1/52", "3/13", "5/36", "3/4", "2/3", "5/6"];
+  var CONV = [["km", "m", 1000], ["m", "cm", 100], ["kg", "g", 1000], ["hours", "minutes", 60], ["minutes", "seconds", 60], ["feet", "inches", 12], ["yards", "feet", 3], ["days", "hours", 24], ["weeks", "days", 7], ["litres", "millilitres", 1000]];
+
+  function genAdult(st) {
+    var k = randInt(st, 0, 7), a, b, c, d, x, text, i, seq;
+    if (k === 0) {
+      var p = pick(st, [5, 10, 15, 20, 25, 30, 40, 50, 60, 75]);
+      a = randInt(st, 2, 40) * 20;
+      return numQ(st, "What is " + p + " percent of " + a + "?", a * p / 100, 3, 0, 1000, "logic");
+    }
+    if (k === 1) {
+      if (rand(st) < 0.5) {
+        a = randInt(st, 3, 9) * 10; b = randInt(st, 1, 4); c = randInt(st, 3, 9) * 10; d = randInt(st, 1, 4);
+        x = a * b + c * d;
+        text = "A train travels at " + a + " km/h for " + b + (b === 1 ? " hour" : " hours") + ", then at " + c + " km/h for " + d + (d === 1 ? " hour" : " hours") + ". How far does it travel in total?";
+        return finish(st, { q: text, a: [x + " km"].concat(nearNumbers(st, x, 3, 10, 999, [a * b, c * d, a * b + c * d + 10]).map(function (v) { return v + " km"; })), c: 0, cat: "logic", gen: true });
+      }
+      a = randInt(st, 2, 9); b = randInt(st, 3, 19); var total = a * b;
+      var paid = (Math.floor(total / 50) + 1) * 50; x = paid - total;
+      text = "You buy " + a + " items at $" + b + " each and pay with $" + paid + ". How much change do you get?";
+      return finish(st, { q: text, a: ["$" + x].concat(nearNumbers(st, x, 3, 0, 200, [paid - total - b, x + b, total]).map(function (v) { return "$" + v; })), c: 0, cat: "logic", gen: true });
+    }
+    if (k === 2) {
+      var cv = pick(st, CONV); a = randInt(st, 2, 12);
+      return numQ(st, "How many " + cv[1] + " are there in " + a + " " + cv[0] + "?", a * cv[2], 3, 1, 20000, "logic", null, [a * cv[2] * 10, a * cv[2] / 10, (a + 1) * cv[2], (a - 1) * cv[2]]);
+    }
+    if (k === 3) {
+      a = randInt(st, 2, 9); x = randInt(st, 2, 12); b = randInt(st, 1, 20);
+      if (rand(st) < 0.5) return numQ(st, "Solve for x: " + a + "x + " + b + " = " + (a * x + b), x, 3, 1, 30, "logic");
+      b = randInt(st, 1, a * x - 1);
+      return numQ(st, "Solve for x: " + a + "x - " + b + " = " + (a * x - b), x, 3, 1, 30, "logic");
+    }
+    if (k === 4) {
+      var pr = pick(st, PROB), opts = [pr[1]], seen = {};
+      seen[pr[1]] = true;
+      var fr = shuffle(st, FRACS);
+      for (i = 0; i < fr.length && opts.length < 4; i++) if (!seen[fr[i]]) { seen[fr[i]] = true; opts.push(fr[i]); }
+      return finish(st, { q: pr[0], a: opts, c: 0, cat: "logic", gen: true });
+    }
+    if (k === 5) {
+      a = randInt(st, 1, 20); d = randInt(st, 2, 12); seq = [];
+      for (i = 0; i < 4; i++) seq.push(a + i * d);
+      x = a + 4 * d;
+      return numQ(st, "What comes next? " + seq.join(", ") + ", ?", x, 3, 0, 200, "logic", null, [x + 1, x - 1, x + d, x - d + 1]);
+    }
+    if (k === 6) {
+      a = randInt(st, 1, 5); var r = pick(st, [2, 3]); seq = [];
+      for (i = 0; i < 4; i++) seq.push(a * Math.pow(r, i));
+      x = a * Math.pow(r, 4);
+      return numQ(st, "What comes next? " + seq.join(", ") + ", ?", x, 3, 0, 2000, "logic", null, [x + a * Math.pow(r, 3), x - a, x * 2, x + r]);
+    }
+    var start = randInt(st, 1, 6); seq = [];
+    if (rand(st) < 0.5) { for (i = 0; i < 4; i++) seq.push((start + i) * (start + i)); x = (start + 4) * (start + 4); }
+    else { for (i = 0; i < 4; i++) seq.push((start + i) * (start + i + 1) / 2); x = (start + 4) * (start + 5) / 2; }
+    return numQ(st, "What comes next? " + seq.join(", ") + ", ?", x, 3, 0, 200, "logic", null, [x + 1, x - 1, x + 2, seq[3] + (seq[3] - seq[2])]);
+  }
+
   function genMath(level, st) {
-    var item = level === 8 ? gen8(st) : gen5(st);
-    return item;
+    level = normLevel(level);
+    return level === 8 ? gen8(st) : level === "adult" ? genAdult(st) : gen5(st);
   }
 
   // ---------------------------------------------------------------- bank helpers
@@ -217,65 +304,103 @@
   }
 
   // ---------------------------------------------------------------- runs
-  // opts: { level: 5|8, mode: "quiz"|"two"|"practice", count: 10|20, seed, seen: [ids], category, players: [{name, emoji}] }
+  // opts: { level: 5|8|"adult", mode: "quiz"|"two"|"practice", count: 10|20, seed,
+  //         seen: {level: [ids]} (or a plain array for the run's level),
+  //         category, players: [{name, emoji|avatar, level}] (2 to 4, two-player mode) }
   function newRun(opts) {
     opts = opts || {};
-    var level = opts.level === 8 ? 8 : 5;
+    var level = normLevel(opts.level);
     var mode = opts.mode === "two" ? "two" : opts.mode === "practice" ? "practice" : "quiz";
     var cat = opts.category && CATS[level][opts.category] ? opts.category : null;
     var count = mode === "practice" ? 0 : (opts.count === 20 ? 20 : 10);
     var seed = (opts.seed === undefined || opts.seed === null) ? 1 : (opts.seed | 0);
-    var seenList = Array.isArray(opts.seen) ? opts.seen : [];
     var st = {
-      v: 1, level: level, mode: mode, cat: cat, count: count, seed: seed, rng: seed,
+      v: 2, level: level, mode: mode, cat: cat, count: count, seed: seed, rng: seed,
       i: 0, qs: [], picked: null, done: false,
       score: 0, streak: 0, best: 0, history: [],
-      players: null, pool: [], seenReset: false, genN: 0
+      players: null, levels: [level], pools: {}, seenReset: {}, genN: 0
     };
     if (mode === "two") {
-      var ps = Array.isArray(opts.players) ? opts.players : [];
-      st.players = [0, 1].map(function (k) {
-        var p = ps[k] || {};
-        return { name: String(p.name || ("Player " + (k + 1))).slice(0, 16), emoji: AVATARS.indexOf(p.emoji) >= 0 ? p.emoji : AVATARS[k], score: 0, streak: 0 };
+      var ps = Array.isArray(opts.players) ? opts.players.slice(0, MAX_PLAYERS) : [];
+      while (ps.length < 2) ps.push({});
+      st.players = ps.map(function (p, k) {
+        p = p || {};
+        var av = p.emoji || p.avatar;
+        return { name: String(p.name || ("Player " + (k + 1))).slice(0, 16), emoji: AVATARS.indexOf(av) >= 0 ? av : AVATARS[k], level: normLevel(p.level === undefined ? level : p.level), score: 0, streak: 0, best: 0 };
       });
+      st.cat = null;
+      st.count = Math.ceil(count / st.players.length) * st.players.length;
+      st.levels = [];
+      st.players.forEach(function (p) { if (st.levels.indexOf(p.level) < 0) st.levels.push(p.level); });
     }
-    // Pool: unseen questions first (shuffled), then the seen ones (shuffled),
-    // so nothing repeats until the whole category has been used.
-    var seenMap = {};
-    seenList.forEach(function (id) { seenMap[id] = true; });
-    var all = bankIndexes(level, cat), fresh = [], old = [];
-    all.forEach(function (i) { (seenMap[qid(level, i)] ? old : fresh).push(i); });
-    var needAuthored = count ? count - genCount(st, count) : 0;
-    if (fresh.length < needAuthored) st.seenReset = true;
-    st.pool = shuffle(st, fresh).concat(shuffle(st, old));
-    if (mode === "practice") extend(st, 10); else extend(st, count);
+    // Per-level pool: unseen questions first (shuffled), then seen ones
+    // (shuffled), so nothing repeats until the whole level or category is used.
+    var seenIn = opts.seen || {};
+    st.levels.forEach(function (lv) {
+      var list = Array.isArray(seenIn) ? (lv === level ? seenIn : []) : (Array.isArray(seenIn[lv]) ? seenIn[lv] : []);
+      var seenMap = {};
+      list.forEach(function (id) { seenMap[id] = true; });
+      var fresh = [], old = [];
+      bankIndexes(lv, st.cat).forEach(function (i) { (seenMap[qid(lv, i)] ? old : fresh).push(i); });
+      var need = expectedAuthored(st, lv);
+      st.seenReset[lv] = fresh.length < need;
+      st.pools[lv] = shuffle(st, fresh).concat(shuffle(st, old));
+    });
+    extend(st, mode === "practice" ? 10 : st.count);
     return st;
   }
-  // How many of `n` questions should be procedural math.
+  // Roughly how many authored (non procedural) cards a level needs this run.
+  function expectedAuthored(st, lv) {
+    if (!st.count) return 0;
+    if (st.mode !== "two") return st.count - genCount(st, st.count);
+    var n = 0;
+    st.players.forEach(function (p, k) { if (p.level === lv) n += questionsFor(st, k); });
+    return n - Math.round(n / 5);
+  }
+  // How many of `n` solo questions should be procedural math.
   function genCount(st, n) {
     var m = MATH_CAT[st.level];
     if (st.cat && st.cat !== m) return 0;
     if (st.cat === m) return Math.round(n / 2);
     return Math.round(n / 5);
   }
+  function levelAt(st, i) { return st.mode === "two" ? st.players[turnOf(st, i)].level : st.level; }
+  function drawAuthored(st, lv) {
+    if (!st.pools[lv] || !st.pools[lv].length) {
+      var used = {};
+      st.qs.forEach(function (q) { used[q.id] = true; });
+      var rest = bankIndexes(lv, st.cat).filter(function (i) { return !used[qid(lv, i)]; });
+      if (!rest.length) rest = bankIndexes(lv, st.cat);
+      st.pools[lv] = shuffle(st, rest);
+    }
+    return fromBank(st, lv, st.pools[lv].shift());
+  }
   function extend(st, n) {
-    var g = genCount(st, n), slots = [], i;
-    for (i = 0; i < n; i++) slots.push(i < g);
-    slots = shuffle(st, slots);
+    var slots = [], i;
+    if (st.mode === "two") for (i = 0; i < n; i++) slots.push(rand(st) < 0.2);
+    else {
+      var g = genCount(st, n);
+      for (i = 0; i < n; i++) slots.push(i < g);
+      slots = shuffle(st, slots);
+    }
     for (i = 0; i < n; i++) {
+      var lv = levelAt(st, st.qs.length);
       if (slots[i]) {
-        var item = genMath(st.level, st);
-        item.id = "g" + st.level + ":" + (st.genN++);
+        var item = genMath(lv, st);
+        item.id = "g" + lv + ":" + (st.genN++);
+        item.level = lv;
         st.qs.push(item);
       } else {
-        if (!st.pool.length) st.pool = shuffle(st, bankIndexes(st.level, st.cat));
-        st.qs.push(fromBank(st, st.level, st.pool.shift()));
+        var card = drawAuthored(st, lv);
+        card.level = lv;
+        st.qs.push(card);
       }
     }
   }
 
   function current(st) { return st.qs[st.i] || null; }
-  function turnOf(st, i) { return st.mode === "two" ? (i === undefined ? st.i : i) % 2 : 0; }
+  function turnOf(st, i) { return st.mode === "two" ? (i === undefined ? st.i : i) % st.players.length : 0; }
+  function questionsFor(st, k) { return st.mode === "two" ? Math.ceil(Math.max(0, st.count - k) / st.players.length) : st.count; }
   function total(st) { return st.mode === "practice" ? st.i : st.count; }
 
   function answer(st, idx) {
@@ -288,7 +413,7 @@
     var who = st.mode === "two" ? st.players[turnOf(st)] : st;
     if (ok) { who.score++; who.streak++; if (who.streak > (who.best || 0)) who.best = who.streak; }
     else who.streak = 0;
-    if (st.mode === "two") { st.score = st.players[0].score + st.players[1].score; }
+    if (st.mode === "two") st.score = st.players.reduce(function (a, p) { return a + p.score; }, 0);
     return { correct: ok, correctIdx: cq.c, fun: cq.fun || null, picked: idx };
   }
 
@@ -308,28 +433,42 @@
     var pct = st.score / n;
     return pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : 1;
   }
-  function winner(st) {
-    if (st.mode !== "two") return -1;
-    var a = st.players[0].score, b = st.players[1].score;
-    return a === b ? -1 : a > b ? 0 : 1;
+  // Indexes of the players sharing the top score (two-player mode).
+  function leaders(st) {
+    if (st.mode !== "two") return [];
+    var best = -1, out = [];
+    st.players.forEach(function (p) { if (p.score > best) best = p.score; });
+    st.players.forEach(function (p, k) { if (p.score === best) out.push(k); });
+    return out;
   }
-  // Ids to remember as seen after this run (authored only). If the pool had
-  // to be reset, start the memory over from just this run.
+  function winner(st) {
+    var l = leaders(st);
+    return l.length === 1 ? l[0] : -1;
+  }
+  // Seen ids per level after this run (authored only). If a level's pool had
+  // to be reset, that level's memory starts over from just this run.
   function seenAfter(st, seen) {
-    var base = st.seenReset ? [] : (Array.isArray(seen) ? seen.slice() : []);
+    var out = {};
+    if (seen && !Array.isArray(seen)) Object.keys(seen).forEach(function (k) { out[k] = Array.isArray(seen[k]) ? seen[k].slice() : []; });
+    else if (Array.isArray(seen)) out[st.level] = seen.slice();
     var have = {};
-    base.forEach(function (id) { have[id] = true; });
-    for (var i = 0; i < Math.min(st.i + (st.picked !== null ? 1 : 0), st.qs.length); i++) {
-      var id = st.qs[i].id;
-      if (id.charAt(0) !== "g" && !have[id]) { have[id] = true; base.push(id); }
+    st.levels.forEach(function (lv) {
+      if (st.seenReset[lv] || !out[lv]) out[lv] = [];
+      have[lv] = {};
+      out[lv].forEach(function (id) { have[lv][id] = true; });
+    });
+    var upto = Math.min(st.i + (st.picked !== null ? 1 : 0), st.qs.length);
+    for (var i = 0; i < upto; i++) {
+      var q = st.qs[i], lv = q.level || st.level;
+      if (q.id.charAt(0) !== "g" && !have[lv][q.id]) { have[lv][q.id] = true; out[lv].push(q.id); }
     }
-    return base;
+    return out;
   }
 
   return {
-    CATS: CATS, AVATARS: AVATARS, MIN: Q.MIN, BANK: Q.BANK,
-    newRun: newRun, answer: answer, next: next, current: current, turnOf: turnOf, total: total,
-    stars: stars, winner: winner, seenAfter: seenAfter, finishPractice: finishPractice,
-    genMath: genMath, counts: counts, qid: qid, rand: rand
+    CATS: CATS, AVATARS: AVATARS, MIN: Q.MIN, BANK: Q.BANK, LEVELS: LEVELS, LEVEL_NAMES: LEVEL_NAMES, MAX_PLAYERS: MAX_PLAYERS, PROB: PROB,
+    newRun: newRun, answer: answer, next: next, current: current, turnOf: turnOf, total: total, questionsFor: questionsFor,
+    stars: stars, winner: winner, leaders: leaders, seenAfter: seenAfter, finishPractice: finishPractice,
+    genMath: genMath, counts: counts, qid: qid, normLevel: normLevel, rand: rand
   };
 });
