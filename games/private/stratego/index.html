@@ -14,6 +14,7 @@
 
   <section id="menu" class="screen">
     <a class="back" href="/play/">&larr; back to games</a>
+    <div id="hero" class="herowrap" aria-hidden="true"></div>
     <h1>Stratego</h1>
     <p class="lede">Hidden armies on a ten by ten field. Find the enemy flag before they find yours. You play Red against the computer.</p>
 
@@ -43,7 +44,7 @@
     <div class="layout">
       <div class="play">
         <div id="setupStatus" class="status" role="status" aria-live="polite"></div>
-        <div class="boardwrap"><svg id="setupBoard" class="board" viewBox="0 0 400 400" role="group" aria-label="Setup board"></svg></div>
+        <div class="boardwrap"><svg id="setupBoard" class="board" viewBox="-14 -14 428 428" role="group" aria-label="Setup board"></svg></div>
         <div id="tray" class="tray" role="group" aria-label="Piece tray"></div>
         <p id="trayHint" class="hint trayhint"></p>
         <div class="setupbtns">
@@ -71,7 +72,7 @@
       <div class="play">
         <div id="score" class="score" aria-live="polite"></div>
         <div id="status" class="status" role="status" aria-live="polite"></div>
-        <div class="boardwrap"><svg id="board" class="board" viewBox="0 0 400 400" role="group" aria-label="Stratego board"></svg></div>
+        <div class="boardwrap"><svg id="board" class="board" viewBox="-14 -14 428 428" role="group" aria-label="Stratego board"></svg></div>
         <div class="controls">
           <button id="undoBtn" class="btn">Undo</button>
           <button id="revealBtn" class="btn" hidden>Reveal opponent</button>
@@ -113,6 +114,7 @@
 </div>
 
 <script src="logic.js"></script>
+<script src="art.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

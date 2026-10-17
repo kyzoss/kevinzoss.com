@@ -18,7 +18,7 @@
   function jget(k, d) { try { var t = store("get", k); return t ? JSON.parse(t) : d; } catch (e) { return d; } }
   function $(id) { return document.getElementById(id); }
 
-  var app = { s: null, sel: null, trayRank: null, selCell: null, busy: false, undo: null, reveal: false, tallied: false, last: null, timer: 0 };
+  var app = { s: null, sel: null, trayRank: null, selCell: null, busy: false, undo: null, reveal: false, tallied: false, last: null, timer: 0, animN: 0, animT0: 0, animTimer: 0 };
   var seedFromUrl = null;
   try {
     var m = /[?&]seed=(-?\d+)/.exec(window.location.search);
@@ -50,55 +50,10 @@
   }
 
   // ---------- art ----------
-  var COL = {
-    0: { fill: "#B4452F", stroke: "#6B2315", ink: "#FFF6EA" },
-    1: { fill: "#3A5C8A", stroke: "#1D3556", ink: "#FFF6EA" }
-  };
-  function shape(o) {
-    var c = COL[o];
-    if (o === RED) return '<rect x="3.5" y="3.5" width="33" height="33" rx="7" fill="' + c.fill + '" stroke="' + c.stroke + '" stroke-width="2"/>';
-    return '<polygon points="12,3.5 28,3.5 36.5,12 36.5,28 28,36.5 12,36.5 3.5,28 3.5,12" fill="' + c.fill + '" stroke="' + c.stroke + '" stroke-width="2"/>' +
-      '<polygon points="13,7.5 27,7.5 32.5,13 32.5,27 27,32.5 13,32.5 7.5,27 7.5,13" fill="none" stroke="rgba(255,246,234,0.35)" stroke-width="1"/>';
-  }
-  // 40x40 piece art. mode: "face" shows the rank, "hidden" shows a face-down piece.
-  function pieceArt(o, rank, mode, moved, ghost) {
-    var c = COL[o], g = '<g class="pc"' + (ghost ? ' opacity="0.8"' : "") + ">" + shape(o);
-    if (mode === "hidden") {
-      g += '<path d="M20 11 L29 20 L20 29 L11 20 Z" fill="none" stroke="rgba(255,246,234,0.55)" stroke-width="2"/>';
-      g += '<circle cx="20" cy="20" r="2.4" fill="rgba(255,246,234,0.55)"/>';
-      if (moved) g += '<circle cx="31" cy="9.5" r="2.8" fill="#C99A2E" stroke="#6B4E10" stroke-width="0.8"/>';
-      return g + "</g>";
-    }
-    if (rank === L.BOMB) {
-      g += '<circle cx="19" cy="23" r="9.5" fill="#1F1B18"/><circle cx="15.5" cy="19.5" r="2.4" fill="rgba(255,255,255,0.5)"/>' +
-        '<path d="M24 15.5 Q27 11 30 11" fill="none" stroke="#E6D3A3" stroke-width="2" stroke-linecap="round"/>' +
-        '<path d="M30 7 L31.3 10 L34.5 11 L31.3 12 L30 15 L28.7 12 L25.5 11 L28.7 10 Z" fill="#E8B83A"/>';
-    } else if (rank === L.FLAG) {
-      g += '<path d="M13 8 L13 32" stroke="' + c.ink + '" stroke-width="2.4" stroke-linecap="round"/>' +
-        '<path d="M13.5 9 L30.5 14.5 L13.5 21 Z" fill="#E8B83A" stroke="#7A5A10" stroke-width="1"/>' +
-        '<path d="M9 32 L21 32" stroke="' + c.ink + '" stroke-width="2.4" stroke-linecap="round"/>';
-    } else if (rank === L.SPY) {
-      g += '<path d="M9.5 14 Q20 5 30.5 14 Q20 23 9.5 14 Z" fill="none" stroke="' + c.ink + '" stroke-width="1.8"/>' +
-        '<circle cx="20" cy="14" r="3.2" fill="' + c.ink + '"/>' +
-        '<text x="20" y="34" text-anchor="middle" font-size="15" fill="' + c.ink + '">S</text>';
-    } else {
-      g += '<text x="20" y="' + (rank === 10 ? 26.5 : 27.5) + '" text-anchor="middle" font-size="' + (rank === 10 ? 19 : 23) + '" fill="' + c.ink + '">' + rank + "</text>";
-    }
-    return g + "</g>";
-  }
-  function tile(o, rank, mode, size) {
-    return '<svg class="tile" viewBox="0 0 40 40" width="' + (size || 28) + '" height="' + (size || 28) + '" aria-hidden="true">' + pieceArt(o, rank, mode || "face", false, false) + "</svg>";
-  }
-
-  var LAKE_WAVES = "";
-  function lakeSvg(x, y) {
-    var s = '<rect x="' + x + '" y="' + y + '" width="80" height="80" rx="9" fill="#5C8F93" stroke="#3E6B70" stroke-width="2"/>';
-    for (var k = 0; k < 3; k++) {
-      var yy = y + 20 + k * 22;
-      s += '<path d="M' + (x + 10) + " " + yy + " q10 -8 20 0 t20 0 t20 0" + '" fill="none" stroke="rgba(235,248,246,0.6)" stroke-width="2.2" stroke-linecap="round"/>';
-    }
-    return s;
-  }
+  var Art = window.StrategoArt;
+  Art.install();
+  function pieceArt(o, rank, mode, moved, ghost, lift) { return Art.piece(o, rank, mode, moved, ghost, lift); }
+  function tile(o, rank, mode, size) { return Art.tile(o, rank, mode || "face", size || 28); }
 
   // ---------- board rendering ----------
   function cellLabel(s, i, showAll) {
@@ -110,39 +65,31 @@
     return t + ", Blue piece, face down";
   }
   function drawBoard(s, opts) {
-    // opts: sel, dests (array), last {from,to}, reveal, setup
-    var out = "", i, x, y, p;
-    var dset = {}; (opts.dests || []).forEach(function (d) { dset[d] = 1; });
-    for (i = 0; i < 100; i++) {
-      x = (i % 10) * 40; y = Math.floor(i / 10) * 40;
-      var dark = ((i % 10) + Math.floor(i / 10)) % 2 === 1;
-      var fill = dark ? "#DDCCA8" : "#E8DBBE";
-      if (opts.setup && L.inHome(RED, i)) fill = dark ? "#D6D2A5" : "#E2DFB5";
-      out += '<rect x="' + x + '" y="' + y + '" width="40" height="40" fill="' + fill + '"/>';
-    }
-    out += lakeSvg(80, 160) + lakeSvg(240, 160);
-    if (opts.last) {
-      [opts.last.from, opts.last.to].forEach(function (k) {
-        out += '<rect x="' + (k % 10) * 40 + '" y="' + Math.floor(k / 10) * 40 + '" width="40" height="40" fill="rgba(201,154,46,0.38)"/>';
-      });
-    }
+    // opts: sel, dests (array), last {from,to}, reveal, setup, anim {e, t0}
+    var out = Art.frame() + Art.cells(!!opts.setup), i, x, y, p;
+    out += Art.lake(80, 160) + Art.lake(240, 160);
+    if (opts.last) out += Art.trail(opts.last.from, opts.last.to);
+    var sel = (opts.sel !== null && opts.sel !== undefined && opts.sel >= 0) ? opts.sel : -1;
+    if (sel >= 0) out += Art.selRing((sel % 10) * 40, Math.floor(sel / 10) * 40);
+    var selPiece = "";
     for (i = 0; i < 100; i++) {
       p = s.board[i];
-      x = (i % 10) * 40; y = Math.floor(i / 10) * 40;
       if (!p) continue;
+      x = (i % 10) * 40; y = Math.floor(i / 10) * 40;
       var face = p.o === RED || p.rev || opts.reveal;
       var ghost = p.o === BLUE && !p.rev && opts.reveal;
-      out += '<g transform="translate(' + x + " " + y + ')">' + pieceArt(p.o, p.r, face ? "face" : "hidden", p.mv, ghost) + "</g>";
+      if (i === sel) {
+        selPiece = '<g transform="translate(' + (x + 20) + " " + (y + 18) + ') scale(1.12) translate(-20 -20)" filter="url(#sgLift)">' + pieceArt(p.o, p.r, face ? "face" : "hidden", p.mv, ghost, true) + "</g>";
+        continue;
+      }
+      out += '<g transform="translate(' + x + " " + y + ')">' + pieceArt(p.o, p.r, face ? "face" : "hidden", p.mv, ghost, false) + "</g>";
     }
     (opts.dests || []).forEach(function (d) {
       var cx = (d % 10) * 40 + 20, cy = Math.floor(d / 10) * 40 + 20;
-      if (s.board[d]) out += '<rect x="' + (cx - 19) + '" y="' + (cy - 19) + '" width="38" height="38" rx="8" fill="rgba(217,102,58,0.25)" stroke="#D9663A" stroke-width="3.2" class="pulse"/>';
-      else out += '<circle cx="' + cx + '" cy="' + cy + '" r="7" fill="#2F4B35" fill-opacity="0.85" stroke="#F5F0E6" stroke-width="1.6" class="pulse"/>';
+      out += s.board[d] ? Art.destAttack(cx, cy) : Art.destEmpty(cx, cy);
     });
-    if (opts.sel !== null && opts.sel !== undefined && opts.sel >= 0) {
-      out += '<rect x="' + (opts.sel % 10) * 40 + '" y="' + Math.floor(opts.sel / 10) * 40 + '" width="40" height="40" fill="none" stroke="#C99A2E" stroke-width="4"/>';
-    }
-    out += '<rect x="0" y="0" width="400" height="400" fill="none" stroke="#8C7B5E" stroke-width="3"/>';
+    out += selPiece;
+    if (opts.anim) out += Art.battle(opts.anim.e, Date.now() - opts.anim.t0);
     for (i = 0; i < 100; i++) {
       x = (i % 10) * 40; y = Math.floor(i / 10) * 40;
       out += '<rect data-i="' + i + '" x="' + x + '" y="' + y + '" width="40" height="40" fill="transparent" aria-label="' + cellLabel(s, i, opts.reveal) + '"/>';
@@ -288,11 +235,16 @@
     var s = app.s, over = s.phase === "over";
     var showAll = app.reveal;
     var dests = (!over && app.sel !== null && !app.busy) ? L.destinations(s, app.sel) : [];
-    $("board").innerHTML = drawBoard(s, { sel: app.sel, dests: dests, last: app.last, reveal: showAll });
+    var anim = null, le = s.log.length ? s.log[s.log.length - 1] : null;
+    if (le && le.att && !reduceMotion) {
+      if (app.animN !== le.n) { app.animN = le.n; app.animT0 = Date.now(); clearTimeout(app.animTimer); app.animTimer = setTimeout(function () { if (app.s && !$("game").hidden) renderGame(); }, 720); }
+      if (Date.now() - app.animT0 < 700) anim = { e: le, t0: app.animT0 };
+    }
+    $("board").innerHTML = drawBoard(s, { sel: app.sel, dests: dests, last: app.last, reveal: showAll, anim: anim });
     var cr = L.countAlive(s, RED), cb = L.countAlive(s, BLUE);
     $("score").innerHTML =
-      '<div class="pl' + (!over && s.turn === RED ? " turn" : "") + '"><div class="nm">' + tile(RED, 0, "hidden", 16) + 'You (Red)</div><div class="st">' + cr.total + " pieces left</div></div>" +
-      '<div class="pl' + (!over && s.turn === BLUE ? " turn" : "") + '"><div class="nm">' + tile(BLUE, 0, "hidden", 16) + 'Computer (Blue)</div><div class="st">' + cb.total + " pieces left</div></div>";
+      '<div class="pl red' + (!over && s.turn === RED ? " turn" : "") + '"><div class="nm">' + tile(RED, 0, "hidden", 16) + 'You (Red)</div><div class="st">' + cr.total + " pieces left</div></div>" +
+      '<div class="pl blue' + (!over && s.turn === BLUE ? " turn" : "") + '"><div class="nm">' + tile(BLUE, 0, "hidden", 16) + 'Computer (Blue)</div><div class="st">' + cb.total + " pieces left</div></div>";
     var st;
     if (over) {
       st = s.winner === RED ? "You win. " : s.winner === BLUE ? "Blue wins. " : "Draw. ";
@@ -324,8 +276,12 @@
     $("combatCard").hidden = !lc;
     if (lc) {
       var aO = lc.side, dO = 1 - lc.side;
-      $("combat").innerHTML = tile(aO, lc.ar, "face", 40) + '<span class="vs">attacks</span>' + tile(dO, lc.dr, "face", 40) +
-        "<p>" + describeMove(lc) + "</p>";
+      var aLost = lc.out === "lose" || lc.out === "tie", dLost = lc.out !== "lose";
+      $("combat").innerHTML = '<div class="duel">' +
+        '<div class="fighter' + (aLost ? " lost" : " won") + '">' + tile(aO, lc.ar, "face", 56) + "<b>" + (aO === RED ? "Your " : "Blue ") + L.NAMES[lc.ar] + "</b><small>" + (aLost ? "removed" : "attacker wins") + "</small></div>" +
+        '<div class="vsbadge" aria-label="versus"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="url(#sgVs)" stroke="#5A3F0A" stroke-width="1.2"/><circle cx="20" cy="20" r="14.5" fill="none" stroke="#FFF" stroke-opacity="0.45"/><text x="20" y="25" text-anchor="middle" font-size="13" font-family="Marcellus, Georgia, serif" fill="#2B1A08" letter-spacing="1">VS</text></svg></div>' +
+        '<div class="fighter' + (dLost ? " lost" : " won") + '">' + tile(dO, lc.dr, "face", 56) + "<b>" + (dO === RED ? "Your " : "Blue ") + L.NAMES[lc.dr] + "</b><small>" + (dLost ? "removed" : "defender holds") + "</small></div>" +
+        "</div><p>" + describeMove(lc) + "</p>";
     }
     var log = "", n = 0;
     for (var i = s.log.length - 1; i >= 0 && n < 40; i--, n++) log += '<li><span class="no">' + s.log[i].n + "</span><span>" + describeMove(s.log[i]) + "</span></li>";
@@ -387,6 +343,7 @@
   }
   function finish(announce) {
     var s = app.s;
+    app.sel = null;
     if (!app.tallied) { app.tallied = true; bumpTally(s.winner); save(); }
     renderGame();
     if (!announce) return;
@@ -462,6 +419,7 @@
   $("againBtn").onclick = startSetup;
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("modal").hidden) $("modal").hidden = true; });
 
+  try { $("hero").innerHTML = Art.hero(); } catch (e) {}
   fillRules();
   showMenu();
   // expose for tests and debugging
