@@ -7,8 +7,26 @@
 <meta name="theme-color" content="#F3EDE3" />
 <title>Play · Kevin Zoss</title>
 <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Play" />
+<meta name="application-name" content="Play" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Play by Kevin Zoss" />
+<meta property="og:title" content="Play" />
+<meta property="og:description" content="Cards, dice and strategy games for the table. Members only." />
+<meta property="og:url" content="https://play.kevinzoss.com/" />
+<meta property="og:image" content="https://play.kevinzoss.com/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Play" />
+<meta name="twitter:description" content="Cards, dice and strategy games for the table. Members only." />
+<meta name="twitter:image" content="https://play.kevinzoss.com/og.png" />
 <link rel="preload" href="/fonts/marcellus.woff2" as="font" type="font/woff2" crossorigin />
-<link rel="stylesheet" href="/home.css?v=1" />
+<link rel="stylesheet" href="/home.css?v=2" />
 </head>
 <body>
 <div class="page">
@@ -33,15 +51,29 @@
   const f = document.getElementById("f"), code = document.getElementById("code"),
         go = document.getElementById("go"), msg = document.getElementById("msg");
   const enter = () => location.replace("/play/");
-  fetch("/api/unlock").then(r => r.json()).then(j => { if (j.ok) enter(); }).catch(() => {});
+  const fromPath = /^\/join\/([^/?#]+)/.exec(location.pathname);
+  const join = new URLSearchParams(location.search).get("join") || (fromPath ? decodeURIComponent(fromPath[1]) : null);
+  const tryCode = async (value) => {
+    const r = await fetch("/api/unlock", { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: value }) });
+    return r.status;
+  };
+  fetch("/api/unlock").then(r => r.json()).then(async (j) => {
+    if (j.ok) return enter();
+    if (join) {
+      msg.textContent = "Opening the room for you...";
+      history.replaceState(null, "", "/");
+      try { if (await tryCode(join) === 200) return enter(); } catch {}
+      msg.textContent = "That invite link is out of date. Enter the passcode.";
+    }
+  }).catch(() => {});
   f.addEventListener("submit", async (e) => {
     e.preventDefault();
     go.disabled = true; msg.textContent = "";
     try {
-      const r = await fetch("/api/unlock", { method: "POST",
-        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code.value }) });
-      if (r.ok) return enter();
-      msg.textContent = r.status === 401 ? "That is not the passcode." : "Something is off. Try again.";
+      const status = await tryCode(code.value);
+      if (status === 200) return enter();
+      msg.textContent = status === 401 ? "That is not the passcode." : "Something is off. Try again.";
       code.select();
     } catch { msg.textContent = "No connection. Try again."; }
     go.disabled = false;

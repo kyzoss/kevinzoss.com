@@ -8,6 +8,10 @@
   },
   "rewrites": [
     {
+      "source": "/join/:code",
+      "destination": "/?join=:code"
+    },
+    {
       "source": "/play",
       "destination": "/api/g?p=index.html"
     },

@@ -33,13 +33,14 @@ function createServer() {
       req.url = "/api/g?" + new URLSearchParams(rewritten.query);
       return Promise.resolve(g(req, res)).catch((e) => { res.statusCode = 500; res.end(String(e)); });
     }
-    let rel = url.pathname === "/" ? "index.html" : url.pathname;
+    const target = rewritten && rewritten.pathname !== "/api/g" ? rewritten.pathname : url.pathname;
+    let rel = target === "/" ? "index.html" : target;
     if (!path.extname(rel)) rel += ".html"; // cleanUrls: /admin -> admin.html
     const file = path.join(__dirname, "public", rel);
     if (!file.startsWith(path.join(__dirname, "public")) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
       res.statusCode = 404; return res.end("Not found");
     }
-    const types = { ".html": "text/html", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".txt": "text/plain" };
+    const types = { ".html": "text/html", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".txt": "text/plain", ".png": "image/png", ".webmanifest": "application/manifest+json" };
     res.setHeader("Content-Type", types[path.extname(file)] || "application/octet-stream");
     fs.createReadStream(file).pipe(res);
   });

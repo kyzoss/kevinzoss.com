@@ -61,6 +61,16 @@ module.exports = async function handler(req, res) {
   }
   res.setHeader("Content-Type", TYPES[path.extname(file).toLowerCase()] || "application/octet-stream");
   res.statusCode = 200;
+  // The hub carries an invite link that opens the room without typing the passcode.
+  if (file === path.join(ROOT, "index.html")) {
+    const html = fs.readFileSync(file, "utf8").replace("{{INVITE_URL}}", inviteUrl());
+    return res.end(html);
+  }
   fs.createReadStream(file).pipe(res);
 };
 module.exports.ROOT = ROOT;
+function inviteUrl() {
+  const code = process.env.GAMES_PASSCODE || "";
+  return "https://play.kevinzoss.com/join/" + encodeURIComponent(code);
+}
+module.exports.inviteUrl = inviteUrl;
