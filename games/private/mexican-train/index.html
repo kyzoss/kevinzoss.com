@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<base href="/play/mexican-train/" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#F3EDE3" />
+<title>Mexican Train</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<main id="app">
+
+  <section id="menu" class="screen">
+    <a class="back" href="/play/">&larr; back to games</a>
+    <div id="hero" class="hero" aria-hidden="true"></div>
+    <h1>Mexican Train</h1>
+    <p class="lede">Double-twelve dominoes for two to eight. Build your train from the hub, start the Mexican train, raid open trains and empty your hand before the others. Lowest total after all rounds wins.</p>
+
+    <button id="resumeBtn" class="btn primary wide" hidden></button>
+
+    <div class="card">
+      <h2>New game</h2>
+      <div class="optrow">
+        <div class="optlbl">Players</div>
+        <div id="optPlayers" class="seg" role="group" aria-label="Number of players"></div>
+      </div>
+      <div class="optrow">
+        <div class="optlbl">Opponents</div>
+        <div id="optMode" class="seg" role="group" aria-label="Opponents">
+          <button type="button" data-v="ai" class="on">Computer</button>
+          <button type="button" data-v="pass">Pass and play</button>
+        </div>
+      </div>
+      <div class="optrow">
+        <div class="optlbl">Rounds</div>
+        <div id="optRounds" class="seg" role="group" aria-label="Rounds">
+          <button type="button" data-v="13" class="on">13 (full)</button>
+          <button type="button" data-v="7">7</button>
+          <button type="button" data-v="4">4</button>
+        </div>
+      </div>
+      <div class="optrow">
+        <div class="optlbl">Double blank</div>
+        <div id="optBlank" class="seg" role="group" aria-label="Double blank value">
+          <button type="button" data-v="50" class="on">50 points</button>
+          <button type="button" data-v="0">0 points</button>
+        </div>
+      </div>
+      <div id="nameBox" class="names" hidden></div>
+      <p class="hint" id="optHint"></p>
+      <button id="startBtn" class="btn primary wide">Deal the first round</button>
+    </div>
+
+    <div class="card">
+      <button id="rulesBtn" class="btn wide" type="button">How to play</button>
+    </div>
+  </section>
+
+  <section id="game" class="screen gamescreen" hidden>
+    <div class="top">
+      <a class="back" href="/play/">&larr; games</a>
+      <h1 class="small">Mexican Train</h1>
+      <div class="tools">
+        <button id="rulesBtn2" class="iconbtn" type="button" aria-label="Rules">?</button>
+        <button id="menuBtn" class="iconbtn" type="button" aria-label="Menu">&#9776;</button>
+      </div>
+    </div>
+    <div id="strip" class="strip" role="list" aria-label="Players"></div>
+    <div id="banner" class="banner" hidden></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="tablewrap" class="tablewrap">
+      <svg id="table" class="table" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Table"></svg>
+      <div class="zoomtools">
+        <button id="zoomIn" class="zbtn" type="button" aria-label="Zoom in">+</button>
+        <button id="zoomOut" class="zbtn" type="button" aria-label="Zoom out">&minus;</button>
+        <button id="fitBtn" class="zbtn fit" type="button" aria-label="Fit table">Fit</button>
+      </div>
+      <div id="roundTag" class="roundtag"></div>
+    </div>
+    <div class="handbar">
+      <div class="handtools">
+        <button id="drawBtn" class="btn small" type="button">Draw</button>
+        <button id="passBtn" class="btn small" type="button">Pass</button>
+        <span id="boneCount" class="bone"></span>
+        <button id="sortBtn" class="btn small ghost" type="button">Sort: number</button>
+      </div>
+      <div id="hand" class="hand" role="group" aria-label="Your hand"></div>
+    </div>
+  </section>
+
+</main>
+
+<div id="handoff" class="overlay" hidden>
+  <div class="sheet center" role="dialog" aria-modal="true" aria-labelledby="handoffTitle">
+    <div class="handoffArt" aria-hidden="true"></div>
+    <h2 id="handoffTitle"></h2>
+    <p id="handoffText" class="hint"></p>
+    <button id="handoffBtn" class="btn primary wide" type="button"></button>
+  </div>
+</div>
+
+<div id="modal" class="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody" class="modalbody"></div>
+    <div id="modalBtns" class="modalbtns"></div>
+  </div>
+</div>
+
+<script src="logic.js"></script>
+<script src="art.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
