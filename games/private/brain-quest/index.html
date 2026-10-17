@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<base href="/play/brain-quest/" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#F3EDE3" />
+<title>Brain Quest</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<main id="app">
+
+  <section id="menu" class="screen">
+    <a class="back" href="/play/">&larr; back to games</a>
+    <div class="hero card" aria-hidden="true">
+      <div id="heroOwl" class="heroowl"></div>
+      <div class="herotxt">
+        <h1>Brain Quest</h1>
+        <p class="lede">Flip the cards, pick an answer, collect stars. Hundreds of questions for curious kids.</p>
+      </div>
+    </div>
+
+    <button id="resume" class="btn primary wide" hidden></button>
+
+    <div class="card">
+      <h2>Who is playing?</h2>
+      <div class="seg" role="group" aria-label="Age level">
+        <button class="segbtn on" data-level="5" aria-pressed="true"><b>Age 5</b><span>Preschool and kindergarten</span></button>
+        <button class="segbtn" data-level="8" aria-pressed="false"><b>Age 8</b><span>2nd and 3rd grade</span></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Pick a game</h2>
+      <div class="modes">
+        <button class="mode" data-mode="quiz">
+          <span class="micon">🃏</span>
+          <span class="mtxt"><b>Quiz run</b><small>A deck of questions, score and stars at the end</small></span>
+        </button>
+        <div class="countrow" role="group" aria-label="How many questions">
+          <span>Questions</span>
+          <button class="chip on" data-count="10" aria-pressed="true">10</button>
+          <button class="chip" data-count="20" aria-pressed="false">20</button>
+        </div>
+        <button class="mode" data-mode="two">
+          <span class="micon">🤝</span>
+          <span class="mtxt"><b>Two players</b><small>Pass the phone and take turns</small></span>
+        </button>
+        <button class="mode" data-mode="practice">
+          <span class="micon">🎯</span>
+          <span class="mtxt"><b>Practice a category</b><small>Endless questions on one topic</small></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="card" id="recordCard">
+      <h2>Your stars</h2>
+      <div id="record" class="record"></div>
+    </div>
+
+    <details class="card rules">
+      <summary>How to play</summary>
+      <div class="body">
+        <p>Choose an age level, then a game. Each question shows a card with big answer buttons. Tap one: green means right, orange means try again next time (the right answer lights up too). Tap <b>Next</b> to flip the next card.</p>
+        <h3>Quiz run</h3>
+        <p>10 or 20 questions. The game remembers which cards you have seen so they do not come back until you have played them all. Score 60 percent for two stars and 90 percent for three.</p>
+        <h3>Two players</h3>
+        <p>Pick names and animal friends, then take turns answering. The player with more right answers wins.</p>
+        <h3>Practice</h3>
+        <p>Pick one topic and keep going as long as you like. Stop whenever you want to see your score.</p>
+        <p class="hint">Tap the speaker to have the question read out loud, if your device can speak.</p>
+      </div>
+    </details>
+    <p id="seedNote" class="hint seednote"></p>
+  </section>
+
+  <section id="setupTwo" class="screen" hidden>
+    <div class="top">
+      <button class="linkbtn" data-go="menu">&larr; Back</button>
+      <h1 class="small">Two players</h1>
+      <span class="spacer"></span>
+    </div>
+    <div class="card">
+      <h2>Player 1</h2>
+      <label class="field"><span>Name</span><input id="name1" maxlength="16" placeholder="Player 1" autocomplete="off" /></label>
+      <div id="av1" class="avatars" role="group" aria-label="Player 1 animal"></div>
+    </div>
+    <div class="card">
+      <h2>Player 2</h2>
+      <label class="field"><span>Name</span><input id="name2" maxlength="16" placeholder="Player 2" autocomplete="off" /></label>
+      <div id="av2" class="avatars" role="group" aria-label="Player 2 animal"></div>
+    </div>
+    <div class="card">
+      <h2>Deck</h2>
+      <div class="countrow" role="group" aria-label="How many questions">
+        <span>Questions</span>
+        <button class="chip on" data-count2="10" aria-pressed="true">10</button>
+        <button class="chip" data-count2="20" aria-pressed="false">20</button>
+      </div>
+      <p class="hint">Players take turns, one question each. Level: <b id="twoLevel"></b></p>
+    </div>
+    <button id="startTwo" class="btn primary wide">Start</button>
+  </section>
+
+  <section id="setupCat" class="screen" hidden>
+    <div class="top">
+      <button class="linkbtn" data-go="menu">&larr; Back</button>
+      <h1 class="small">Practice</h1>
+      <span class="spacer"></span>
+    </div>
+    <div class="card">
+      <h2>Pick a topic <span id="catLevel" class="tag"></span></h2>
+      <div id="catGrid" class="catgrid"></div>
+    </div>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="top">
+      <button id="quitBtn" class="linkbtn">&larr; Menu</button>
+      <h1 class="small">Brain Quest</h1>
+      <button id="stopBtn" class="linkbtn" hidden>Finish</button>
+      <span id="topSpacer" class="spacer"></span>
+    </div>
+    <div id="players" class="players" hidden></div>
+    <div id="progress" class="progress" aria-hidden="true"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+
+    <div class="stage">
+      <div id="mascot" class="mascot" aria-hidden="true"></div>
+      <div id="qcard" class="qcard">
+        <div class="qmeta"><span id="qcat" class="tag"></span><button id="speakBtn" class="speak" aria-label="Read the question aloud" hidden>🔊</button></div>
+        <p id="qtext" class="qtext"></p>
+      </div>
+    </div>
+
+    <div id="answers" class="answers" role="group" aria-label="Answers"></div>
+
+    <div id="feedback" class="feedback" hidden>
+      <p id="fbText" class="fbtext"></p>
+      <p id="fbFun" class="fbfun" hidden></p>
+      <button id="nextBtn" class="btn primary wide">Next</button>
+    </div>
+  </section>
+
+  <section id="results" class="screen" hidden>
+    <div class="top">
+      <button class="linkbtn" data-go="menu">&larr; Menu</button>
+      <h1 class="small">Results</h1>
+      <span class="spacer"></span>
+    </div>
+    <div id="confetti" class="confetti" aria-hidden="true"></div>
+    <div class="card resultcard">
+      <div id="resOwl" class="resowl" aria-hidden="true"></div>
+      <div id="stars" class="stars" role="img"></div>
+      <h2 id="resTitle"></h2>
+      <div id="resBody" class="resbody"></div>
+      <div class="resbtns">
+        <button id="againBtn" class="btn primary">Play again</button>
+        <button class="btn" data-go="menu">Menu</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div id="modalBtns" class="modal-btns"></div>
+  </div>
+</div>
+
+<script src="questions.js"></script>
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

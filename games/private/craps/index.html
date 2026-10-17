@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<base href="/play/craps/" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#F3EDE3" />
+<title>Craps</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<main id="app">
+
+  <section id="menu" class="screen">
+    <a class="back" href="/play/">&larr; back to games</a>
+    <div id="hero" class="herowrap" aria-hidden="true"></div>
+    <h1>Craps</h1>
+    <p class="lede">The full casino table: pass and don't pass, free odds, come bets that travel, place, buy and lay, the field, hardways and the horn. You against the house with play chips only.</p>
+
+    <button id="resume" class="btn primary" hidden></button>
+
+    <div class="card">
+      <h2>New session</h2>
+      <p class="hint">Pick a starting bankroll of play chips. Table minimum is 5, odds up to 3-4-5x. Starting a new session replaces any saved one.</p>
+      <div id="bankSeg" class="seg" role="group" aria-label="Starting bankroll">
+        <button type="button" data-bank="500">500</button>
+        <button type="button" data-bank="1000" class="on">1,000</button>
+        <button type="button" data-bank="5000">5,000</button>
+      </div>
+      <button id="startBtn" class="btn primary">Step up to the table</button>
+    </div>
+
+    <div class="card" id="recordCard" hidden>
+      <h2>Last session</h2>
+      <div id="record" class="tally"></div>
+    </div>
+
+    <div class="rules-slot"></div>
+    <p id="menuSeed" class="hint seednote"></p>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="top">
+      <a class="back" href="/play/">&larr; games</a>
+      <h1 class="small">Craps</h1>
+      <button id="menuBtn" class="linkbtn" type="button">Menu</button>
+    </div>
+    <div class="layout">
+      <div class="play">
+        <div class="money" aria-live="polite">
+          <div class="m"><span>Bankroll</span><b id="bankroll">0</b></div>
+          <div class="m"><span>On the table</span><b id="onTable">0</b></div>
+          <div class="m"><span>Point</span><b id="pointLbl">OFF</b></div>
+        </div>
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+        <div id="tablewrap" class="tablewrap">
+          <svg id="table" class="table" role="group" aria-label="Craps table" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div id="hint" class="hintline" role="status" aria-live="polite"></div>
+        <div class="tray" role="group" aria-label="Chip tray">
+          <div id="chips" class="chips"></div>
+          <p id="trayhint" class="trayhint">Tap a chip, then a betting area. Tap a stack to add to it, or to add odds behind a line or come bet.</p>
+        </div>
+        <div class="actions">
+          <button id="rollBtn" class="btn primary roll" type="button">Roll</button>
+          <div class="subactions">
+            <button id="repeatBtn" class="btn" type="button" hidden>Repeat bets</button>
+            <button id="clearBtn" class="btn" type="button">Clear bets</button>
+            <button id="workingBtn" class="btn" type="button" aria-pressed="false">Place bets: off on come-out</button>
+          </div>
+        </div>
+        <div id="outcomes" class="card outcomes" hidden></div>
+      </div>
+      <div class="side">
+        <div class="card">
+          <h2>Session</h2>
+          <div id="stats" class="tally"></div>
+          <ol id="history" class="history" aria-label="Recent rolls"></ol>
+        </div>
+        <div class="rules-slot"></div>
+        <button id="resetBtn" class="linkbtn" type="button">Reset bankroll</button>
+        <p id="seedNote" class="hint seednote"></p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div id="modalBtns" class="modal-btns"></div>
+  </div>
+</div>
+
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
