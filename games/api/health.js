@@ -5,6 +5,9 @@ const path = require("node:path");
 const { ROOT } = require("./g");
 
 module.exports = function handler(req, res) {
+  // Shows up in the Vercel runtime logs, so the patch level of the Node runtime can be
+  // checked after a security release without exposing it in the response.
+  console.log(`health: node ${process.version}`);
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   const games = {};

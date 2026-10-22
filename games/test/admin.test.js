@@ -5,6 +5,7 @@ process.env.GAMES_PASSCODE = "open sesame";
 process.env.ADMIN_PASSCODE = "boss key";
 process.env.SUPABASE_URL = "https://fake.supabase.test";
 process.env.SUPABASE_ANON_KEY = "anon-key";
+process.env.KZ_DB_TOKEN = "server-token";
 
 // Stub only the Supabase host; everything else (the local dev server) is real.
 const realFetch = global.fetch;
@@ -60,6 +61,7 @@ test("unlock success is tracked with a visitor id and sets the visitor cookie", 
   assert.equal(e.p_country, "US");
   assert.equal(e.p_visitor, v.match(/kz_v=([0-9a-f]{16})/)[1]);
   assert.equal(calls[0].headers.apikey, "anon-key");
+  assert.equal(calls[0].args.p_token, "server-token");
 });
 
 test("a returning visitor keeps the same id", async () => {
@@ -115,6 +117,14 @@ test("tracking does nothing when Supabase is not configured", async () => {
   assert.equal(r.status, 200);
   assert.equal(calls.length, 0);
   process.env.SUPABASE_URL = keep;
+});
+
+test("tracking does nothing without the server token", async () => {
+  const keep = process.env.KZ_DB_TOKEN; delete process.env.KZ_DB_TOKEN;
+  const cookie = await unlock();
+  await realFetch(base + "/play/ballast/", { headers: { cookie } });
+  assert.equal(calls.length, 0);
+  process.env.KZ_DB_TOKEN = keep;
 });
 
 test("admin data needs the admin cookie; the games cookie is not enough", async () => {
