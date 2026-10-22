@@ -24,7 +24,11 @@ the files both sit behind a function.
 2. Root Directory `games`. Framework preset Other. Leave build and output empty
    (`vercel.json` sets the output directory).
 3. Environment variables: `GAMES_PASSCODE` (required), `GAMES_SECRET` (optional
-   extra salt for the cookie).
+   extra salt for the cookie). For the admin page and usage tracking:
+   `ADMIN_PASSCODE`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `KZ_DB_TOKEN`. The
+   Supabase functions check `KZ_DB_TOKEN` against a SHA-256 stored in
+   `private.kz_config`, so the anon key on its own cannot call them. To rotate it,
+   set a new value in Vercel and update the hash in that table, then redeploy.
 4. Domain: pick one. Note that `games.kevinzoss.com` is already the Mesa family
    games hub (see `pictionary/`). Cloudflare CNAME to `cname.vercel-dns.com`,
    DNS only.
