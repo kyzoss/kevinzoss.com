@@ -420,18 +420,28 @@ export function lmsWeekly(state, cfg) {
 /**
  * Last Man Standing, loser-pick flavour: every week each live player names a team
  * to LOSE. If that team wins (or ties, or you forgot to pick) you're out for the
- * round. Rounds are fixed blocks of `lmsRoundWeeks` (4) weeks; the pot grows every
- * week and whoever is still standing at the end of the block splits it. If the
- * whole field busts before the block ends, the last ones standing take what has
- * accrued and everyone re-enters for the rest of the block.
+ * round. The pot grows every week.
+ *
+ * A round runs for up to `lmsRoundWeeks` (4) weeks and ends the moment its pot
+ * pays: the last man standing takes it outright, survivors split it if the four
+ * weeks run out, or the players who picked split it if every live pick busts at
+ * once. The next round starts the following week, everybody back in and every
+ * team available again.
+ *
+ * That is the rule from week `lmsFloatFrom` (5) on. Before it, rounds were fixed
+ * four-week blocks that played on with a single survivor, and those weeks are
+ * left exactly as they settled -- changing the rule mid-season must not reach
+ * back and move money that was already paid.
  */
 export function lastManStanding(state, cfg) {
   const all = state.players.map((p) => p.id);
   const potPerWeek = lmsWeekly(state, cfg);
   const roundLen = Number(cfg.lmsRoundWeeks) || 4;
+  const floatFrom = Number(cfg.lmsFloatFrom) || 1;
   let alive = [...all];
   let pot = 0;
-  let prevRound = 1;
+  let cur = null;          // the round in progress: { round, start, end }
+  let endedPrev = false;   // did last week pay the pot out?
   // Teams each player has already spent this block. One team per player per
   // block: burn the obvious dog in week 1 and you can't come back to it.
   let used = Object.fromEntries(all.map((id) => [id, []]));
@@ -443,17 +453,30 @@ export function lastManStanding(state, cfg) {
   for (let w = 1; w <= cfg.weeks; w++) {
     const wk = state.weeks?.[w] || {};
     const games = wk.games || [];
-    const round = Math.floor((w - 1) / roundLen) + 1;
-    const roundStart = (round - 1) * roundLen + 1;
-    const roundEnd = Math.min(round * roundLen, cfg.weeks);
-    // Crossing into a new block resets the field and everyone's used teams,
-    // even if the previous block's last week was never settled.
-    if (round !== prevRound) {
-      alive = [...all]; prevRound = round;
+    // Which round this week belongs to. Fixed blocks before `floatFrom`; after
+    // it, a round starts the week after the last one paid out, or when its four
+    // weeks are up.
+    const floating = w >= floatFrom;
+    let fresh;
+    if (!floating) {
+      const n = Math.floor((w - 1) / roundLen) + 1;
+      fresh = !cur || cur.round !== n;
+      if (fresh) cur = { round: n, start: (n - 1) * roundLen + 1, end: Math.min(n * roundLen, cfg.weeks) };
+    } else {
+      fresh = !cur || w > cur.end || endedPrev;
+      if (fresh) cur = { round: (cur?.round || 0) + 1, start: w, end: Math.min(w + roundLen - 1, cfg.weeks) };
+    }
+    endedPrev = false;
+    const { round, start: roundStart } = cur;
+    let roundEnd = cur.end;
+    // A new round resets the field and everyone's used teams, even if the last
+    // one's final week was never settled.
+    if (fresh) {
+      alive = [...all];
       used = Object.fromEntries(all.map((id) => [id, []]));
       forfeited = new Set();
       // The pot deliberately is not cleared here: an unpaid rollover carries
-      // into the next block rather than evaporating.
+      // into the next round rather than evaporating.
     }
 
     const inPlay = games.length > 0;
@@ -493,9 +516,15 @@ export function lastManStanding(state, cfg) {
       }
       row.eliminated = alive.filter((id) => row.results[id] !== "safe");
       if (survivors.length > 0) {
-        if (w === roundEnd) {
+        // One man left is the whole point of the game: he wins it there and
+        // then. He used to play on alone until the block ran out -- Andrew was
+        // the only one standing after week 6 and had to keep picking for two
+        // more weeks to collect, with nothing at stake for anybody else.
+        const lastMan = floating && survivors.length === 1;
+        if (w === roundEnd || lastMan) {
           splitAmong(row.payouts, survivors, pot);
           row.ended = true;
+          row.lastMan = lastMan;
         } else {
           alive = survivors;
         }
@@ -520,14 +549,24 @@ export function lastManStanding(state, cfg) {
       // it knocks nobody out, so it must not quietly mark anyone either.
       if (!row.rolled) for (const id of alive) if (row.results[id] === "nopick") forfeited.add(id);
       if (row.ended) {
-        // A block that ran its course starts a fresh one, everybody in. A block
-        // settled early because every live pick busted puts the field back for
-        // the rest of the weeks -- but not the forfeiters. They were not in the
-        // contest that just wiped out, and "everyone else's team won" must not
-        // be the way back for the man who entered nothing: that would make
-        // forgetting to pick a bet rather than a forfeit.
-        alive = w === roundEnd ? [...all] : all.filter((id) => !forfeited.has(id));
         pot = 0;
+        if (floating) {
+          // The round is over the week it pays, however that happened, and the
+          // next one starts next week. Its rows say where it actually ended,
+          // not where four weeks would have taken it.
+          endedPrev = true;
+          cur.end = roundEnd = w;
+          row.roundEnd = w;
+          for (const r of Object.values(rows)) if (r.round === round) r.roundEnd = w;
+        } else {
+          // Fixed blocks (before floatFrom): a block that ran its course starts
+          // a fresh one, everybody in. One settled early because every live pick
+          // busted puts the field back for the rest of the block -- but not the
+          // forfeiters. They were not in the contest that just wiped out, and
+          // "everyone else's team won" must not be the way back for the man who
+          // entered nothing.
+          alive = w === roundEnd ? [...all] : all.filter((id) => !forfeited.has(id));
+        }
       }
       // a rollover leaves alive and used untouched by design
     }
@@ -541,9 +580,12 @@ export function lastManStanding(state, cfg) {
  * cannot pick again until the block turns over.
  */
 export function lmsUsed(state, cfg, week, pid) {
+  // Where this week's round began. That is not arithmetic any more -- a round
+  // ends early whenever its pot pays -- so it comes from the resolver itself,
+  // which is the only thing that knows when the last one finished.
   const roundLen = Number(cfg.lmsRoundWeeks) || 4;
-  const round = Math.floor((week - 1) / roundLen) + 1;
-  const start = (round - 1) * roundLen + 1;
+  const start = lastManStanding(state, cfg).rows[week]?.roundStart
+    ?? Math.floor((week - 1) / roundLen) * roundLen + 1;
   const out = [];
   for (let w = start; w < week; w++) {
     const team = state.weeks?.[w]?.lms?.[pid];

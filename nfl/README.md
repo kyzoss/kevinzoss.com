@@ -175,18 +175,20 @@ API keys.
   used. Picking a spent team is void, same as no pick. $1 from everyone every
   week, **including the weeks you're already out** — that dead money is what the survivors are playing for.
   Name a team to lose; wins, ties and no-picks knock you out for the round.
-  Rounds are fixed four-week blocks and survivors split at the end. If every
-  live pick busts in the same week, the players who actually picked split the
-  pot and **they** re-enter for the rest of the block. **A forfeit neither
-  shares nor comes back**: enter nothing and you are out for the block whatever
-  everybody else's teams did. The re-entry used to be the whole field, which
-  meant a week where every other pick came in was the way back for the one man
-  who had not turned up, and forgetting to pick became a bet rather than a
-  forfeit. A bad pick is not a forfeit -- naming a team on a bye, or one already
-  used, is still turning up, and those come back with everyone else. If nobody
-  made a live pick at all, nothing is settled: the pot rolls into the next week,
-  nobody goes out and nobody is marked a forfeit, carrying across a block
-  boundary if it has to.
+  **The last one standing takes the pot the week it happens**, and a new round
+  starts the following week: everybody back in, every team available again. A
+  round runs at most four weeks; if more than one is still standing at the end
+  of the fourth, they split it. If every live pick busts in the same week, the
+  players who actually picked split it and the round ends -- **a forfeit never
+  shares**, so entering nothing gets you nothing. If nobody made a live pick at
+  all, nothing is settled: the pot rolls into the next week and nobody goes
+  out, and it keeps rolling into the next round if it has to.
+
+  That is the rule from week 5 (`lmsFloatFrom` in config.js). Weeks 1-4 were
+  played as a fixed four-week block, where a lone survivor played on until the
+  block ran out and a whole-field bust put everybody but the forfeiters back in
+  for the rest of the block. Those weeks stay settled the way they were played
+  and paid: changing the rule mid-season must not reach back and move money.
 - **Browns record.** $10. One guess each, in before the Browns first take the
   field -- not before the season kicks off, which shut the door on a Wednesday
   night for a team that plays on Sunday. The moment they kick off every guess is

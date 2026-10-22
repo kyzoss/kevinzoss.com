@@ -108,12 +108,24 @@ if echo "$out" | grep -q "summary pulled on open : yes" \
   line "box score read after the game" "PASS"
 else line "box score read after the game" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
+out=$(timeout 115 node $SP/lmsround.mjs 2>&1)
+if echo "$out" | grep -q "week 6 chased       : yes" \
+  && echo "$out" | grep -q "week 6 now          : ARI@SEA post | NO@TB post | LAC@KC post" \
+  && echo "$out" | grep -q "block               : ROUND 1 · WEEKS 1–4 · ANDREW & KEVIN \$8 EACH" \
+  && echo "$out" | grep -q "block               : ROUND 2 · WEEKS 5–6 · ANDREW \$8" \
+  && echo "$out" | grep -q "block               : ROUND 3 · WEEKS 7–10 · 4 STILL STANDING · \$4 IN THE POT" \
+  && echo "$out" | grep -q "week 7 header       : Round 3 · weeks 7–10 · pot \$4" \
+  && echo "$out" | grep -q "Kevin can pick wk 7 : yes" \
+  && echo "$out" | grep -q "money, LMS row      : Last man standing .* | \$16 2× | \$8 1× | · | · | \$24" \
+  && echo "$out" | grep -q "page errors: none"; then
+  line "last man standing wins, new round" "PASS"
+else line "last man standing wins, new round" "FAIL — $(echo "$out" | tail -6 | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/stuckmoney.mjs 2>&1)
-if echo "$out" | grep -q "headline : 2 weeks have not settled." \
-  && echo "$out" | grep -q "row   : Week 1 ARI@LAC has no final score Finish week 1" \
-  && echo "$out" | grep -q "weekly   : 1 open  |  4 open  |  5 open" \
-  && echo "$out" | grep -q "chased   : 1$" \
+if echo "$out" | grep -q "headline : A week has not settled." \
+  && echo "$out" | grep -q "row   : Week 4 SF@LAR, XXX@YYY have no final score Finish week 4" \
   && echo "$out" | grep -q "weekly   : 1 · · · \$4  |  4 open  |  5 open" \
+  && echo "$out" | grep -q "chased on open: 1,4" \
   && echo "$out" | grep -q "still stuck: Week 4 SF@LAR, XXX@YYY have no final score" \
   && echo "$out" | grep -q "source   : Brown of the week" \
   && echo "$out" | grep -q "total    : Won | \$0 | \$0 | \$0 | \$4 | \$4" \

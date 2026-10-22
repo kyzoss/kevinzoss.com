@@ -66,14 +66,10 @@ const weeklyTbl = () => p.locator('.sheet--weekly tbody tr');
 const weekly = await weeklyTbl().evaluateAll(els => els.map(e => e.innerText.replace(/\s+/g,' ').trim()));
 console.log('weekly   :', weekly.join('  |  '));
 
-// Finish week 1 from the Money tab and watch it settle.
-pulls = [];
-await p.locator('[data-action="chase"][data-week="1"]').click();
-await p.waitForTimeout(2200);
-console.log('\nchased   :', pulls.join(',') || 'nothing');
-await p.locator('[data-tab="money"]:visible').first().click(); await p.waitForTimeout(600);
-const after = await weeklyTbl().evaluateAll(els => els.map(e => e.innerText.replace(/\s+/g,' ').trim()));
-console.log('weekly   :', after.join('  |  '));
+// Week 1 finished itself: opening the app chases every week that is over but
+// unsettled, not just the one on screen, so nobody had to tap anything and
+// Howard already has his $4. Week 4 is left because ESPN has nothing for it.
+console.log('\nchased on open:', [...new Set(pulls)].sort((x, y) => x - y).join(',') || 'nothing');
 console.log('still stuck:', (await p.locator('.stuck__row').allInnerTexts()).map(t=>t.split('\n')[0]).join(', ') || 'none');
 
 // The tab has to show where every dollar came from, not just the weekly pot.
