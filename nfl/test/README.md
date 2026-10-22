@@ -60,6 +60,11 @@ pool. It exits non-zero on any failure, so it can gate a push.
                     own -- and a poll that changed nothing saves nothing, since
                     every open phone polls once a minute. No winner is declared
                     mid-game, where the lead means nothing
+    lmsround        Kevin's board in week 7: Andrew the only one left after
+                    week 6, but Monday night's game still "in progress" on the
+                    board. Opening the app has to chase week 6 without anyone
+                    going to it, pay Andrew as last man standing, and start
+                    round 3 in week 7 with everybody back in
     stuckmoney      weeks 1 and 4 over but not final, so nothing in them had
                     paid. The Money tab names the week, names the game holding
                     it and offers to finish it; a week still being played is

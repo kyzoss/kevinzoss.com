@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=73767eac";
-import * as SC from "./scoring.js?v=73767eac";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=73767eac";
-import { fetchWeek } from "./espn.js?v=73767eac";
+import * as S from "./store.js?v=08cd582b";
+import * as SC from "./scoring.js?v=08cd582b";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=08cd582b";
+import { fetchWeek } from "./espn.js?v=08cd582b";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=73767eac";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=73767eac";
+import { fetchSpreads } from "./odds.js?v=08cd582b";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=08cd582b";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -154,6 +154,30 @@ function autoPull(week) {
   // blank for the whole week with nothing saying why. Try it on the way in;
   // refreshBrownStats decides for itself whether there is anything to fetch.
   refreshBrownStats(week).catch(() => {});
+}
+
+/**
+ * Chase every week that is over but has not finished -- not just the one on
+ * screen.
+ *
+ * This is why weeks 1, 4 and 6 all stuck. Monday night's game ends after
+ * everybody has gone to bed. By the next time anyone opens the app it is
+ * Tuesday, the screen shows the new week, and results only ever got chased for
+ * the week on screen -- so last week's final game sat at "in progress" for
+ * good, and nothing in that week paid: not the pot, not LMS, not a round
+ * ending. Throttled per week, and quiet: normally there is nothing to chase.
+ */
+async function chaseStuck() {
+  for (const { week } of stuckWeeks(S.getState())) {
+    if (Date.now() - (scorePulled.get(week) || 0) < SCORE_PULL_MS) continue;
+    // pullSlate refuses to run while another pull is in flight, so wait for the
+    // one on screen to finish rather than spend this week's turn on a no-op.
+    for (let i = 0; i < 40 && ui.busy; i++) await new Promise((r) => setTimeout(r, 250));
+    if (ui.busy) return;
+    scorePulled.set(week, Date.now());
+    await pullSlate(week, { lines: false, quiet: true });
+    refreshBrownStats(week).catch(() => {});
+  }
 }
 
 async function refreshScores(week, quiet = true) {
@@ -892,7 +916,7 @@ function renderStandings(state) {
   </tbody><tfoot><tr><td>Total</td>${state.players.map((p) => `<td>${fmtPts(rec[p.id].points)}</td>`).join("")}<td></td></tr></tfoot></table></div>`;
 
   return `<section class="section" style="margin-top:6px"><div class="section__head"><h2 class="section__title">Standings</h2><span class="section__sub">Ranked by money, then points.</span></div><div class="board">${rows}</div></section>
-  <section class="section"><div class="section__head"><h2 class="section__title">Last man standing</h2><span class="section__sub">${SC.money(cfg.lmsPerPlayer ?? 1)} each every week, in or out · survivors split every ${cfg.lmsRoundWeeks}</span></div>
+  <section class="section"><div class="section__head"><h2 class="section__title">Last man standing</h2><span class="section__sub">${SC.money(cfg.lmsPerPlayer ?? 1)} each every week, in or out · last one standing takes the pot, and a new round starts the next week · a round that reaches ${cfg.lmsRoundWeeks} weeks splits among whoever is left</span></div>
     ${renderLmsTracker(state, led)}</section>
   <section class="section"><div class="section__head"><h2 class="section__title">Week by week</h2><span class="section__sub">Points per week. Bold is the week's outright winner.</span></div>${sheet}</section>`;
 }
@@ -942,7 +966,7 @@ const SOURCES = [
   { key: "weeklyWon", label: "Weekly pot", wins: "weeklyWins",
     note: () => `${SC.money(cfg.weeklyPot)} a week, most wins` },
   { key: "lmsWon", label: "Last man standing", wins: "lmsWins",
-    note: (st) => `${SC.money(SC.lmsWeekly(st, cfg))} a week, ${cfg.lmsRoundWeeks}-week blocks` },
+    note: (st) => `${SC.money(SC.lmsWeekly(st, cfg))} a week, last one standing` },
   { key: "brownWon", label: "Brown of the week", wins: "brownWins",
     note: (st) => `${SC.money(SC.brownWeekly(st, cfg))} a week, best score` },
   { key: "betWon", label: esc(cfg.sideBet?.label || "Side bet"),
@@ -1031,7 +1055,10 @@ function renderLmsTracker(state, led) {
       if (after.length) {
         outcome += ` · ${standing(after[after.length - 1])} still standing for ${SC.money(last.pot)}`;
       }
-    } else if (weeks.every((r) => r.rolled || !r.complete)) {
+    } else if (weeks.some((r) => r.complete) && weeks.every((r) => r.rolled || !r.complete)) {
+      // Only once a week has actually been played out with nobody picking. A
+      // round that has just started has settled nothing either, but nothing has
+      // rolled -- and new rounds now start mid-season, every time a pot pays.
       outcome = `nothing settled · ${SC.money(last.pot)} rolls on`;
     } else {
       outcome = `${standing(last)} still standing · ${SC.money(last.pot)} in the pot`;
@@ -1283,7 +1310,7 @@ function renderSettings(state) {
     <p><b>Picks.</b> Every game, straight up: pick the team you think wins. A win is 1 point and nothing else scores — a tie counts as a loss. The spread is not part of it — it only sets which dogs go up for the dup draft. Everything locks at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, and any game that kicks off before then locks at its own kickoff instead.</p>
     <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game, and it has to win outright: +${cfg.dup.win} if it does, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft closes with the picks, at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, except that a dog whose own game has already kicked off can no longer be ranked.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it &mdash; score, not wins, since a dup that comes in is worth ${fmtPts(cfg.dup.win)}. <b>Any tie at the top pays nobody</b>: two of you level, or all four, and the whole pot rolls into next week and keeps stacking until somebody wins outright. The only exception is week ${cfg.weeks}, which has no next week to roll to, so a tie there splits.</p>
-    <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per block. Rounds are ${cfg.lmsRoundWeeks} weeks and whoever is still standing at the end splits the pot. If every live pick busts in the same week, the players who actually picked split it and <b>they</b> re-enter for the rest of the block. A forfeit neither shares nor comes back: enter nothing and you are out for the block, whatever everybody else&rsquo;s teams did. And if nobody picked at all, nothing is settled: the pot rolls into next week and marks no one. The week-by-week tracker is on the Standings tab.</p>
+    <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per round. <b>The last one standing takes the pot the week it happens</b>, and a new round starts the following week with everybody back in and every team available again. A round that reaches ${cfg.lmsRoundWeeks} weeks with more than one still standing ends there, and they split it. If every live pick busts in the same week, the players who actually picked split it and the round ends &mdash; a forfeit never shares, so entering nothing gets you nothing. And if nobody picked at all, nothing is settled: the pot rolls into next week and marks no one. (Weeks 1&ndash;${(cfg.lmsFloatFrom || 1) - 1} were played as fixed ${cfg.lmsRoundWeeks}-week blocks and stay settled that way.) The week-by-week tracker is on the Standings tab.</p>
     <p><b>Brown of the week.</b> ${SC.money(cfg.brownOfWeek?.perPlayer ?? 1)} from everyone, every week &mdash; ${SC.money(SC.brownWeekly(state, cfg))} a week with ${state.players.length} playing. Name one ${esc(teamName(cfg.sideBet.team))} player and score his game on the pool's table. You may draft a <b>${esc(listOf(draftPositions(), "or"))}</b> &mdash; <b>no quarterbacks</b>, since one man throws for the whole team, so he is not a choice between Browns. Best score takes the pot and a tie splits it, so nothing rolls over. Rounds are ${cfg.brownOfWeek?.roundWeeks ?? 4} weeks like LMS: a player you have used is spent until the round resets, and only a week that actually got scored spends him. It locks when the ${esc(teamName(cfg.sideBet.team))} kick off. Every Brown's line, including the ones nobody could pick, is on the ${esc(cfg.sideBet?.label?.split(" ")[0] || "Browns")} tab.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.perPlayer ?? 0)} from everyone, so ${SC.money(SC.sideBetPot(state, cfg))} on the table. One guess each at the ${esc(teamName(cfg.sideBet.team))}' final record, in before they first take the field. The moment they kick off every guess is final &mdash; there is no commissioner edit, because the fix and the cheat are the same edit. Closest wins, points scored breaks ties.</p>
   </div></section>`;
@@ -1473,7 +1500,12 @@ document.addEventListener("click", async (e) => {
   if (!el) return;
   const a = el.dataset.action;
   switch (a) {
-    case "tab": ui.tab = el.dataset.tab; window.scrollTo({ top: 0 }); render(); break;
+    case "tab": {
+      ui.tab = el.dataset.tab; window.scrollTo({ top: 0 }); render();
+      // The tabs where an unsettled week shows up as money not moving.
+      if (ui.tab === "standings" || ui.tab === "money") chaseStuck().catch(() => {});
+      break;
+    }
     case "week": ui.week = Number(el.dataset.week); render(); autoPull(ui.week); break;
     case "me": S.setMe(el.dataset.id); ui.pickingAs = null; closeModal(); render(); autoPull(ui.week); break;
     case "whoami": whoModal(); break;
@@ -1766,7 +1798,7 @@ async function checkBuild() {
 // ---- boot ---------------------------------------------------------------------
 S.subscribe(() => render());
 render();
-S.initSync().then(() => { if (me()) autoPull(ui.week); });
+S.initSync().then(() => { if (me()) { autoPull(ui.week); chaseStuck().catch(() => {}); } });
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) return;
   checkBuild();

@@ -545,6 +545,72 @@ console.log("- LMS: a forfeit is not revived by everyone else busting");
   eq("and he is in the field again", led.lms.rows[5].aliveEntering.length, 4);
 }
 
+console.log("- LMS: from week 5 a round ends the moment its pot pays");
+{
+  // Each pick gets its own game, so it grades on its own: `lose` = the named
+  // team lost (safe), `win` = it won (bust).
+  const gm = (team, lost, n) => ({ id: `${team}@Z${n}`, away: team, home: `Z${n}`, spread: -3, status: "post",
+    awayScore: lost ? 10 : 30, homeScore: lost ? 30 : 10, kickoff: "2026-10-11T17:00:00Z" });
+  const lose = (t, n) => gm(t, true, n), win = (t, n) => gm(t, false, n);
+  const wk = (st, n, games, lms) => { st.weeks[n] = { games, picks: {}, lms, dupPrefs: {} }; };
+  const round1 = (st) => {     // weeks 1-4 as the board has them: az and kz split $16
+    wk(st, 1, [lose("A1",1), lose("B1",1)], { az:"A1", kz:"A1", jv:"B1", hz:"B1" });
+    wk(st, 2, [lose("A2",2), win("B2",2)],  { az:"A2", kz:"A2", jv:"B2", hz:"B2" });
+    wk(st, 3, [lose("A3",3)], { az:"A3", kz:"A3" });
+    wk(st, 4, [lose("A4",4)], { az:"A4", kz:"A4" });
+  };
+
+  // Kevin's board, week 6: Andrew the only one whose team lost.
+  const st = blank(); round1(st);
+  wk(st, 5, [lose("ARI",5), lose("MIA",5)], { az:"ARI", kz:"MIA", jv:"ARI", hz:"MIA" });
+  wk(st, 6, [lose("LAC",6), win("ARI",6), win("NO",6)], { az:"LAC", kz:"ARI", jv:"NO", hz:"ARI" });
+  wk(st, 7, [{ ...lose("NYG",7), status: "pre", awayScore: null, homeScore: null }], { az:"NYG" });
+  const L = SC.lastManStanding(st, cfg);
+  eq("round 1 settles as it always did", L.rows[4].payouts, { az: 8, kz: 8 });
+  eq("the last man standing wins on the spot", L.rows[6].payouts, { az: 8 });
+  eq("and it is marked as an outright win", L.rows[6].lastMan, true);
+  eq("the round ended in week 6, not 8", [L.rows[5].roundEnd, L.rows[6].roundEnd], [6, 6]);
+  eq("a new round starts the next week", [L.rows[7].round, L.rows[7].roundStart, L.rows[7].roundEnd], [3, 7, 10]);
+  eq("with everybody back in", L.rows[7].aliveEntering.sort(), ["az","hz","jv","kz"]);
+  eq("and a fresh pot", L.rows[7].pot, 4);
+  eq("every team available again", SC.lmsUsed(st, cfg, 7, "az"), []);
+  eq("the money tab sees it", SC.ledger(st, cfg).totals.az.lmsWon, 16);
+
+  // Before week 5 nothing moved: a lone survivor in a fixed block played on.
+  const early = blank();
+  wk(early, 1, [lose("A1",1), win("B1",1)], { az:"A1", kz:"B1", jv:"B1", hz:"B1" });
+  const E = SC.lastManStanding(early, cfg);
+  eq("week 1's lone survivor is not paid early", E.rows[1].payouts, {});
+  eq("he plays on into week 2 of the block", E.rows[2].aliveEntering, ["az"]);
+
+  // Two survivors through four whole weeks still split it at the end.
+  const full = blank(); round1(full);
+  for (const n of [5, 6, 7, 8]) wk(full, n, [lose(`P${n}`, n), lose(`Q${n}`, n)], { az:`P${n}`, kz:`Q${n}`, jv:`P${n}`, hz:`Q${n}` });
+  wk(full, 9, [lose("R9", 9)], {});
+  const F = SC.lastManStanding(full, cfg);
+  eq("four survivors after four weeks split it", F.rows[8].payouts, { az: 4, kz: 4, jv: 4, hz: 4 });
+  eq("and the next round starts in week 9", [F.rows[9].round, F.rows[9].roundStart], [3, 9]);
+
+  // Everyone busting at once pays the pickers and ends the round too -- the
+  // forfeiter gets nothing from it, and starts the new round level.
+  const wipe = blank(); round1(wipe);
+  wk(wipe, 5, [win("W5", 5)], { az:"W5", kz:"W5", hz:"W5" });     // jv enters nothing
+  wk(wipe, 6, [lose("V6", 6)], {});
+  const W = SC.lastManStanding(wipe, cfg);
+  eq("a wipeout pays only the men who picked", Object.keys(W.rows[5].payouts).sort(), ["az","hz","kz"]);
+  eq("and ends the round", [W.rows[6].round, W.rows[6].roundStart], [3, 6]);
+  eq("the forfeiter is back in the new one", W.rows[6].aliveEntering.includes("jv"), true);
+
+  // A week where nobody picked settles nothing: it does not end the round.
+  const quiet = blank(); round1(quiet);
+  wk(quiet, 5, [lose("Y5", 5)], {});
+  wk(quiet, 6, [lose("X6", 6)], { az:"X6", kz:"X6" });
+  const Q = SC.lastManStanding(quiet, cfg);
+  eq("an all-forfeit week rolls", Q.rows[5].rolled, true);
+  eq("and the round carries on", [Q.rows[6].round, Q.rows[6].roundStart], [2, 5]);
+  eq("with the rolled money still in it", Q.rows[6].pot, 8);
+}
+
 console.log("- LMS: an unresolved pick does not spend the team");
 {
   const st = blank();

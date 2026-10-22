@@ -59,7 +59,11 @@ window.POOL_CONFIG = {
   // knocked out stops you winning, it does not stop you paying -- that dead money
   // is what the survivors are playing for.
   lmsPerPlayer: 1,
-  lmsRoundWeeks: 4,  // rounds are fixed 4-week blocks; survivors split the pot at the end of each
+  lmsRoundWeeks: 4,  // a round runs up to 4 weeks; survivors split the pot if nobody is left alone sooner
+  // From this week on a round ends the moment its pot pays -- the last man
+  // standing takes it outright -- and the next round starts the following week.
+  // Earlier weeks keep the fixed 4-week blocks they were played and paid under.
+  lmsFloatFrom: 5,
   // Everyone puts in this much on the Browns' final record; one guess each.
   // One guess each. Losses are worked out as gamesInSeason - wins, so nobody can
   // enter a record that does not add up.
