@@ -83,7 +83,9 @@ S.flush();
 await new Promise((r) => setTimeout(r, 20));
 eq("newer remote was not clobbered", remote.updatedAt, future);
 eq("remote content intact", remote.state.weeks[1].picks.hz, { "CLE@CIN": "home" });
-eq("this device adopted the winner", S.getState().updatedAt, future);
+// It takes the winner, then re-sends its own entries stamped just after it:
+// a refused save is not a reason to drop what it was carrying.
+eq("this device adopted the winner and queued its own on top", S.getState().updatedAt, future + 1);
 eq("and shows their picks", S.getState().weeks[1].picks.hz, { "CLE@CIN": "home" });
 
 console.log(`\n${pass} passed, ${fail} failed\n`);

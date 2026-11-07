@@ -5,12 +5,35 @@
 const cfg = window.POOL_CONFIG;
 const KEY = `pickem:${cfg.season}`;
 const ME_KEY = `pickem:me`;
+// Set by every edit made on this device, cleared only once the board has
+// accepted a save. It outlives a reload on purpose. In week 9 every save was
+// being refused (the board had outgrown a spreadsheet cell), so each phone's
+// picks existed only on that phone -- and reopening the app took the board's
+// copy over the phone's, because an untouched device defers to the board. A
+// device holding edits the board has never seen is not untouched.
+const PENDING_KEY = `pickem:pending:${cfg.season}`;
 
 const listeners = new Set();
 let state = load();
 let syncStatus = { enabled: false, state: "local", detail: "" };
 let saveTimer = null;
 let applyingRemote = false;
+let edits = 0;          // bumped by every local edit, so a save knows if more came in while it was in flight
+let staleRetries = 0;   // re-sends after the board said our save was older than its copy
+// Why the last save failed, or "" once one gets through. Kept apart from the
+// sync status on purpose: a read succeeds every 15 seconds and resets that to
+// "live", which is how a board refusing every save still looked healthy.
+let saveError = "";
+/** Why this device's last save to the board failed, or "" if it went through. */
+export function lastSaveError() { return saveError; }
+
+function setPending(on) {
+  try { if (on) localStorage.setItem(PENDING_KEY, "1"); else localStorage.removeItem(PENDING_KEY); } catch {}
+}
+/** True while this device holds edits the shared board has not accepted. */
+export function hasPending() {
+  try { return localStorage.getItem(PENDING_KEY) === "1"; } catch { return false; }
+}
 
 export function defaultState() {
   return {
@@ -89,7 +112,7 @@ export function update(fn, { silent = false } = {}) {
   if (r === false) return;
   next.updatedAt = Date.now();
   state = next;
-  if (!applyingRemote) touched = true;
+  if (!applyingRemote) { touched = true; edits++; setPending(true); }
   persist();
   if (!silent) emit();
 }
@@ -214,7 +237,7 @@ let touched = false;
 // What sheet/Code.gs says in this checkout. If the deployment reports anything
 // else it is running older code, which last time meant the pool's picks were
 // one blank device away from being wiped.
-const EXPECTED_SCRIPT_VERSION = "empty-is-missing-1";
+const EXPECTED_SCRIPT_VERSION = "chunked-1";
 /** What this app expects the deployment to report. Exported so the banner can
  *  name it even before a read has landed. */
 export const EXPECTED_SCRIPT = EXPECTED_SCRIPT_VERSION;
@@ -244,7 +267,11 @@ async function connect(tries) {
         const incoming = migrate(remote.state);
         const theirs = Number(remote.updatedAt || incoming.updatedAt || 0);
         const mine = Number(state.updatedAt || 0);
-        if (theirs > mine || !mine) applyRemote(incoming);
+        // Edits the board has never seen -- from a save that failed, or one that
+        // never got sent -- are kept and sent again, whichever copy is newer.
+        const unsaved = mine && (hasPending() || orphaned(incoming, state));
+        if (unsaved) { adopt(incoming); reassert(theirs); }
+        else if (theirs > mine || !mine) applyRemote(incoming);
         // A newer local timestamp is not the same as a better local copy. Until
         // someone actually edits something here, the board wins outright --
         // including for our own player. Pushing first is how a stale device
@@ -326,6 +353,30 @@ function foreignDepth(doc) {
 }
 
 /**
+ * Does this device hold picks for its own player in a week where the board has
+ * none at all for them? Nothing but a save that never landed produces that, so
+ * those picks are this device's to send, not the board's to erase. Catches
+ * phones that were left with week 9 picks before the pending flag existed.
+ */
+function orphaned(board, local) {
+  const mine = actorId || getMe();
+  if (!mine) return false;
+  for (const [wk, w] of Object.entries(local.weeks || {})) {
+    const have = Object.keys(w.picks?.[mine] || {}).length;
+    const there = Object.keys(board.weeks?.[wk]?.picks?.[mine] || {}).length;
+    if (have && !there) return true;
+    if (w.lms?.[mine] && !board.weeks?.[wk]?.lms?.[mine]) return true;
+  }
+  return false;
+}
+
+/** Stamp the local copy newer than `after` and queue a save of it. */
+function reassert(after) {
+  state = { ...state, updatedAt: Math.max(Date.now(), Number(after || 0) + 1) };
+  persist();
+}
+
+/**
  * Take everyone else's entries from `incoming`, keep our own from local. The
  * mirror of the server rule: nobody speaks for another player's picks, and this
  * device is the authority on its own.
@@ -360,7 +411,13 @@ async function pull() {
     if (!remote?.state) return;
     const incoming = migrate(remote.state);
     const theirs = Number(remote.updatedAt || incoming.updatedAt || 0);
-    if (theirs > Number(state.updatedAt || 0)) applyRemote(incoming);
+    if (theirs > Number(state.updatedAt || 0)) {
+      // Someone else saved. If our own last edit has not reached the board, take
+      // their entries but keep ours and send them again; replacing everything
+      // here is exactly how picks that failed to save disappeared.
+      if (hasPending()) { adopt(incoming); reassert(theirs); }
+      else applyRemote(incoming);
+    }
     // Same blind spot as the first connect: equal timestamps are not the same
     // as equal content, and this poll is what runs every 15 seconds.
     else if (foreignDepth(incoming) > foreignDepth(state)) adopt(incoming);
@@ -390,10 +447,26 @@ async function pushRemote() {
     // Two phones can save at almost the same moment. The backend keeps whichever
     // is newer and hands the winner back; take it rather than carrying on with a
     // copy that has already been superseded.
+    const sentAt = edits;
     const reply = await backend.write(state);
-    if (reply?.stale && reply.state && Number(reply.updatedAt || 0) > Number(state.updatedAt || 0)) {
-      applyRemote(migrate(reply.state));
-    } else if (reply?.state) {
+    if (reply?.stale) {
+      // Not saved: the board holds a newer copy. Take everyone else's entries
+      // from it, keep ours, and send again stamped after it -- a few times at
+      // most. This used to take the board's copy outright, which dropped the
+      // very picks the save was carrying. (If it is not newer than what we hold
+      // now, a later edit already superseded this save and is on its way.)
+      if (reply.state && Number(reply.updatedAt || 0) > Number(state.updatedAt || 0)) {
+        adopt(migrate(reply.state));
+        if (staleRetries++ < 3) reassert(reply.updatedAt);
+      }
+      return;
+    }
+    staleRetries = 0;
+    if (saveError) { saveError = ""; emit(); }
+    // Saved. Only now is nothing pending -- unless another edit came in while
+    // this one was in flight, which its own save will carry.
+    if (edits === sentAt) setPending(false);
+    if (reply?.state) {
       // The board merged our save into something fuller. Take it, or this
       // device sits on its own partial copy: the timestamps now match, so no
       // later read would ever adopt it.
@@ -402,6 +475,7 @@ async function pushRemote() {
     if (syncStatus.state === "error") { syncStatus = { ...syncStatus, state: "live", detail: "" }; emit(); }
   } catch (e) {
     console.error("push failed", e);
+    saveError = e.message || String(e);
     syncStatus = { ...syncStatus, state: "error", detail: e.message || String(e) };
     emit();
   }

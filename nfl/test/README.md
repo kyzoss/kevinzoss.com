@@ -20,6 +20,12 @@ pool. It exits non-zero on any failure, so it can gate a push.
     owned           the Apps Script merge: a save may only replace the saver's
                     own entries, never narrow anyone else's -- picks, LMS, dup
                     rankings and brown-of-week picks alike
+    bigboard        the week 9 outage: Code.gs against a fake Sheet that
+                    enforces the 50,000-character cell limit. A full season
+                    saves, reads back byte for byte, and recovers from the log
+    unsaved         the same outage from a phone: picks the board refused stay
+                    on the phone through polls, reopening the app and a stale
+                    refusal, and go up as soon as the board takes saves again
     browns-feed     the ESPN box-score mapping. NOTE: the payload it tests is
                     hand-built to ESPN's documented shape, because the sandbox
                     this was written in cannot reach espn.com. If the real shape

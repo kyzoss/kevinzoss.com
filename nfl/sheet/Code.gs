@@ -33,12 +33,23 @@
 // which would only send everyone off to redeploy for nothing. Reported back by
 // doGet and doPost, so the app can tell you whether the deployment you are
 // talking to is actually the current one.
-var SCRIPT_VERSION = 'empty-is-missing-1';
+var SCRIPT_VERSION = 'chunked-1';
 
 var STATE_SHEET = 'state';
 var PICKS_SHEET = 'picks';
 var LOG_SHEET = 'log';
 var MAX_LOG_ROWS = 400;
+
+// A Google Sheets cell holds at most 50,000 characters, and the season's
+// document grows by about 5,200 a week. Week 9 is where it crossed the line:
+// from then on every save threw "more than the maximum of 50000 characters",
+// nothing reached the board, and each phone's picks lived only on that phone
+// until it reopened the app and took the board's copy -- which had no week 9.
+// So the JSON is now spread across as many cells as it needs, left to right
+// from column D. Each piece starts with "~" so that no piece can ever be read
+// by Sheets as a number, a date or a formula (a piece is an arbitrary slice of
+// JSON and could easily start with "=" or look like "1.5").
+var CHUNK = 40000;
 
 function doGet(e) {
   try {
@@ -240,7 +251,7 @@ function recoverPicksFromLog() {
       for (var r = 1; r < rows.length; r++) {
         if (String(rows[r][1]) !== season || !rows[r][3]) continue;
         var past;
-        try { past = JSON.parse(rows[r][3]); } catch (err) { continue; }
+        try { past = JSON.parse(joinJson_(rows[r].slice(3))); } catch (err) { continue; }
         if (!board) { board = past; continue; }
         added = absorb_(board, past, added);
       }
@@ -251,7 +262,9 @@ function recoverPicksFromLog() {
       writePicks_(board);
       appendLog_(season, board, board.updatedAt);
       Logger.log('Season %s: restored %s pick(s), %s LMS pick(s), %s dup ranking(s), %s Browns guess(es), %s brown-of-week pick(s).',
-                 season, added.picks, added.lms, added.dupPrefs, added.predictions, added.brown || 0);
+                 // String(): Logger prints a bare number as "0.0"
+                 season, String(added.picks), String(added.lms), String(added.dupPrefs),
+                 String(added.predictions), String(added.brown || 0));
       Logger.log('Board now holds: %s', census_(board));
     }
   } finally {
@@ -309,12 +322,31 @@ function census_(board) {
 
 // ---- storage ---------------------------------------------------------------
 
+/** The document as cells: "~" plus up to CHUNK characters each. */
+function splitJson_(obj) {
+  var s = JSON.stringify(obj), out = [];
+  for (var i = 0; i < s.length; i += CHUNK) out.push('~' + s.slice(i, i + CHUNK));
+  return out.length ? out : ['~'];
+}
+
+/** The reverse. A row written before chunking holds bare JSON in one cell. */
+function joinJson_(cells) {
+  var s = '';
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    if (c === '' || c == null) continue;
+    c = String(c);
+    s += c.charAt(0) === '~' ? c.slice(1) : c;
+  }
+  return s;
+}
+
 function findSeasonRow_(season) {
   var sh = sheet_(STATE_SHEET, ['season', 'updatedAt', 'savedAtLocal', 'json']);
   var values = sh.getDataRange().getValues();
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][0]) === season && values[i][3]) {
-      return { rowIndex: i + 1, updatedAt: values[i][1], json: values[i][3] };
+      return { rowIndex: i + 1, updatedAt: values[i][1], json: joinJson_(values[i].slice(3)) };
     }
   }
   return null;
@@ -322,15 +354,22 @@ function findSeasonRow_(season) {
 
 function writeState_(season, state, updatedAt) {
   var sh = sheet_(STATE_SHEET, ['season', 'updatedAt', 'savedAtLocal', 'json']);
-  var payload = [season, updatedAt, new Date(), JSON.stringify(state)];
+  var payload = [season, updatedAt, new Date()].concat(splitJson_(state));
   var existing = findSeasonRow_(season);
-  if (existing) sh.getRange(existing.rowIndex, 1, 1, payload.length).setValues([payload]);
-  else sh.appendRow(payload);
+  if (existing) {
+    // Blank out any pieces left over from a longer earlier save, or they would
+    // be glued onto the end of this one when it is read back.
+    var width = Math.max(payload.length, sh.getLastColumn());
+    while (payload.length < width) payload.push('');
+    sh.getRange(existing.rowIndex, 1, 1, width).setValues([payload]);
+  } else {
+    sh.appendRow(payload);
+  }
 }
 
 function appendLog_(season, state, updatedAt) {
   var sh = sheet_(LOG_SHEET, ['savedAtLocal', 'season', 'updatedAt', 'json']);
-  sh.appendRow([new Date(), season, updatedAt, JSON.stringify(state)]);
+  sh.appendRow([new Date(), season, updatedAt].concat(splitJson_(state)));
   var extra = sh.getLastRow() - 1 - MAX_LOG_ROWS;
   if (extra > 0) sh.deleteRows(2, extra);
 }

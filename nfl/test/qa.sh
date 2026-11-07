@@ -26,7 +26,7 @@ line "all json valid" "PASS"
 
 echo
 echo "── logic"
-for t in suite feeds sync-test owned browns-feed; do
+for t in suite feeds sync-test owned browns-feed bigboard unsaved; do
   out=$(timeout 90 node $SP/$t.mjs 2>&1 | grep -E "passed" | tail -1)
   case "$out" in
     *"0 failed"*) line "$t" "PASS — $out" ;;
@@ -172,8 +172,8 @@ else line "record guesses seal at kickoff" "FAIL — $(echo "$out" | tail -4 | t
 
 out=$(timeout 115 node $SP/coldstart.mjs 2>&1)
 if echo "$out" | grep -q 'sheet reachable .*rows:2 .*my picks:2 .*sync:"Synced"' \
-  && echo "$out" | grep -q 'sheet reachable .*reports owned-merge-2; this app expects empty-is-missing-1' \
-  && echo "$out" | grep -q 'sheet, no version .*reports no version at all; this app expects empty-is-missing-1' \
+  && echo "$out" | grep -q 'sheet reachable .*reports owned-merge-2; this app expects chunked-1' \
+  && echo "$out" | grep -q 'sheet, no version .*reports no version at all; this app expects chunked-1' \
   && echo "$out" | grep -q 'sheet unreachable .*Can.t reach the shared board' \
   && echo "$out" | grep -q 'sheet unreachable .*old-script alarm:"none"'; then
   line "cold start / Home Screen case" "PASS"
