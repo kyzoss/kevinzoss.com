@@ -80,6 +80,14 @@ API keys.
   instantly. Simultaneous saves are resolved by the script under a lock: the
   newer one wins and the other phone adopts it.
 
+  A Sheets cell holds at most 50,000 characters and the season's JSON grows by
+  about 5,200 a week, so `state` and `log` spread it across as many cells as it
+  needs, from column D rightwards, each piece starting with `~` (which keeps
+  Sheets from reading a piece as a number or a formula). Before this, week 9
+  crossed the limit and every save was refused until the script was updated.
+  A phone whose save fails keeps its picks and shows a red "not on the shared
+  board" banner until a save gets through.
+
   The `/exec` URL is the only credential — anyone with it can read and write the
   pool. That is the same trust model as sharing the spreadsheet link.
 

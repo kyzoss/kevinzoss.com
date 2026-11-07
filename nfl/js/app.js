@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=08cd582b";
-import * as SC from "./scoring.js?v=08cd582b";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=08cd582b";
-import { fetchWeek } from "./espn.js?v=08cd582b";
+import * as S from "./store.js?v=17fd9855";
+import * as SC from "./scoring.js?v=17fd9855";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=17fd9855";
+import { fetchWeek } from "./espn.js?v=17fd9855";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=08cd582b";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=08cd582b";
+import { fetchSpreads } from "./odds.js?v=17fd9855";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=17fd9855";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -340,7 +340,7 @@ function render() {
   else if (ui.tab === "money") body = renderMoney(state);
   else if (ui.tab === "browns") body = renderSideBet(state);
   else body = renderSettings(state);
-  app.innerHTML = `${renderTopbar(state)}<main class="page">${staleScript()}${body}</main>${renderBottomNav()}`;
+  app.innerHTML = `${renderTopbar(state)}<main class="page">${staleScript()}${unsavedAlarm()}${body}</main>${renderBottomNav()}`;
   schedulePolling();
 }
 
@@ -364,6 +364,31 @@ function staleScript() {
   </div>`;
 }
 
+/**
+ * Say so, loudly, when this device's edits are not on the board. In week 9
+ * every save was refused for days and the only sign was a small "Sync off"
+ * chip -- so four people made picks that existed only on their own phones.
+ * Only shown once a save has actually failed; a save in flight is normal.
+ */
+let alarmedFor = "";
+function unsavedAlarm() {
+  const sync = S.getSync();
+  const why = S.lastSaveError();
+  if (!sync.enabled || !why || !S.hasPending()) { alarmedFor = ""; return ""; }
+  // The banner is at the top of the page and a pick is usually made further
+  // down, so say it where they are looking too -- once per failure, not per render.
+  if (alarmedFor !== why) {
+    alarmedFor = why;
+    setTimeout(() => toast("That pick did NOT reach the shared board. It is kept on this phone.", { bad: true, ms: 7000 }), 0);
+  }
+  return `<div class="alarm">
+    <b>Your latest picks are NOT on the shared board yet.</b>
+    <span>They are safe on this phone and it keeps trying, but nobody else can see them until a save gets through.
+    ${commish() ? "" : "Tell Kevin."}<br><span class="mute" style="font-size:12px">${esc(why)}</span></span>
+    <div class="toolbar" style="margin-top:8px"><button class="btn btn--px" data-action="resync">${icon("refresh")}Try again</button></div>
+  </div>`;
+}
+
 const TABS = [
   ["week", "Week", "week"], ["standings", "Standings", "board"], ["money", "Money", "money"],
   ["browns", cfg.sideBet?.label?.split(" ")[0] || "Side bet", "helmet"], ["settings", "Setup", "gear"],
@@ -373,7 +398,11 @@ function renderTopbar() {
   const sync = S.getSync();
   const saved = Date.now() < savedUntil;
   let syncHtml;
-  if (saved) {
+  // "Saved" used to flash on every tap, before the save had even been sent --
+  // so through week 9 it said Saved over picks the board was refusing.
+  if (sync.enabled && S.lastSaveError() && S.hasPending()) {
+    syncHtml = `<span class="sync sync--error" title="${esc(S.lastSaveError())}"><i class="sync__dot"></i>Not saved</span>`;
+  } else if (saved) {
     syncHtml = `<span class="sync sync--live" title="Your entry is stored"><i class="sync__dot"></i>Saved</span>`;
   } else if (sync.enabled) {
     const label = sync.state === "live" ? "Synced" : sync.state === "error" ? "Sync off" : "Syncing";
