@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=17fd9855";
-import * as SC from "./scoring.js?v=17fd9855";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=17fd9855";
-import { fetchWeek } from "./espn.js?v=17fd9855";
+import * as S from "./store.js?v=3085e12e";
+import * as SC from "./scoring.js?v=3085e12e";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=3085e12e";
+import { fetchWeek } from "./espn.js?v=3085e12e";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=17fd9855";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=17fd9855";
+import { fetchSpreads } from "./odds.js?v=3085e12e";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=3085e12e";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -118,6 +118,13 @@ async function pullSlate(week, { lines = true, forceLines = false, quiet = false
     else if (!changed) return false;
   });
   ui.busy = false; render();
+  // The box score has to be read AFTER the scores land, from here. Every other
+  // caller asked before this pull finished, so a game that went from "not
+  // started" to final in one pull -- nobody had the app open during it -- was
+  // judged unplayed and never read. That is why week 10's brown of the week
+  // did not settle. refreshBrownStats throttles itself and skips a non-Browns
+  // week, so calling it on every pull costs nothing.
+  refreshBrownStats(week).catch(() => {});
   if (quiet) return;
   const bits = [`${fetched.length} games`];
   if (added) bits.push(`${added} new`);

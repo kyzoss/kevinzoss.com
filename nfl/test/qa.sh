@@ -108,6 +108,14 @@ if echo "$out" | grep -q "summary pulled on open : yes" \
   line "box score read after the game" "PASS"
 else line "box score read after the game" "FAIL — $(echo "$out" | tail -4 | tr '\n' ' ')"; fails=$((fails+1)); fi
 
+out=$(timeout 115 node $SP/brown-unwatched.mjs 2>&1)
+if echo "$out" | grep -q "game now               : CLE@JAX post 24-17" \
+  && echo "$out" | grep -q "box score read         : yes" \
+  && echo "$out" | grep -q "winner                 : WINNER KZ Kevin Quinshon Judkins" \
+  && echo "$out" | grep -q "page errors: none"; then
+  line "brown settles, game nobody watched" "PASS"
+else line "brown settles, game nobody watched" "FAIL — $(echo "$out" | tr '\n' ' ')"; fails=$((fails+1)); fi
+
 out=$(timeout 115 node $SP/lmsround.mjs 2>&1)
 if echo "$out" | grep -q "week 6 chased       : yes" \
   && echo "$out" | grep -q "week 6 now          : ARI@SEA post | NO@TB post | LAC@KC post" \
