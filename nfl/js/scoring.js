@@ -772,19 +772,32 @@ export function brownWeekly(state, cfg) {
 
 /**
  * The whole game, week by week: what everyone picked, what it scored, who took
- * the week and for how much. The pot pays weekly and a tie splits it, so unlike
- * LMS nothing ever rolls over.
+ * the week and for how much. The pot pays weekly and a tie splits it. The one
+ * thing that rolls over is a bye: everyone still pays in that week, and since
+ * there is no game to pick from, its pot goes on top of the next Browns game
+ * (week 11's bye makes week 12 a double pot, as Kevin ruled).
  */
 export function brownOfWeek(state, cfg) {
   const rows = {};
   const totals = Object.fromEntries(state.players.map((p) => [p.id, { won: 0, weeks: 0, points: 0, paid: 0 }]));
   const pot = brownWeekly(state, cfg);
+  let carry = 0, carriedFrom = [];
   for (let w = 1; w <= cfg.weeks; w++) {
     const wk = state.weeks?.[w];
     if (!wk) continue;
-    // A pick made for a bye week has nothing to score and is not a pick at
-    // all. Week 11's were made before the picker knew about byes.
-    const picks = brownBye(state, cfg, w) ? {} : (wk.brown || {});
+    if (brownBye(state, cfg, w)) {
+      // A pick made for a bye week has nothing to score and is not a pick at
+      // all (week 11's were made before the picker knew about byes). The
+      // stake is still in, and it rides to the next Browns game.
+      carry += pot; carriedFrom.push(w);
+      rows[w] = { week: w, bye: true, picks: {}, best: null, winners: [], payouts: {}, pot: 0,
+                  rollsOn: carry, settled: false };
+      continue;
+    }
+    const weekPot = pot + carry;
+    const fromBye = carriedFrom;
+    carry = 0; carriedFrom = [];
+    const picks = wk.brown || {};
     const stats = wk.brownStats || {};
     const scored = {};
     let best = -Infinity;
@@ -801,9 +814,9 @@ export function brownOfWeek(state, cfg) {
     const settled = Object.values(scored).some((s) => s.points != null);
     const winners = settled ? Object.entries(scored).filter(([, s]) => s.points === best).map(([id]) => id) : [];
     const payouts = {};
-    if (winners.length) splitAmong(payouts, winners, pot);
+    if (winners.length) splitAmong(payouts, winners, weekPot);
     for (const [id, amt] of Object.entries(payouts)) { totals[id].won += amt; totals[id].weeks++; }
-    rows[w] = { week: w, picks: scored, best: settled ? best : null, winners, payouts, pot, settled };
+    rows[w] = { week: w, picks: scored, best: settled ? best : null, winners, payouts, pot: weekPot, fromBye, settled };
   }
   for (const p of state.players) totals[p.id].paid = pot / state.players.length * Object.keys(rows).length;
   return { rows, totals, pot };

@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=91b1d7ea";
-import * as SC from "./scoring.js?v=91b1d7ea";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=91b1d7ea";
-import { fetchWeek } from "./espn.js?v=91b1d7ea";
+import * as S from "./store.js?v=0bf18595";
+import * as SC from "./scoring.js?v=0bf18595";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=0bf18595";
+import { fetchWeek } from "./espn.js?v=0bf18595";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=91b1d7ea";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=91b1d7ea";
+import { fetchSpreads } from "./odds.js?v=0bf18595";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=0bf18595";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -828,13 +828,13 @@ function renderBrown(state, week) {
   }).join("");
 
   const dry = (live || done) && !Object.keys(stats).length;
-  const when = bye ? `The ${esc(teamName(team))} are on a bye this week, so there is no pick and no pot.`
-    : !game ? "No Browns game this week."
+  const when = bye ? `The ${esc(teamName(team))} are on a bye this week, so there is no pick. Everyone's ${SC.money(SC.brownWeekly(state, cfg))} still goes in and rides on to the next ${esc(teamName(team))} game, which pays double.`
+    : (row?.fromBye?.length ? `Double pot: week ${row.fromBye.join(" and ")} was a bye, so its money is on this one. ` : "") + (!game ? "No Browns game this week."
     : dry ? `${done ? "Final" : "Live"} — no box score yet. It is read from ESPN every time this opens; if it stays empty tell Kevin.`
     : live ? `Live${game.clock ? ` — ${esc(game.clock)}` : ""}; points update as they play.`
     : done ? "Final."
     : locked ? "Locked — they have kicked off."
-    : `Locks at ${esc(fmtKick(game.kickoff))}.`;
+    : `Locks at ${esc(fmtKick(game.kickoff))}.`);
 
   // Who took the week, said plainly, once the game is over. The row counts as
   // "settled" the moment the first stat lands -- which is mid-game, when the
@@ -849,7 +849,7 @@ function renderBrown(state, week) {
     }).join("")}</div></div>` : "";
 
   return `<section class="section${live ? " section--live" : ""}">
-    <div class="section__head"><h2 class="section__title">Brown of the week · ${SC.money(SC.brownWeekly(state, cfg))}${live ? ` <span class="badge badge--live">Live</span>` : ""}</h2>
+    <div class="section__head"><h2 class="section__title">Brown of the week · ${SC.money(row && !bye ? row.pot : SC.brownWeekly(state, cfg))}${row?.fromBye?.length ? ` <span class="badge badge--money">Double</span>` : ""}${live ? ` <span class="badge badge--live">Live</span>` : ""}</h2>
       <span class="section__sub">One ${esc(teamName(team))} player — ${esc(listOf(draftPositions(), "or"))}, never a quarterback — and the best score takes the pot; a tie splits it. Round ${round} · weeks ${start}–${end}: a player you have used is spent until it resets. ${when}</span></div>
     ${dry && commish() && brownShape.get(week) ? `<div class="commish" style="margin:0 0 10px">
       <span class="commish__k">Commissioner</span>
@@ -1350,7 +1350,7 @@ function renderSettings(state) {
     <p><b>Dups.</b> The week's big underdogs (${fmtPts(cfg.dup.minSpread)}+ points, never the ${esc(teamName(cfg.dup.exclude?.[0] || "CLE"))}, at least one per player) go up for a draft whose order rotates a seat every week: whoever picked first last week drops to last and everyone moves up. Position 1 ranks one team, position 2 ranks two, and so on; each player gets their highest-ranked team still available. Your dup is your pick in that game, and it has to win outright: +${cfg.dup.win} if it does, ${cfg.dup.loss} if it doesn't. A team you ranked but lost to someone above you reconciles to the favorite, so the game is never left unpicked while you wait on the draft &mdash; tap the dog yourself if you want it anyway. The draft closes with the picks, at <b>${esc(cutoffLabel(ui.week))}</b> on Sunday, except that a dog whose own game has already kicked off can no longer be ranked.</p>
     <p><b>Weekly pot.</b> ${SC.money(cfg.weeklyPot)} a week. Best score takes it &mdash; score, not wins, since a dup that comes in is worth ${fmtPts(cfg.dup.win)}. <b>Any tie at the top pays nobody</b>: two of you level, or all four, and the whole pot rolls into next week and keeps stacking until somebody wins outright. The only exception is week ${cfg.weeks}, which has no next week to roll to, so a tie there splits.</p>
     <p><b>Last man standing.</b> ${SC.money(cfg.lmsPerPlayer ?? 1)} from everyone, every week &mdash; <b>including the weeks you're already out</b>, which is what makes the pot worth chasing. That's ${SC.money(SC.lmsWeekly(state, cfg))} a week with ${state.players.length} playing. Name a team to lose; if it wins (or ties, or you forget), you're out for the round. Each team is good once per round. <b>The last one standing takes the pot the week it happens</b>, and a new round starts the following week with everybody back in and every team available again. A round that reaches ${cfg.lmsRoundWeeks} weeks with more than one still standing ends there, and they split it. If every live pick busts in the same week, the players who actually picked split it and the round ends &mdash; a forfeit never shares, so entering nothing gets you nothing. And if nobody picked at all, nothing is settled: the pot rolls into next week and marks no one. (Weeks 1&ndash;${(cfg.lmsFloatFrom || 1) - 1} were played as fixed ${cfg.lmsRoundWeeks}-week blocks and stay settled that way.) The week-by-week tracker is on the Standings tab.</p>
-    <p><b>Brown of the week.</b> ${SC.money(cfg.brownOfWeek?.perPlayer ?? 1)} from everyone, every week &mdash; ${SC.money(SC.brownWeekly(state, cfg))} a week with ${state.players.length} playing. Name one ${esc(teamName(cfg.sideBet.team))} player and score his game on the pool's table. You may draft a <b>${esc(listOf(draftPositions(), "or"))}</b> &mdash; <b>no quarterbacks</b>, since one man throws for the whole team, so he is not a choice between Browns. Best score takes the pot and a tie splits it, so nothing rolls over. Rounds are ${cfg.brownOfWeek?.roundWeeks ?? 4} weeks like LMS: a player you have used is spent until the round resets, and only a week that actually got scored spends him. It locks when the ${esc(teamName(cfg.sideBet.team))} kick off. Every Brown's line, including the ones nobody could pick, is on the ${esc(cfg.sideBet?.label?.split(" ")[0] || "Browns")} tab.</p>
+    <p><b>Brown of the week.</b> ${SC.money(cfg.brownOfWeek?.perPlayer ?? 1)} from everyone, every week &mdash; ${SC.money(SC.brownWeekly(state, cfg))} a week with ${state.players.length} playing. Name one ${esc(teamName(cfg.sideBet.team))} player and score his game on the pool's table. You may draft a <b>${esc(listOf(draftPositions(), "or"))}</b> &mdash; <b>no quarterbacks</b>, since one man throws for the whole team, so he is not a choice between Browns. Best score takes the pot and a tie splits it. Nothing rolls over, except on the ${esc(teamName(cfg.sideBet.team))}' bye: everyone still pays in, there is no pick, and that pot goes on top of their next game, which pays double. Rounds are ${cfg.brownOfWeek?.roundWeeks ?? 4} weeks like LMS: a player you have used is spent until the round resets, and only a week that actually got scored spends him. It locks when the ${esc(teamName(cfg.sideBet.team))} kick off. Every Brown's line, including the ones nobody could pick, is on the ${esc(cfg.sideBet?.label?.split(" ")[0] || "Browns")} tab.</p>
     <p><b>${esc(cfg.sideBet.label)}.</b> ${SC.money(cfg.sideBet.perPlayer ?? 0)} from everyone, so ${SC.money(SC.sideBetPot(state, cfg))} on the table. One guess each at the ${esc(teamName(cfg.sideBet.team))}' final record, in before they first take the field. The moment they kick off every guess is final &mdash; there is no commissioner edit, because the fix and the cheat are the same edit. Closest wins, points scored breaks ties.</p>
   </div></section>`;
 }

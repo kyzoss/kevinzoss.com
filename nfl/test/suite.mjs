@@ -690,6 +690,23 @@ console.log("— brown of the week");
   eq("and pay nobody", SC.brownOfWeek(bye, cfg).rows[11].payouts, {});
   eq("and spend nobody", SC.brownUsed(bye, cfg, 12, "kz").length, 0);
 
+  // Kevin's ruling: the bye is still paid in, and its pot doubles the next game.
+  const weekly = SC.brownWeekly(bye, cfg);
+  const rb = SC.brownOfWeek(bye, cfg).rows;
+  eq("the bye week pays out nothing itself", [rb[11].bye, rb[11].pot, rb[11].rollsOn], [true, 0, weekly]);
+  eq("the next Browns game is a double pot", rb[12].pot, weekly * 2);
+  eq("and says where the extra came from", rb[12].fromBye, [11]);
+  const dbl = JSON.parse(JSON.stringify(bye));
+  dbl.weeks[12].brown = { kz: "chubb", az: "cooper" };
+  dbl.weeks[12].brownStats = { chubb: { rushTD: 1 }, cooper: { receptions: 1 } };
+  eq("the winner takes both weeks", SC.brownOfWeek(dbl, cfg).rows[12].payouts, { kz: weekly * 2 });
+  const tie = JSON.parse(JSON.stringify(dbl)); tie.weeks[12].brown.az = "chubb";
+  eq("a tie splits the double", SC.brownOfWeek(tie, cfg).rows[12].payouts, { az: weekly, kz: weekly });
+  dbl.weeks[13] = { games: [{ id: "CLE@SF", away: "CLE", home: "SF" }], picks: {}, lms: {} };
+  eq("and the week after is back to normal", SC.brownOfWeek(dbl, cfg).rows[13].pot, weekly);
+  eq("the money tab sees the double", SC.ledger(dbl, cfg).totals.kz.brownWon, weekly * 2);
+  eq("and the buy-in still counts the bye", SC.ledger(dbl, cfg).totals.kz.buyIn, SC.ledger(t, cfg).totals.kz.buyIn);
+
   // and it reaches the money
   const led = SC.ledger(t, cfg);
   eq("winnings land in the ledger", led.totals.kz.brownWon, 2);

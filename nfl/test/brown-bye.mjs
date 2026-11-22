@@ -16,7 +16,8 @@ const seed={v:1,season:2026,
   players:[{id:'az',name:'Andrew',short:'AZ',color:'#4CC9F0'},{id:'kz',name:'Kevin',short:'KZ',color:'#FF9F1C'},
            {id:'jv',name:'Jim',short:'JV',color:'#B388FF'},{id:'hz',name:'Howard',short:'HZ',color:'#A3E635'}],
   brownsRoster: roster,
-  weeks:{1:{games:[g('NYJ','BUF',-6,'2026-09-13T17:00Z','pre'),g('KC','DEN',-3,'2026-09-13T20:25Z','pre')],
+  weeks:{2:{games:[g('CLE','PIT',-3,'2026-09-20T17:00Z','pre')],picks:{},lms:{},dupPrefs:{},brown:{},brownStats:{}},
+    1:{games:[g('NYJ','BUF',-6,'2026-09-13T17:00Z','pre'),g('KC','DEN',-3,'2026-09-13T20:25Z','pre')],
     picks:{},lms:{},dupPrefs:{},brown:{kz:'2',az:'3',jv:'4',hz:'5'},brownStats:{}}},
   sideBet:{predictions:{},actual:null},adjustments:[],updatedAt:1};
 
@@ -61,5 +62,12 @@ console.log('says        :', (await sec().locator('.section__sub').innerText()).
 await p.evaluate(() => { const b=document.querySelector('[data-action="brown-open"]'); b.disabled=false; b.click(); });
 await p.waitForTimeout(400);
 console.log('picker opens:', await p.locator('dialog[open], .modal--open, .modal:visible').count() ? 'YES' : 'no', '|', (await p.locator('.toast').allInnerTexts()).join(' '));
+console.log('bye header  :', (await sec().locator('.section__title').innerText()).replace(/\s+/g,' '));
+// the week after: the bye's money rides on it
+await p.evaluate(() => { const t=document.querySelector('.toasts'); if (t) t.remove(); });
+await p.evaluate(() => document.querySelector('[data-action="week"][data-week="2"]')?.click());
+await p.waitForTimeout(800);
+console.log('next header :', (await sec().locator('.section__title').innerText()).replace(/\s+/g,' '));
+console.log('next says   :', (await sec().locator('.section__sub').innerText()).replace(/\s+/g,' ').split('resets. ')[1]);
 console.log('page errors:', errs.length ? errs[0] : 'none');
 await b.close();

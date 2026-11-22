@@ -119,7 +119,9 @@ else line "brown settles, game nobody watched" "FAIL — $(echo "$out" | tr '\n'
 out=$(timeout 115 node $SP/brown-bye.mjs 2>&1)
 if echo "$out" | grep -q "rows        : Bye week | Bye week | Bye week | Bye week" \
   && echo "$out" | grep -q "tappable    : 0" \
-  && echo "$out" | grep -q "on a bye this week, so there is no pick" \
+  && echo "$out" | grep -q "rides on to the next Browns game, which pays double" \
+  && echo "$out" | grep -q "next header : Brown of the week · \$8 Double" \
+  && echo "$out" | grep -q "next says   : Double pot: week 1 was a bye" \
   && echo "$out" | grep -q "picker opens: no" \
   && echo "$out" | grep -q "page errors: none"; then
   line "no brown pick on a bye week" "PASS"
