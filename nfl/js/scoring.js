@@ -755,6 +755,16 @@ export function brownUsed(state, cfg, week, pid) {
   return out;
 }
 
+/**
+ * The Browns are on a bye: the week's slate is loaded and they are not in it.
+ * An empty slate is "not pulled yet", not a bye, so it stays open.
+ */
+export function brownBye(state, cfg, week) {
+  const team = cfg.sideBet?.team || "CLE";
+  const games = state.weeks?.[week]?.games || [];
+  return games.length > 0 && !games.some((g) => g.home === team || g.away === team);
+}
+
 /** What the pot is worth each week: everyone's stake, in or out. */
 export function brownWeekly(state, cfg) {
   return (Number(cfg.brownOfWeek?.perPlayer) || 0) * state.players.length;
@@ -772,7 +782,9 @@ export function brownOfWeek(state, cfg) {
   for (let w = 1; w <= cfg.weeks; w++) {
     const wk = state.weeks?.[w];
     if (!wk) continue;
-    const picks = wk.brown || {};
+    // A pick made for a bye week has nothing to score and is not a pick at
+    // all. Week 11's were made before the picker knew about byes.
+    const picks = brownBye(state, cfg, w) ? {} : (wk.brown || {});
     const stats = wk.brownStats || {};
     const scored = {};
     let best = -Infinity;

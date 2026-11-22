@@ -1,10 +1,10 @@
-import * as S from "./store.js?v=3085e12e";
-import * as SC from "./scoring.js?v=3085e12e";
-import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=3085e12e";
-import { fetchWeek } from "./espn.js?v=3085e12e";
+import * as S from "./store.js?v=91b1d7ea";
+import * as SC from "./scoring.js?v=91b1d7ea";
+import { TEAMS, teamLogo, logoAttrs, teamColor, teamName } from "./teams.js?v=91b1d7ea";
+import { fetchWeek } from "./espn.js?v=91b1d7ea";
 import * as BR from "./browns.js?v=dev";
-import { fetchSpreads } from "./odds.js?v=3085e12e";
-import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=3085e12e";
+import { fetchSpreads } from "./odds.js?v=91b1d7ea";
+import { esc, fmtKick, fmtDayHeading, dayKey, fmtRange, toast, openModal, closeModal, modalOpen, modalHead, icon } from "./ui.js?v=91b1d7ea";
 
 const cfg = window.POOL_CONFIG;
 const app = document.getElementById("app");
@@ -798,6 +798,7 @@ function renderBrown(state, week) {
   const wk = state.weeks?.[week] || {};
   const picks = wk.brown || {};
   const stats = wk.brownStats || {};
+  const bye = SC.brownBye(state, cfg, week);
   const locked = Boolean(game && SC.hasStarted(game));
   const live = Boolean(game && game.status === "in");
   const done = Boolean(game && SC.isFinal(game));
@@ -809,24 +810,26 @@ function renderBrown(state, week) {
   const nameOfPlayer = (id) => roster.find((r) => r.id === id)?.name || id;
 
   const rows = state.players.map((p) => {
-    const who = picks[p.id];
+    // On a bye there is nothing to pick, for anyone -- the commissioner too.
+    const who = bye ? null : picks[p.id];
     const line = who ? stats[who] : null;
     const pts = line ? SC.scoreBrownLine(line, cfg).total : null;
     const won = row?.payouts?.[p.id];
-    const canEdit = p.id === pid && (!locked || commish());
+    const canEdit = !bye && p.id === pid && (!locked || commish());
     return `<div class="lmsrow" style="--c:${esc(p.color)}">${avatar(p.id, "avatar--lg")}
       <button class="lmsrow__pick" data-action="brown-open" ${canEdit ? "" : "disabled"}>
         <div><div class="lmsrow__team">${who ? esc(nameOfPlayer(who)) : esc(p.name)}</div>
         <div class="lmsrow__sub">${who
           ? (pts != null ? `${fmtPts(pts)} point${pts === 1 ? "" : "s"}${live ? " · live" : ""}` : locked ? "playing" : "locked in")
-          : (canEdit ? "Tap to choose" : "No pick")}</div></div>
+          : bye ? "Bye week" : (canEdit ? "Tap to choose" : "No pick")}</div></div>
       </button>
       <div style="display:grid;gap:4px;justify-items:end">${won ? `<span class="badge badge--money">${SC.money(won)}</span>` : row?.winners?.includes(p.id) ? `<span class="badge badge--win">Best</span>` : ""}</div>
     </div>`;
   }).join("");
 
   const dry = (live || done) && !Object.keys(stats).length;
-  const when = !game ? "No Browns game this week."
+  const when = bye ? `The ${esc(teamName(team))} are on a bye this week, so there is no pick and no pot.`
+    : !game ? "No Browns game this week."
     : dry ? `${done ? "Final" : "Live"} — no box score yet. It is read from ESPN every time this opens; if it stays empty tell Kevin.`
     : live ? `Live${game.clock ? ` — ${esc(game.clock)}` : ""}; points update as they play.`
     : done ? "Final."
@@ -1451,6 +1454,7 @@ function brownModal() {
   const state = S.getState();
   const pid = actor();
   const week = ui.week;
+  if (SC.brownBye(state, cfg, week)) return toast(`The ${teamName(cfg.sideBet?.team || "CLE")} are on a bye in week ${week}. No pick this week.`, { bad: true });
   const roster = state.brownsRoster || [];
   const current = state.weeks?.[week]?.brown?.[pid] || "";
   const used = Object.fromEntries(SC.brownUsed(state, cfg, week, pid).map((u) => [u.id, u.week]));
@@ -1730,6 +1734,9 @@ function setBrown(who) {
   if (!pid) return toast("Pick who you are first", { bad: true });
   const state = S.getState();
   const game = BR.brownsGame(state, ui.week, cfg.sideBet?.team || "CLE");
+  // The screen no longer offers it, but an old tab still could, so the save
+  // refuses too. Clearing a pick is still allowed.
+  if (who && SC.brownBye(state, cfg, ui.week)) return toast(`Bye week. No pick in week ${ui.week}.`, { bad: true });
   if (game && SC.hasStarted(game) && !commish()) return toast("They have kicked off. This week is locked.", { bad: true });
   if (who) {
     const spent = SC.brownUsed(state, cfg, ui.week, pid).find((u) => u.id === who);

@@ -676,6 +676,20 @@ console.log("— brown of the week");
   eq("an unscored week pays nobody", SC.brownOfWeek(none, cfg).rows[1].payouts, {});
   eq("and is not settled", SC.brownOfWeek(none, cfg).rows[1].settled, false);
 
+  // the Browns' bye: a loaded slate without them. Nothing to pick, nothing scored.
+  const bye = blank();
+  bye.weeks[11] = { games: [{ id: "NYJ@BUF", away: "NYJ", home: "BUF" }], picks: {}, lms: {},
+    brown: { kz: "x", az: "y" }, brownStats: {} };
+  bye.weeks[12] = { games: [{ id: "CLE@PIT", away: "CLE", home: "PIT" }], picks: {}, lms: {} };
+  bye.weeks[13] = { games: [], picks: {}, lms: {} };
+  eq("a slate without the Browns is a bye", SC.brownBye(bye, cfg, 11), true);
+  eq("a slate with them is not", SC.brownBye(bye, cfg, 12), false);
+  eq("an unpulled slate is not a bye -- it stays open", SC.brownBye(bye, cfg, 13), false);
+  eq("a week nobody has loaded is not a bye either", SC.brownBye(bye, cfg, 14), false);
+  eq("picks made for a bye count for nothing", SC.brownOfWeek(bye, cfg).rows[11].picks, {});
+  eq("and pay nobody", SC.brownOfWeek(bye, cfg).rows[11].payouts, {});
+  eq("and spend nobody", SC.brownUsed(bye, cfg, 12, "kz").length, 0);
+
   // and it reaches the money
   const led = SC.ledger(t, cfg);
   eq("winnings land in the ledger", led.totals.kz.brownWon, 2);
