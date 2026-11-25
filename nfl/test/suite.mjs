@@ -55,6 +55,18 @@ console.log("— dup pool");
   eq("Browns never eligible", d.candidates.some(c => c.team === "CLE"), false);
   eq("padded to four", d.candidates.map(c => c.team), ["NO","CHI","SF","DET"]);
 }
+{ // week 12: the Browns favoured, so the dog is their opponent. Still no dup.
+  const st = blank();
+  st.weeks[12] = { games: [
+      g("LV","CLE",-4.5), g("CHI","GB",-10), g("NO","TB",-14), g("SF","ARI",-6), g("MIA","NYJ",-5),
+    ], picks: {}, lms: {}, dupPrefs: { az: ["LV"] } };
+  const d = SC.resolveDups(st, cfg, 12);
+  eq("the Browns' opponent is never eligible", d.candidates.some(c => c.team === "LV"), false);
+  eq("not even when someone ranked it", d.assigned.az ?? null, null);
+  eq("the pool fills from other games", d.candidates.map(c => c.team), ["NO","CHI","SF","MIA"]);
+  eq("and the Browns pick stays the player's own", SC.weekTally({ ...st,
+       weeks: { 12: { ...st.weeks[12], picks: { az: { "LV@CLE": "home" } } } } }, 12, cfg).az.sides["LV@CLE"], "home");
+}
 { // ranked-choice draft in standings order: 1 pick, 2 picks, 3, 4
   const st = blank();
   st.weeks[1] = { games: [g("NO","TB",-14), g("CHI","GB",-10), g("LAR","SEA",-6.5), g("SF","ARI",-4.5)],
