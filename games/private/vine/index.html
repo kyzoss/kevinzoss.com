@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<base href="/play/vine/" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#1F3A2A" />
+<title>Passionfruit Wall</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<main id="app">
+
+  <header class="hero" id="hero">
+    <svg id="motif" class="motif" viewBox="0 0 400 70" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <div class="hero-top">
+      <a class="back" href="/play/">&larr; games</a>
+      <button id="gearBtn" class="iconbtn" aria-label="Settings">&#9881;</button>
+    </div>
+    <h1>Passionfruit Wall</h1>
+    <p class="lede">A living privacy wall, one check-in at a time.</p>
+    <div class="levelrow">
+      <div class="levelname"><span id="levelName">Seed</span><small id="levelXp">0 XP</small></div>
+      <div class="xpbar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="xpFill" class="xpfill"></div></div>
+      <small id="levelNext" class="levelnext"></small>
+    </div>
+  </header>
+
+  <p id="mode" class="mode" hidden></p>
+
+  <section id="home" class="screen">
+    <div class="card chapter-card" id="chapterCard"></div>
+    <div class="card today" id="todayCard"></div>
+    <div class="streaks" id="streaks"></div>
+    <div class="card">
+      <h2>Last 12 weeks</h2>
+      <div id="heat" class="heat" aria-label="Check-in calendar"></div>
+    </div>
+    <div class="card" id="badgeCard">
+      <h2>Badges</h2>
+      <div id="badges" class="badges"></div>
+    </div>
+  </section>
+
+  <section id="quests" class="screen" hidden>
+    <h2 class="screen-title">Quests</h2>
+    <div id="chapters"></div>
+  </section>
+
+  <section id="journal" class="screen" hidden>
+    <h2 class="screen-title">Journal</h2>
+    <div class="card">
+      <h2>Before and after</h2>
+      <p class="hint">Day 0 against the latest growth photo. Drag the handle.</p>
+      <div class="compare" id="compare">
+        <img id="cmpBefore" alt="Day 0" />
+        <div id="cmpAfterWrap" class="cmp-after"><img id="cmpAfter" alt="Latest" /></div>
+        <div id="cmpLine" class="cmp-line"></div>
+      </div>
+      <input id="cmpRange" class="cmp-range" type="range" min="0" max="100" value="50" aria-label="Before and after slider" />
+    </div>
+    <div class="card">
+      <h2>Coverage over time</h2>
+      <svg id="covChart" class="chart" viewBox="0 0 360 140" role="img" aria-label="Coverage chart"></svg>
+    </div>
+    <div id="timeline" class="timeline"></div>
+  </section>
+
+  <section id="sun" class="screen" hidden>
+    <h2 class="screen-title">Sun audit</h2>
+    <p class="hint">Photograph the top half of the fence at each slot. Claude reads whether the upper fence is lit and estimates summer hours.</p>
+    <div id="slots" class="slots"></div>
+    <div class="card" id="sunVerdict"></div>
+  </section>
+
+  <section id="plan" class="screen" hidden>
+    <h2 class="screen-title">The plan</h2>
+    <div id="planBody"></div>
+  </section>
+
+  <section id="settings" class="screen" hidden>
+    <h2 class="screen-title">Settings</h2>
+    <div class="card">
+      <label class="field"><span>Vine name</span><input id="setName" type="text" maxlength="40" placeholder="e.g. Freddie" /></label>
+      <label class="field"><span>Wall bearing (degrees)</span><input id="setBearing" type="number" min="0" max="360" inputmode="numeric" placeholder="180 is due south" /></label>
+      <label class="field"><span>Planting date</span><input id="setPlanted" type="date" /></label>
+      <label class="field check"><input id="setNotify" type="checkbox" /><span>Show a weekly photo reminder on the Home screen</span></label>
+      <button id="saveSettings" class="btn primary wide">Save settings</button>
+      <p id="settingsNote" class="hint"></p>
+    </div>
+    <div class="card">
+      <h2>Storage</h2>
+      <p id="storageNote" class="hint"></p>
+      <button id="resetCache" class="btn wide">Reset local cache</button>
+    </div>
+  </section>
+
+</main>
+
+<button id="newBtn" class="fab" aria-label="New check-in">+ New check-in</button>
+
+<nav class="tabs" aria-label="Screens">
+  <button class="tab active" data-screen="home">Home</button>
+  <button class="tab" data-screen="quests">Quests</button>
+  <button class="tab" data-screen="journal">Journal</button>
+  <button class="tab" data-screen="sun">Sun</button>
+  <button class="tab" data-screen="plan">Plan</button>
+</nav>
+
+<div id="sheet" class="sheet" hidden>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head"><h2 id="sheetTitle"></h2><button id="sheetClose" class="iconbtn" aria-label="Close">&times;</button></div>
+    <div id="sheetBody" class="sheet-body"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="quests.js"></script>
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
