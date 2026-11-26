@@ -208,13 +208,12 @@ export function underdogOf(game) {
 
 export function dupCandidates(games, cfg, minCount, keep = null) {
   const excl = new Set((cfg.dup?.exclude || []).map((t) => t.toUpperCase()));
-  // The Browns' game is out of the dup pool altogether, whichever side is the
-  // dog. Excluding only the Browns themselves still let their opponent in when
-  // Cleveland was the favourite -- week 12, LV +4.5 at CLE -- and drafting that
-  // dup forces your Browns pick onto the other team.
+  // Only the Browns themselves are barred. When they are the favourite their
+  // opponent is a dog like any other and can be drafted (Kevin's ruling, week
+  // 12: LV +4.5 at CLE is a dup) -- whoever holds it is on the other side of
+  // the Browns game that week, and that is the deal.
   const dogs = games
     .filter((g) => g.spread != null && g.spread !== 0)
-    .filter((g) => !excl.has(String(g.home).toUpperCase()) && !excl.has(String(g.away).toUpperCase()))
     .map((g) => ({ gameId: g.id, team: underdogOf(g), points: Math.abs(g.spread), game: g }))
     .filter((d) => !excl.has(d.team))
     .sort((a, b) => b.points - a.points || new Date(a.game.kickoff) - new Date(b.game.kickoff));

@@ -48,7 +48,7 @@ window.POOL_CONFIG = {
   // dogs are dup-eligible; it never grades a pick.
   dup: {
     minSpread: 4.5,     // underdogs getting at least this many points are dup-eligible
-    exclude: ["CLE"],   // the Browns' game is never a dup, whichever side is the dog
+    exclude: ["CLE"],   // the Browns are never a dup; their opponent can be, when Cleveland is favoured
     win: 1.5,           // your dup wins outright
     loss: 0,            // your dup loses (a tie counts here too)
   },

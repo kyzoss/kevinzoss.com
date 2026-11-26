@@ -55,17 +55,20 @@ console.log("— dup pool");
   eq("Browns never eligible", d.candidates.some(c => c.team === "CLE"), false);
   eq("padded to four", d.candidates.map(c => c.team), ["NO","CHI","SF","DET"]);
 }
-{ // week 12: the Browns favoured, so the dog is their opponent. Still no dup.
+{ // week 12: the Browns favoured, so the dog is their opponent -- and that IS a dup
   const st = blank();
   st.weeks[12] = { games: [
       g("LV","CLE",-4.5), g("CHI","GB",-10), g("NO","TB",-14), g("SF","ARI",-6), g("MIA","NYJ",-5),
     ], picks: {}, lms: {}, dupPrefs: { az: ["LV"] } };
   const d = SC.resolveDups(st, cfg, 12);
-  eq("the Browns' opponent is never eligible", d.candidates.some(c => c.team === "LV"), false);
-  eq("not even when someone ranked it", d.assigned.az ?? null, null);
-  eq("the pool fills from other games", d.candidates.map(c => c.team), ["NO","CHI","SF","MIA"]);
-  eq("and the Browns pick stays the player's own", SC.weekTally({ ...st,
-       weeks: { 12: { ...st.weeks[12], picks: { az: { "LV@CLE": "home" } } } } }, 12, cfg).az.sides["LV@CLE"], "home");
+  eq("the Browns' opponent is eligible when Cleveland is favoured", d.candidates.some(c => c.team === "LV"), true);
+  eq("and can be drafted", d.assigned.az, "LV");
+  eq("which puts that player on the other side of the Browns game", SC.weekTally({ ...st,
+       weeks: { 12: { ...st.weeks[12], picks: { az: { "LV@CLE": "home" } } } } }, 12, cfg).az.sides["LV@CLE"], "away");
+  const dog = blank();
+  dog.weeks[1] = { games: [g("CLE","BAL",-9), g("CHI","GB",-10)], picks: {}, lms: {}, dupPrefs: { az: ["CLE"] } };
+  eq("the Browns as the dog are still never a dup", SC.resolveDups(dog, cfg, 1).candidates.some(c => c.team === "CLE"), false);
+  eq("not even when ranked", SC.resolveDups(dog, cfg, 1).assigned.az ?? null, null);
 }
 { // ranked-choice draft in standings order: 1 pick, 2 picks, 3, 4
   const st = blank();
