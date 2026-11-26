@@ -208,8 +208,13 @@ export function underdogOf(game) {
 
 export function dupCandidates(games, cfg, minCount, keep = null) {
   const excl = new Set((cfg.dup?.exclude || []).map((t) => t.toUpperCase()));
+  // The Browns' game is out of the dup pool altogether, whichever side is the
+  // dog. Excluding only the Browns themselves still let their opponent in when
+  // Cleveland was the favourite -- week 12, LV +4.5 at CLE -- and drafting that
+  // dup forces your Browns pick onto the other team.
   const dogs = games
     .filter((g) => g.spread != null && g.spread !== 0)
+    .filter((g) => !excl.has(String(g.home).toUpperCase()) && !excl.has(String(g.away).toUpperCase()))
     .map((g) => ({ gameId: g.id, team: underdogOf(g), points: Math.abs(g.spread), game: g }))
     .filter((d) => !excl.has(d.team))
     .sort((a, b) => b.points - a.points || new Date(a.game.kickoff) - new Date(b.game.kickoff));
@@ -755,6 +760,16 @@ export function brownUsed(state, cfg, week, pid) {
   return out;
 }
 
+/**
+ * The Browns are on a bye: the week's slate is loaded and they are not in it.
+ * An empty slate is "not pulled yet", not a bye, so it stays open.
+ */
+export function brownBye(state, cfg, week) {
+  const team = cfg.sideBet?.team || "CLE";
+  const games = state.weeks?.[week]?.games || [];
+  return games.length > 0 && !games.some((g) => g.home === team || g.away === team);
+}
+
 /** What the pot is worth each week: everyone's stake, in or out. */
 export function brownWeekly(state, cfg) {
   return (Number(cfg.brownOfWeek?.perPlayer) || 0) * state.players.length;
@@ -762,16 +777,31 @@ export function brownWeekly(state, cfg) {
 
 /**
  * The whole game, week by week: what everyone picked, what it scored, who took
- * the week and for how much. The pot pays weekly and a tie splits it, so unlike
- * LMS nothing ever rolls over.
+ * the week and for how much. The pot pays weekly and a tie splits it. The one
+ * thing that rolls over is a bye: everyone still pays in that week, and since
+ * there is no game to pick from, its pot goes on top of the next Browns game
+ * (week 11's bye makes week 12 a double pot, as Kevin ruled).
  */
 export function brownOfWeek(state, cfg) {
   const rows = {};
   const totals = Object.fromEntries(state.players.map((p) => [p.id, { won: 0, weeks: 0, points: 0, paid: 0 }]));
   const pot = brownWeekly(state, cfg);
+  let carry = 0, carriedFrom = [];
   for (let w = 1; w <= cfg.weeks; w++) {
     const wk = state.weeks?.[w];
     if (!wk) continue;
+    if (brownBye(state, cfg, w)) {
+      // A pick made for a bye week has nothing to score and is not a pick at
+      // all (week 11's were made before the picker knew about byes). The
+      // stake is still in, and it rides to the next Browns game.
+      carry += pot; carriedFrom.push(w);
+      rows[w] = { week: w, bye: true, picks: {}, best: null, winners: [], payouts: {}, pot: 0,
+                  rollsOn: carry, settled: false };
+      continue;
+    }
+    const weekPot = pot + carry;
+    const fromBye = carriedFrom;
+    carry = 0; carriedFrom = [];
     const picks = wk.brown || {};
     const stats = wk.brownStats || {};
     const scored = {};
@@ -789,9 +819,9 @@ export function brownOfWeek(state, cfg) {
     const settled = Object.values(scored).some((s) => s.points != null);
     const winners = settled ? Object.entries(scored).filter(([, s]) => s.points === best).map(([id]) => id) : [];
     const payouts = {};
-    if (winners.length) splitAmong(payouts, winners, pot);
+    if (winners.length) splitAmong(payouts, winners, weekPot);
     for (const [id, amt] of Object.entries(payouts)) { totals[id].won += amt; totals[id].weeks++; }
-    rows[w] = { week: w, picks: scored, best: settled ? best : null, winners, payouts, pot, settled };
+    rows[w] = { week: w, picks: scored, best: settled ? best : null, winners, payouts, pot: weekPot, fromBye, settled };
   }
   for (const p of state.players) totals[p.id].paid = pot / state.players.length * Object.keys(rows).length;
   return { rows, totals, pot };

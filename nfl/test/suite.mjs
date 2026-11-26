@@ -55,6 +55,18 @@ console.log("— dup pool");
   eq("Browns never eligible", d.candidates.some(c => c.team === "CLE"), false);
   eq("padded to four", d.candidates.map(c => c.team), ["NO","CHI","SF","DET"]);
 }
+{ // week 12: the Browns favoured, so the dog is their opponent. Still no dup.
+  const st = blank();
+  st.weeks[12] = { games: [
+      g("LV","CLE",-4.5), g("CHI","GB",-10), g("NO","TB",-14), g("SF","ARI",-6), g("MIA","NYJ",-5),
+    ], picks: {}, lms: {}, dupPrefs: { az: ["LV"] } };
+  const d = SC.resolveDups(st, cfg, 12);
+  eq("the Browns' opponent is never eligible", d.candidates.some(c => c.team === "LV"), false);
+  eq("not even when someone ranked it", d.assigned.az ?? null, null);
+  eq("the pool fills from other games", d.candidates.map(c => c.team), ["NO","CHI","SF","MIA"]);
+  eq("and the Browns pick stays the player's own", SC.weekTally({ ...st,
+       weeks: { 12: { ...st.weeks[12], picks: { az: { "LV@CLE": "home" } } } } }, 12, cfg).az.sides["LV@CLE"], "home");
+}
 { // ranked-choice draft in standings order: 1 pick, 2 picks, 3, 4
   const st = blank();
   st.weeks[1] = { games: [g("NO","TB",-14), g("CHI","GB",-10), g("LAR","SEA",-6.5), g("SF","ARI",-4.5)],
@@ -675,6 +687,37 @@ console.log("— brown of the week");
   none.weeks[1] = { games: [], picks: {}, lms: {}, brown: { kz: "x" }, brownStats: {} };
   eq("an unscored week pays nobody", SC.brownOfWeek(none, cfg).rows[1].payouts, {});
   eq("and is not settled", SC.brownOfWeek(none, cfg).rows[1].settled, false);
+
+  // the Browns' bye: a loaded slate without them. Nothing to pick, nothing scored.
+  const bye = blank();
+  bye.weeks[11] = { games: [{ id: "NYJ@BUF", away: "NYJ", home: "BUF" }], picks: {}, lms: {},
+    brown: { kz: "x", az: "y" }, brownStats: {} };
+  bye.weeks[12] = { games: [{ id: "CLE@PIT", away: "CLE", home: "PIT" }], picks: {}, lms: {} };
+  bye.weeks[13] = { games: [], picks: {}, lms: {} };
+  eq("a slate without the Browns is a bye", SC.brownBye(bye, cfg, 11), true);
+  eq("a slate with them is not", SC.brownBye(bye, cfg, 12), false);
+  eq("an unpulled slate is not a bye -- it stays open", SC.brownBye(bye, cfg, 13), false);
+  eq("a week nobody has loaded is not a bye either", SC.brownBye(bye, cfg, 14), false);
+  eq("picks made for a bye count for nothing", SC.brownOfWeek(bye, cfg).rows[11].picks, {});
+  eq("and pay nobody", SC.brownOfWeek(bye, cfg).rows[11].payouts, {});
+  eq("and spend nobody", SC.brownUsed(bye, cfg, 12, "kz").length, 0);
+
+  // Kevin's ruling: the bye is still paid in, and its pot doubles the next game.
+  const weekly = SC.brownWeekly(bye, cfg);
+  const rb = SC.brownOfWeek(bye, cfg).rows;
+  eq("the bye week pays out nothing itself", [rb[11].bye, rb[11].pot, rb[11].rollsOn], [true, 0, weekly]);
+  eq("the next Browns game is a double pot", rb[12].pot, weekly * 2);
+  eq("and says where the extra came from", rb[12].fromBye, [11]);
+  const dbl = JSON.parse(JSON.stringify(bye));
+  dbl.weeks[12].brown = { kz: "chubb", az: "cooper" };
+  dbl.weeks[12].brownStats = { chubb: { rushTD: 1 }, cooper: { receptions: 1 } };
+  eq("the winner takes both weeks", SC.brownOfWeek(dbl, cfg).rows[12].payouts, { kz: weekly * 2 });
+  const tie = JSON.parse(JSON.stringify(dbl)); tie.weeks[12].brown.az = "chubb";
+  eq("a tie splits the double", SC.brownOfWeek(tie, cfg).rows[12].payouts, { az: weekly, kz: weekly });
+  dbl.weeks[13] = { games: [{ id: "CLE@SF", away: "CLE", home: "SF" }], picks: {}, lms: {} };
+  eq("and the week after is back to normal", SC.brownOfWeek(dbl, cfg).rows[13].pot, weekly);
+  eq("the money tab sees the double", SC.ledger(dbl, cfg).totals.kz.brownWon, weekly * 2);
+  eq("and the buy-in still counts the bye", SC.ledger(dbl, cfg).totals.kz.buyIn, SC.ledger(t, cfg).totals.kz.buyIn);
 
   // and it reaches the money
   const led = SC.ledger(t, cfg);

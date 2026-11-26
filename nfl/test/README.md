@@ -42,6 +42,12 @@ pool. It exits non-zero on any failure, so it can gate a push.
     cutoff          picks close 10:00 Pacific Sunday, identically for a phone
                     set to Los Angeles and one set to New York, and a game that
                     kicks off earlier locks at its own kickoff
+    brown-unwatched brown of the week settles when nobody had the app open
+                    during the Browns game: the first open after it finds the
+                    game final and reads the box score (week 10's miss)
+    brown-bye       the Browns' bye: no brown pick can be made, every row
+                    says "Bye week", a pick made before still scores nothing,
+                    and the next Browns week shows the double pot
     resume          the app reloads itself for a new build and only for a new
                     build
     redirect        it moves origins only after proving the other host serves

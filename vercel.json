@@ -19,16 +19,7 @@
       ]
     },
     {
-      "source": "/nfl/(.*)",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow"
-        }
-      ]
-    },
-    {
-      "source": "/nfl",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",
